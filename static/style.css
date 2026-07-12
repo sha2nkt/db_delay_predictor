@@ -115,6 +115,9 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .leg .badge { font-size: 11px; padding: 2px 8px; }
 .leg .walk { color: var(--text-muted); font-style: italic; }
 
+.price { font-size: 18px; font-weight: 700; white-space: nowrap; }
+.price-na { font-size: 13px; font-weight: 400; color: var(--text-muted); }
+
 .book-btn {
   background: #fff; color: var(--db-red); border: 2px solid var(--db-red);
   border-radius: 4px; padding: 7px 16px; font-size: 14px; font-weight: 700;

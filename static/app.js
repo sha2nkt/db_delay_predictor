@@ -120,6 +120,13 @@ function sortedJourneys() {
       if (a.delayScore !== b.delayScore) return a.delayScore - b.delayScore;
       return (a.maxLegAvgDelay ?? 0) - (b.maxLegAvgDelay ?? 0);
     });
+  } else if (state.sort === "price") {
+    js.sort((a, b) => {
+      const aMissing = a.price == null, bMissing = b.price == null;
+      if (aMissing !== bMissing) return aMissing ? 1 : -1;  // no price last
+      if (aMissing && bMissing) return 0;
+      return a.price - b.price;  // stable sort keeps departure order on ties
+    });
   }
   return js;
 }
@@ -186,14 +193,22 @@ function render() {
     const meta = document.createElement("span");
     meta.className = "journey-meta";
     meta.textContent = `${fmtDuration(journey.durationSeconds)} · ` +
-      (transfers === 0 ? "direkt" : `${transfers} Umstieg${transfers > 1 ? "e" : ""}`) +
-      (journey.price != null ? ` · ab ${journey.price.toFixed(2).replace(".", ",")} €` : "");
+      (transfers === 0 ? "direkt" : `${transfers} Umstieg${transfers > 1 ? "e" : ""}`);
 
     const spacer = document.createElement("span");
     spacer.className = "spacer";
 
     const finalStats = trainLegs.length ? trainLegs[trainLegs.length - 1].delayStats : null;
     const badge = delayBadge(finalStats, true);
+
+    const price = document.createElement("span");
+    price.className = "price";
+    if (journey.price != null) {
+      price.textContent = `ab ${journey.price.toFixed(2).replace(".", ",")} €`;
+    } else {
+      price.classList.add("price-na");
+      price.textContent = "Preis auf bahn.de";
+    }
 
     const book = document.createElement("a");
     book.className = "book-btn";
@@ -202,7 +217,7 @@ function render() {
     book.target = "_blank";
     book.rel = "noopener";
 
-    head.append(times, meta, spacer, badge, book);
+    head.append(times, meta, spacer, badge, price, book);
     card.appendChild(head);
 
     const legsEl = document.createElement("div");

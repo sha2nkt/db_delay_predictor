@@ -10,7 +10,8 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Journey search with transfers | done | `/api/journeys` → bahn.de `/angebote/fahrplan` (POST), 1 adult 2nd class, all products |
 | Departure date/time selection | done | defaults to now; Berlin-local naive timestamps end to end |
 | Swap origin/destination | done | ⇅ button |
-| Ticket prices | done | `angebotsPreis` from bahn.de, shown per journey card |
+| Ticket prices | done | `angebotsPreis` from bahn.de; prominent per-card display, "Preis auf bahn.de" fallback when missing |
+| Sort by cheapest price | done | "Günstigster Preis" toggle; journeys without price last |
 
 ## Delay statistics
 
