@@ -68,6 +68,14 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .dropdown div { padding: 9px 12px; cursor: pointer; font-size: 14px; }
 .dropdown div:hover, .dropdown div.active { background: var(--gray-bg); }
 
+.hero-chart {
+  background: #fff; border-radius: 8px; padding: 24px 12px 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  margin-top: 20px; text-align: center;
+}
+.hero-chart img { width: 100%; max-width: 720px; height: auto; }
+.hero-chart.hidden { display: none; }
+
 .controls {
   margin: 18px 0 10px; display: flex; align-items: center; gap: 8px;
   font-size: 14px; color: var(--text-muted);

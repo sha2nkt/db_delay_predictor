@@ -77,6 +77,7 @@ async function search() {
   statusEl.textContent = "Suche Verbindungen…";
   resultsEl.innerHTML = "";
   controlsEl.classList.add("hidden");
+  document.getElementById("hero-chart").classList.add("hidden");
   searchBtn.disabled = true;
 
   try {
