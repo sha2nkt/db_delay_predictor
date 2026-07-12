@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DB Verbindungssuche mit Verspätungsstatistik</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <span class="logo">DB</span>
+    <span class="header-title">Verbindungssuche <small>mit 7-Tage-Verspätungsstatistik</small></span>
+  </div>
+</header>
+
+<main>
+  <section class="search-card">
+    <div class="field autocomplete-wrap">
+      <label for="from">Von</label>
+      <input id="from" type="text" placeholder="z.B. Berlin Hbf" autocomplete="off">
+      <div class="dropdown" id="from-dropdown"></div>
+    </div>
+    <button id="swap" type="button" title="Richtung tauschen">⇅</button>
+    <div class="field autocomplete-wrap">
+      <label for="to">Nach</label>
+      <input id="to" type="text" placeholder="z.B. München Hbf" autocomplete="off">
+      <div class="dropdown" id="to-dropdown"></div>
+    </div>
+    <div class="field field-date">
+      <label for="date">Datum</label>
+      <input id="date" type="date">
+    </div>
+    <div class="field field-time">
+      <label for="time">Uhrzeit</label>
+      <input id="time" type="time">
+    </div>
+    <button id="search" class="search-btn" type="button">Suchen</button>
+  </section>
+
+  <section id="controls" class="controls hidden">
+    <span>Sortieren:</span>
+    <button class="sort-btn active" data-sort="departure">Abfahrtszeit</button>
+    <button class="sort-btn" data-sort="delay">Wenigste Verspätung</button>
+  </section>
+
+  <section id="status" class="status"></section>
+  <section id="results"></section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

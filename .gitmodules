@@ -1,0 +1,3 @@
+[submodule "deutsche-bahn-data"]
+	path = deutsche-bahn-data
+	url = https://github.com/piebro/deutsche-bahn-data.git
