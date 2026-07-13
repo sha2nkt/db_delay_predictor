@@ -53,6 +53,7 @@ const I18N = {
     priceNa: "Preis auf bahn.de",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
+    footerOpenSource: "Open Source – Quellcode auf GitHub",
   },
   en: {
     pageTitle: "DB Connection Search with Delay Statistics",
@@ -93,6 +94,7 @@ const I18N = {
     priceNa: "Price on bahn.de",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
+    footerOpenSource: "Open source – view the code on GitHub",
   },
 };
 
