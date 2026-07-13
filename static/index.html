@@ -10,62 +10,62 @@
 <header>
   <div class="header-inner">
     <span class="logo">DB</span>
-    <span class="header-title">Verbindungssuche <small>mit Verspätungsstatistik</small></span>
+    <span class="header-title"><span data-i18n="headerTitle">Verbindungssuche</span> <small data-i18n="headerSubtitle">mit Verspätungsstatistik</small></span>
+    <div class="header-lang">
+      <button class="lang-btn active" data-lang="de">DE</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+    </div>
   </div>
 </header>
 
 <main>
   <section class="search-card">
     <div class="field autocomplete-wrap">
-      <label for="from">Von</label>
-      <input id="from" type="text" placeholder="z.B. Berlin Hbf" autocomplete="off">
+      <label for="from" data-i18n="from">Von</label>
+      <input id="from" type="text" placeholder="z.B. Berlin Hbf" data-i18n-placeholder="fromPlaceholder" autocomplete="off">
       <div class="dropdown" id="from-dropdown"></div>
     </div>
-    <button id="swap" type="button" title="Richtung tauschen">⇅</button>
+    <button id="swap" type="button" title="Richtung tauschen" data-i18n-title="swapTitle">⇅</button>
     <div class="field autocomplete-wrap">
-      <label for="to">Nach</label>
-      <input id="to" type="text" placeholder="z.B. München Hbf" autocomplete="off">
+      <label for="to" data-i18n="to">Nach</label>
+      <input id="to" type="text" placeholder="z.B. München Hbf" data-i18n-placeholder="toPlaceholder" autocomplete="off">
       <div class="dropdown" id="to-dropdown"></div>
     </div>
     <div class="field field-date">
-      <label for="date">Datum</label>
+      <label for="date" data-i18n="date">Datum</label>
       <input id="date" type="date">
     </div>
     <div class="field field-time">
-      <label for="time">Uhrzeit</label>
+      <label for="time" data-i18n="time">Uhrzeit</label>
       <input id="time" type="time">
     </div>
     <div class="field field-window">
-      <label for="window">Statistik-Zeitraum</label>
+      <label for="window" data-i18n="window">Statistik-Zeitraum</label>
       <select id="window">
-        <option value="7" selected>7 Tage</option>
-        <option value="15">15 Tage</option>
-        <option value="30">30 Tage</option>
+        <option value="7" selected data-i18n="days7">7 Tage</option>
+        <option value="15" data-i18n="days15">15 Tage</option>
+        <option value="30" data-i18n="days30">30 Tage</option>
       </select>
     </div>
-    <button id="search" class="search-btn" type="button">Suchen</button>
+    <button id="search" class="search-btn" type="button" data-i18n="search">Suchen</button>
   </section>
 
   <section id="hero-chart" class="hero-chart">
-    <div class="chart-lang">
-      <button class="lang-btn active" data-lang="de">DE</button>
-      <button class="lang-btn" data-lang="en">EN</button>
-    </div>
     <img id="chart-img" src="delay-correlation.svg"
          alt="Verspätete Züge bleiben verspätet: Züge, die vom 1.–15. Juni verspätet waren, waren es auch vom 16.–30. Juni.">
   </section>
 
   <section id="controls" class="controls hidden">
-    <span>Sortieren:</span>
-    <button class="sort-btn active" data-sort="departure">Abfahrtszeit</button>
-    <button class="sort-btn" data-sort="delay">Wenigste Verspätung</button>
-    <button class="sort-btn" data-sort="price">Günstigster Preis</button>
+    <span data-i18n="sortLabel">Sortieren:</span>
+    <button class="sort-btn active" data-sort="departure" data-i18n="sortDeparture">Abfahrtszeit</button>
+    <button class="sort-btn" data-sort="delay" data-i18n="sortDelay">Wenigste Verspätung</button>
+    <button class="sort-btn" data-sort="price" data-i18n="sortPrice">Günstigster Preis</button>
   </section>
 
   <section id="status" class="status"></section>
-  <button id="earlier" class="page-btn hidden" type="button">Frühere Verbindungen <span class="arrow">↑</span></button>
+  <button id="earlier" class="page-btn hidden" type="button"><span data-i18n="earlier">Frühere Verbindungen</span> <span class="arrow">↑</span></button>
   <section id="results"></section>
-  <button id="later" class="page-btn hidden" type="button">Spätere Verbindungen <span class="arrow">↓</span></button>
+  <button id="later" class="page-btn hidden" type="button"><span data-i18n="later">Spätere Verbindungen</span> <span class="arrow">↓</span></button>
 </main>
 <script src="app.js"></script>
 </body>

@@ -77,12 +77,13 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .hero-chart img { width: 100%; max-width: 720px; height: auto; }
 .hero-chart.hidden { display: none; }
-.chart-lang { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 4px; }
+
+.header-lang { margin-left: auto; display: flex; gap: 6px; }
 .lang-btn {
-  background: #fff; border: 1px solid var(--gray-border); border-radius: 16px;
-  padding: 4px 12px; font-size: 12px; cursor: pointer; color: var(--text);
+  background: transparent; border: 1px solid rgba(255,255,255,.6); border-radius: 16px;
+  padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #fff;
 }
-.lang-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+.lang-btn.active { background: #fff; color: var(--db-red); border-color: #fff; }
 
 .controls {
   margin: 18px 0 10px; display: flex; align-items: center; gap: 8px;

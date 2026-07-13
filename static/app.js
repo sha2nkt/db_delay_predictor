@@ -7,7 +7,125 @@ const state = {
   departure: null,  // departure ISO of the current search (reused for paging)
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
+  lang: localStorage.getItem("lang") || "de",
+  status: null,  // {key, params} of the current status message, re-rendered on lang switch
 };
+
+// --- i18n ---
+
+const I18N = {
+  de: {
+    pageTitle: "DB Verbindungssuche mit Verspätungsstatistik",
+    headerTitle: "Verbindungssuche",
+    headerSubtitle: "mit Verspätungsstatistik",
+    from: "Von",
+    to: "Nach",
+    fromPlaceholder: "z.B. Berlin Hbf",
+    toPlaceholder: "z.B. München Hbf",
+    swapTitle: "Richtung tauschen",
+    date: "Datum",
+    time: "Uhrzeit",
+    window: "Statistik-Zeitraum",
+    days7: "7 Tage",
+    days15: "15 Tage",
+    days30: "30 Tage",
+    search: "Suchen",
+    sortLabel: "Sortieren:",
+    sortDeparture: "Abfahrtszeit",
+    sortDelay: "Wenigste Verspätung",
+    sortPrice: "Günstigster Preis",
+    earlier: "Frühere Verbindungen",
+    later: "Spätere Verbindungen",
+    chartAlt: "Verspätete Züge bleiben verspätet: Züge, die vom 1.–15. Juni verspätet waren, waren es auch vom 16.–30. Juni.",
+    pickStations: "Bitte Start und Ziel aus der Vorschlagsliste wählen.",
+    searching: "Suche Verbindungen…",
+    noResults: "Keine Verbindungen gefunden.",
+    error: (msg) => `Fehler: ${msg}`,
+    noData: "keine Daten",
+    badgeDays: (matched, total) => `(${matched}/${total} Tage)`,
+    badgeTooltip: (win, max) => `Durchschnittliche Ankunftsverspätung der letzten ${win} Tage (max. +${max} min)`,
+    direct: "direkt",
+    transfers: (n) => `${n} Umstieg${n > 1 ? "e" : ""}`,
+    walk: "Fußweg",
+    train: "Zug",
+    priceFrom: (price) => `ab ${price.toFixed(2).replace(".", ",")} €`,
+    priceNa: "Preis auf bahn.de",
+    book: "Auf bahn.de buchen",
+    cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
+  },
+  en: {
+    pageTitle: "DB Connection Search with Delay Statistics",
+    headerTitle: "Connection Search",
+    headerSubtitle: "with delay statistics",
+    from: "From",
+    to: "To",
+    fromPlaceholder: "e.g. Berlin Hbf",
+    toPlaceholder: "e.g. München Hbf",
+    swapTitle: "Swap direction",
+    date: "Date",
+    time: "Time",
+    window: "Tracking period",
+    days7: "7 days",
+    days15: "15 days",
+    days30: "30 days",
+    search: "Search",
+    sortLabel: "Sort:",
+    sortDeparture: "Departure time",
+    sortDelay: "Least delay",
+    sortPrice: "Cheapest price",
+    earlier: "Earlier connections",
+    later: "Later connections",
+    chartAlt: "Delayed trains stay delayed: trains that ran late June 1–15 also ran late June 16–30.",
+    pickStations: "Please pick origin and destination from the suggestion list.",
+    searching: "Searching for connections…",
+    noResults: "No connections found.",
+    error: (msg) => `Error: ${msg}`,
+    noData: "no data",
+    badgeDays: (matched, total) => `(${matched}/${total} days)`,
+    badgeTooltip: (win, max) => `Average arrival delay over the last ${win} days (max. +${max} min)`,
+    direct: "direct",
+    transfers: (n) => `${n} transfer${n > 1 ? "s" : ""}`,
+    walk: "Walk",
+    train: "Train",
+    priceFrom: (price) => `from ${price.toFixed(2).replace(".", ",")} €`,
+    priceNa: "Price on bahn.de",
+    book: "Book on bahn.de",
+    cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
+  },
+};
+
+function t(key, ...args) {
+  const entry = I18N[state.lang][key];
+  return typeof entry === "function" ? entry(...args) : entry;
+}
+
+const chartSrc = { de: "delay-correlation.svg", en: "delay-correlation-en.svg" };
+
+function setStatus(key, ...params) {
+  state.status = key ? { key, params } : null;
+  statusEl.textContent = key ? t(key, ...params) : "";
+}
+
+function applyLang(lang) {
+  state.lang = lang;
+  localStorage.setItem("lang", lang);
+  document.documentElement.lang = lang;
+  document.title = t("pageTitle");
+
+  document.querySelectorAll(".lang-btn").forEach((b) =>
+    b.classList.toggle("active", b.dataset.lang === lang));
+
+  document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+
+  const img = document.getElementById("chart-img");
+  img.src = chartSrc[lang];
+  img.alt = t("chartAlt");
+
+  if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
+  render();
+}
 
 // --- autocomplete ---
 
@@ -101,13 +219,13 @@ function updatePageButtons() {
 
 async function search() {
   if (!state.from || !state.to) {
-    statusEl.textContent = "Bitte Start und Ziel aus der Vorschlagsliste wählen.";
+    setStatus("pickStations");
     statusEl.classList.add("error");
     return;
   }
   state.departure = `${document.getElementById("date").value}T${document.getElementById("time").value}:00`;
   statusEl.classList.remove("error");
-  statusEl.textContent = "Suche Verbindungen…";
+  setStatus("searching");
   resultsEl.innerHTML = "";
   controlsEl.classList.add("hidden");
   earlierBtn.classList.add("hidden");
@@ -120,12 +238,13 @@ async function search() {
     state.journeys = data.journeys || [];
     state.earlierRef = data.earlierRef || null;
     state.laterRef = data.laterRef || null;
-    statusEl.textContent = state.journeys.length ? "" : "Keine Verbindungen gefunden.";
+    if (state.journeys.length) setStatus(null);
+    else setStatus("noResults");
     controlsEl.classList.toggle("hidden", state.journeys.length === 0);
     updatePageButtons();
     render();
   } catch (e) {
-    statusEl.textContent = `Fehler: ${e.message}`;
+    setStatus("error", e.message);
     statusEl.classList.add("error");
   } finally {
     searchBtn.disabled = false;
@@ -159,35 +278,17 @@ async function loadPage(dir) {
     updatePageButtons();
     render();
   } catch (e) {
-    statusEl.textContent = `Fehler: ${e.message}`;
+    setStatus("error", e.message);
     statusEl.classList.add("error");
   } finally {
     btn.disabled = false;
   }
 }
 
-// --- chart language toggle ---
-
-const chartVariants = {
-  de: {
-    src: "delay-correlation.svg",
-    alt: "Verspätete Züge bleiben verspätet: Züge, die vom 1.–15. Juni verspätet waren, waren es auch vom 16.–30. Juni.",
-  },
-  en: {
-    src: "delay-correlation-en.svg",
-    alt: "Delayed trains stay delayed: trains that ran late June 1–15 also ran late June 16–30.",
-  },
-};
+// --- language toggle ---
 
 document.querySelectorAll(".lang-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".lang-btn").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    const variant = chartVariants[btn.dataset.lang];
-    const img = document.getElementById("chart-img");
-    img.src = variant.src;
-    img.alt = variant.alt;
-  });
+  btn.addEventListener("click", () => applyLang(btn.dataset.lang));
 });
 
 // --- sorting ---
@@ -240,13 +341,13 @@ function delayBadge(stats, big) {
   span.className = "badge";
   if (!stats || stats.avgDelay == null) {
     span.classList.add("gray");
-    span.textContent = "keine Daten";
+    span.textContent = t("noData");
     return span;
   }
   const v = stats.avgDelay;
   span.classList.add(v < 3 ? "green" : v < 10 ? "yellow" : "red");
-  span.innerHTML = `Ø +${v} min${big ? ` <small>(${stats.daysMatched}/${state.windowUsed} Tage)</small>` : ""}`;
-  span.title = `Durchschnittliche Ankunftsverspätung der letzten ${state.windowUsed} Tage (max. +${stats.maxDelay} min)`;
+  span.innerHTML = `Ø +${v} min${big ? ` <small>${t("badgeDays", stats.daysMatched, state.windowUsed)}</small>` : ""}`;
+  span.title = t("badgeTooltip", state.windowUsed, stats.maxDelay);
   return span;
 }
 
@@ -284,7 +385,7 @@ function render() {
     const meta = document.createElement("span");
     meta.className = "journey-meta";
     meta.textContent = `${fmtDuration(journey.durationSeconds)} · ` +
-      (transfers === 0 ? "direkt" : `${transfers} Umstieg${transfers > 1 ? "e" : ""}`);
+      (transfers === 0 ? t("direct") : t("transfers", transfers));
 
     const spacer = document.createElement("span");
     spacer.className = "spacer";
@@ -295,15 +396,15 @@ function render() {
     const price = document.createElement("span");
     price.className = "price";
     if (journey.price != null) {
-      price.textContent = `ab ${journey.price.toFixed(2).replace(".", ",")} €`;
+      price.textContent = t("priceFrom", journey.price);
     } else {
       price.classList.add("price-na");
-      price.textContent = "Preis auf bahn.de";
+      price.textContent = t("priceNa");
     }
 
     const book = document.createElement("a");
     book.className = "book-btn";
-    book.textContent = "Auf bahn.de buchen";
+    book.textContent = t("book");
     book.href = bahnDeUrl(journey);
     book.target = "_blank";
     book.rel = "noopener";
@@ -320,12 +421,12 @@ function render() {
       if (leg.walking) {
         const w = document.createElement("span");
         w.className = "walk";
-        w.textContent = `Fußweg · ${leg.origin?.name || ""} → ${leg.destination?.name || ""}`;
+        w.textContent = `${t("walk")} · ${leg.origin?.name || ""} → ${leg.destination?.name || ""}`;
         row.appendChild(w);
       } else {
         const train = document.createElement("span");
         train.className = "train";
-        train.textContent = leg.line?.name || "Zug";
+        train.textContent = leg.line?.name || t("train");
         const desc = document.createElement("span");
         desc.textContent = `${leg.origin?.name || ""} ${fmtTime(leg.plannedDeparture || leg.departure)} → ` +
           `${leg.destination?.name || ""} ${fmtTime(leg.plannedArrival || leg.arrival)}`;
@@ -339,10 +440,14 @@ function render() {
     if (canceledTotal > 0) {
       const note = document.createElement("div");
       note.className = "cancel-note";
-      note.textContent = `⚠ In den letzten ${state.windowUsed} Tagen ${canceledTotal}× (teil-)ausgefallen`;
+      note.textContent = t("cancelNote", state.windowUsed, canceledTotal);
       card.appendChild(note);
     }
 
     resultsEl.appendChild(card);
   }
 }
+
+// --- init ---
+
+applyLang(state.lang);
