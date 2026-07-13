@@ -3,6 +3,10 @@ const state = {
   to: null,
   journeys: [],
   sort: "departure",
+  windowUsed: 7,  // averaging window that produced the current results
+  departure: null,  // departure ISO of the current search (reused for paging)
+  earlierRef: null,  // paging tokens from the API
+  laterRef: null,
 };
 
 // --- autocomplete ---
@@ -63,8 +67,37 @@ const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const controlsEl = document.getElementById("controls");
 const searchBtn = document.getElementById("search");
+const earlierBtn = document.getElementById("earlier");
+const laterBtn = document.getElementById("later");
 
 searchBtn.addEventListener("click", search);
+earlierBtn.addEventListener("click", () => loadPage("earlier"));
+laterBtn.addEventListener("click", () => loadPage("later"));
+
+document.getElementById("window").addEventListener("change", () => {
+  // window is aggregated server-side: refetch, but only if results are showing
+  if (state.journeys.length && state.from && state.to) search();
+});
+
+async function fetchJourneys(pagingRef) {
+  const win = document.getElementById("window").value;
+  const params = new URLSearchParams({
+    from: state.from.id, to: state.to.id, departure: state.departure, window: win,
+  });
+  if (pagingRef) params.set("pagingRef", pagingRef);
+  const resp = await fetch(`/api/journeys?${params}`);
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(body.detail || `HTTP ${resp.status}`);
+  }
+  state.windowUsed = Number(win);
+  return resp.json();
+}
+
+function updatePageButtons() {
+  earlierBtn.classList.toggle("hidden", !state.journeys.length || !state.earlierRef);
+  laterBtn.classList.toggle("hidden", !state.journeys.length || !state.laterRef);
+}
 
 async function search() {
   if (!state.from || !state.to) {
@@ -72,25 +105,24 @@ async function search() {
     statusEl.classList.add("error");
     return;
   }
-  const departure = `${document.getElementById("date").value}T${document.getElementById("time").value}:00`;
+  state.departure = `${document.getElementById("date").value}T${document.getElementById("time").value}:00`;
   statusEl.classList.remove("error");
   statusEl.textContent = "Suche Verbindungen…";
   resultsEl.innerHTML = "";
   controlsEl.classList.add("hidden");
+  earlierBtn.classList.add("hidden");
+  laterBtn.classList.add("hidden");
   document.getElementById("hero-chart").classList.add("hidden");
   searchBtn.disabled = true;
 
   try {
-    const params = new URLSearchParams({ from: state.from.id, to: state.to.id, departure });
-    const resp = await fetch(`/api/journeys?${params}`);
-    if (!resp.ok) {
-      const body = await resp.json().catch(() => ({}));
-      throw new Error(body.detail || `HTTP ${resp.status}`);
-    }
-    const data = await resp.json();
+    const data = await fetchJourneys(null);
     state.journeys = data.journeys || [];
+    state.earlierRef = data.earlierRef || null;
+    state.laterRef = data.laterRef || null;
     statusEl.textContent = state.journeys.length ? "" : "Keine Verbindungen gefunden.";
     controlsEl.classList.toggle("hidden", state.journeys.length === 0);
+    updatePageButtons();
     render();
   } catch (e) {
     statusEl.textContent = `Fehler: ${e.message}`;
@@ -99,6 +131,64 @@ async function search() {
     searchBtn.disabled = false;
   }
 }
+
+function journeyKey(j) {
+  const legs = j.legs || [];
+  const trains = legs.filter((l) => !l.walking).map((l) => l.line?.name).join("|");
+  return `${legs[0]?.plannedDeparture}|${legs[legs.length - 1]?.plannedArrival}|${trains}`;
+}
+
+async function loadPage(dir) {
+  const ref = dir === "earlier" ? state.earlierRef : state.laterRef;
+  if (!ref) return;
+  const btn = dir === "earlier" ? earlierBtn : laterBtn;
+  btn.disabled = true;
+  statusEl.classList.remove("error");
+
+  try {
+    const data = await fetchJourneys(ref);
+    const seen = new Set(state.journeys.map(journeyKey));
+    const fresh = (data.journeys || []).filter((j) => !seen.has(journeyKey(j)));
+    if (dir === "earlier") {
+      state.journeys = [...fresh, ...state.journeys];
+      state.earlierRef = data.earlierRef || null;
+    } else {
+      state.journeys = [...state.journeys, ...fresh];
+      state.laterRef = data.laterRef || null;
+    }
+    updatePageButtons();
+    render();
+  } catch (e) {
+    statusEl.textContent = `Fehler: ${e.message}`;
+    statusEl.classList.add("error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// --- chart language toggle ---
+
+const chartVariants = {
+  de: {
+    src: "delay-correlation.svg",
+    alt: "Verspätete Züge bleiben verspätet: Züge, die vom 1.–15. Juni verspätet waren, waren es auch vom 16.–30. Juni.",
+  },
+  en: {
+    src: "delay-correlation-en.svg",
+    alt: "Delayed trains stay delayed: trains that ran late June 1–15 also ran late June 16–30.",
+  },
+};
+
+document.querySelectorAll(".lang-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".lang-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    const variant = chartVariants[btn.dataset.lang];
+    const img = document.getElementById("chart-img");
+    img.src = variant.src;
+    img.alt = variant.alt;
+  });
+});
 
 // --- sorting ---
 
@@ -155,8 +245,8 @@ function delayBadge(stats, big) {
   }
   const v = stats.avgDelay;
   span.classList.add(v < 3 ? "green" : v < 10 ? "yellow" : "red");
-  span.innerHTML = `Ø +${v} min${big ? ` <small>(${stats.daysMatched}/7 Tage)</small>` : ""}`;
-  span.title = `Durchschnittliche Ankunftsverspätung der letzten ${stats.daysMatched} Tage (max. +${stats.maxDelay} min)`;
+  span.innerHTML = `Ø +${v} min${big ? ` <small>(${stats.daysMatched}/${state.windowUsed} Tage)</small>` : ""}`;
+  span.title = `Durchschnittliche Ankunftsverspätung der letzten ${state.windowUsed} Tage (max. +${stats.maxDelay} min)`;
   return span;
 }
 
@@ -249,7 +339,7 @@ function render() {
     if (canceledTotal > 0) {
       const note = document.createElement("div");
       note.className = "cancel-note";
-      note.textContent = `⚠ In den letzten 7 Tagen ${canceledTotal}× (teil-)ausgefallen`;
+      note.textContent = `⚠ In den letzten ${state.windowUsed} Tagen ${canceledTotal}× (teil-)ausgefallen`;
       card.appendChild(note);
     }
 

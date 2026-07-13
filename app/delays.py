@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -8,17 +8,22 @@ DELAYS_PARQUET = Path(__file__).resolve().parent.parent / "data" / "delays.parqu
 BERLIN = ZoneInfo("Europe/Berlin")
 
 _conn: duckdb.DuckDBPyConnection | None = None
-_cache: dict[tuple[str, str], dict | None] = {}
+_max_day: date | None = None
+_cache: dict[tuple[str, str, int], dict | None] = {}
 
 
 def init():
-    global _conn
+    global _conn, _max_day
     if not DELAYS_PARQUET.exists():
         raise RuntimeError(
             f"{DELAYS_PARQUET} not found - run: uv run python pipeline/build_delay_db.py"
         )
     _conn = duckdb.connect()
     _conn.execute(f"CREATE TABLE delays AS SELECT * FROM read_parquet('{DELAYS_PARQUET}')")
+    _max_day = _conn.execute(
+        "SELECT max(CAST(arrival_planned_time AS DATE)) FROM delays"
+        " WHERE arrival_planned_time IS NOT NULL"
+    ).fetchone()[0]
 
 
 def pad_eva(stop_id: str) -> str:
@@ -32,14 +37,19 @@ def to_berlin_naive(iso_str: str) -> datetime:
     return dt.astimezone(BERLIN).replace(tzinfo=None)
 
 
-def leg_delay_stats(train_number: str, eva_padded: str, planned_arrival_local: datetime) -> dict | None:
-    """7-day arrival delay stats for one train at one station, or None if no data."""
+def leg_delay_stats(
+    train_number: str, eva_padded: str, planned_arrival_local: datetime, window: int = 7
+) -> dict | None:
+    """Arrival delay stats over the last `window` days for one train at one station, or None."""
+    if _max_day is None:
+        return None
     train_number = train_number.lstrip("0")
-    cache_key = (train_number, eva_padded)
+    cache_key = (train_number, eva_padded, window)
     if cache_key in _cache:
         return _cache[cache_key]
 
     tod = planned_arrival_local.strftime("%H:%M:%S")
+    cutoff = _max_day - timedelta(days=window - 1)
     row = _conn.execute(
         """
         WITH candidates AS (
@@ -53,6 +63,7 @@ def leg_delay_stats(train_number: str, eva_padded: str, planned_arrival_local: d
             FROM delays
             WHERE ltrim(train_number, '0') = ? AND eva = ?
               AND arrival_planned_time IS NOT NULL
+              AND CAST(arrival_planned_time AS DATE) >= ?
         ),
         per_day AS (
             -- one stop per calendar day: closest in time-of-day; reject same-numbered
@@ -67,7 +78,7 @@ def leg_delay_stats(train_number: str, eva_padded: str, planned_arrival_local: d
                max(arr_delay) FILTER (WHERE NOT is_canceled) AS max_delay
         FROM per_day
         """,
-        [tod, tod, train_number, eva_padded],
+        [tod, tod, train_number, eva_padded, cutoff],
     ).fetchone()
 
     days_matched, canceled_days, avg_delay, max_delay = row

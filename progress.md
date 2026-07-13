@@ -4,7 +4,7 @@ Snapshot of the current state. Update this file in place when the state changes;
 
 ## Current state (2026-07-12)
 
-MVP complete and verified end-to-end. The app runs locally: pipeline builds `data/delays.parquet` (7 full days, 2026-07-05..11, ~450k stops/day), FastAPI serves the enriched journey search, frontend renders and sorts correctly.
+MVP complete and verified end-to-end. The app runs locally: pipeline builds `data/delays.parquet` (30 full days by default, ~450k stops/day), FastAPI serves the enriched journey search, frontend renders and sorts correctly. The averaging window is user-selectable: 7, 15, or 30 days (default 7).
 
 ## Verified
 
@@ -20,12 +20,13 @@ MVP complete and verified end-to-end. The app runs locally: pipeline builds `dat
 - **Delay score = final leg's avg arrival delay** (delay at the destination), with worst-leg avg as tiebreaker/transfer-risk signal.
 - **EVA normalization**: dataset EVAs are 8-char zero-padded strings; bahn.de extIds are unpadded → `pad_eva()` in app/delays.py.
 - **Window ends yesterday** by default: today's raw uploads (every 6 h) are incomplete.
+- **Selectable averaging window (7/15/30 days)**: pipeline default is `--days 31` (30 full days, raw mirror ~4.3 GB at ~140 MB/day); `/api/journeys` takes `window` (Literal 7/15/30, default 7); `leg_delay_stats` filters `CAST(arrival_planned_time AS DATE) >= _max_day - (window-1)` — anchored to the newest day in the parquet, not now(), so stale data still yields full windows; cache keyed by `(train, eva, window)`. If the parquet holds fewer days than requested, results degrade gracefully (badge shows e.g. 7/30 Tage).
 
 ## Not done / next candidates
 
 - Scheduled daily pipeline refresh (cron/launchd); currently manual.
 - Old raw days accumulate in `data/raw_data/` (~140 MB/day); no pruning yet.
-- Later/earlier connections (pagination) and passenger/class options in search.
+- Passenger/class options in search.
 - Per-day delay breakdown in the UI (the data is there, only aggregates shown).
 - delays.py in-process cache never invalidates; fine while the server restarts after each pipeline run.
 

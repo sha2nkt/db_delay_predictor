@@ -33,7 +33,7 @@ def get_window_parquet_files(raw_dir: Path, dates: list[date]) -> list[Path]:
 
 def main():
     parser = argparse.ArgumentParser(description="Download raw DB delay data from HuggingFace and build data/delays.parquet")
-    parser.add_argument("--days", type=int, default=8, help="days of raw data to use; the oldest only catches cross-midnight trains (default: 8 = 7 full days)")
+    parser.add_argument("--days", type=int, default=31, help="days of raw data to use; the oldest only catches cross-midnight trains (default: 31 = 30 full days)")
     parser.add_argument("--end-date", type=lambda s: date.fromisoformat(s), default=None, help="last day of the window, YYYY-MM-DD (default: yesterday in Europe/Berlin)")
     parser.add_argument("--data-dir", type=Path, default=PROJECT_ROOT / "data", help="directory for raw data mirror and output parquet")
     parser.add_argument("--force", action="store_true", help="reprocess even if delays.parquet is newer than the newest raw file")

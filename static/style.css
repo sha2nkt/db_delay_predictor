@@ -39,12 +39,14 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
-.field input {
+.field input, .field select {
   border: 1px solid var(--gray-border); border-radius: 4px;
   padding: 10px 12px; font-size: 15px; min-width: 200px;
+  background: #fff; color: var(--text);
 }
 .field-date input, .field-time input { min-width: 120px; }
-.field input:focus { outline: 2px solid var(--db-red); outline-offset: -1px; }
+.field-window select { min-width: 110px; }
+.field input:focus, .field select:focus { outline: 2px solid var(--db-red); outline-offset: -1px; }
 
 #swap {
   background: #fff; border: 1px solid var(--gray-border); border-radius: 4px;
@@ -75,6 +77,12 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .hero-chart img { width: 100%; max-width: 720px; height: auto; }
 .hero-chart.hidden { display: none; }
+.chart-lang { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 4px; }
+.lang-btn {
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 16px;
+  padding: 4px 12px; font-size: 12px; cursor: pointer; color: var(--text);
+}
+.lang-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
 
 .controls {
   margin: 18px 0 10px; display: flex; align-items: center; gap: 8px;
@@ -89,6 +97,17 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 
 .status { margin: 16px 0; font-size: 14px; color: var(--text-muted); }
 .status.error { color: var(--red); }
+
+.page-btn {
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 16px; font-weight: 600; color: var(--text);
+  padding: 10px 4px; margin: 2px 0 10px;
+}
+.page-btn .arrow { color: var(--db-red); font-size: 18px; font-weight: 700; }
+.page-btn:hover { text-decoration: underline; }
+.page-btn:disabled { opacity: .5; cursor: wait; text-decoration: none; }
+.page-btn.hidden { display: none; }
 
 .journey {
   background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 12px;
@@ -137,6 +156,6 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 
 @media (max-width: 700px) {
   .search-card { flex-direction: column; align-items: stretch; }
-  .field input { min-width: 0; width: 100%; }
+  .field input, .field select { min-width: 0; width: 100%; }
   #swap { align-self: center; }
 }

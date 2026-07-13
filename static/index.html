@@ -10,7 +10,7 @@
 <header>
   <div class="header-inner">
     <span class="logo">DB</span>
-    <span class="header-title">Verbindungssuche <small>mit 7-Tage-Verspätungsstatistik</small></span>
+    <span class="header-title">Verbindungssuche <small>mit Verspätungsstatistik</small></span>
   </div>
 </header>
 
@@ -35,11 +35,23 @@
       <label for="time">Uhrzeit</label>
       <input id="time" type="time">
     </div>
+    <div class="field field-window">
+      <label for="window">Statistik-Zeitraum</label>
+      <select id="window">
+        <option value="7" selected>7 Tage</option>
+        <option value="15">15 Tage</option>
+        <option value="30">30 Tage</option>
+      </select>
+    </div>
     <button id="search" class="search-btn" type="button">Suchen</button>
   </section>
 
   <section id="hero-chart" class="hero-chart">
-    <img src="delay-correlation.svg"
+    <div class="chart-lang">
+      <button class="lang-btn active" data-lang="de">DE</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+    </div>
+    <img id="chart-img" src="delay-correlation.svg"
          alt="Verspätete Züge bleiben verspätet: Züge, die vom 1.–15. Juni verspätet waren, waren es auch vom 16.–30. Juni.">
   </section>
 
@@ -51,7 +63,9 @@
   </section>
 
   <section id="status" class="status"></section>
+  <button id="earlier" class="page-btn hidden" type="button">Frühere Verbindungen <span class="arrow">↑</span></button>
   <section id="results"></section>
+  <button id="later" class="page-btn hidden" type="button">Spätere Verbindungen <span class="arrow">↓</span></button>
 </main>
 <script src="app.js"></script>
 </body>

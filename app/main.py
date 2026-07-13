@@ -33,7 +33,7 @@ async def locations(query: str):
     ]
 
 
-def normalize_leg(abschnitt: dict) -> dict:
+def normalize_leg(abschnitt: dict, window: int) -> dict:
     vm = abschnitt.get("verkehrsmittel") or {}
     leg = {
         "walking": vm.get("typ") != "PUBLICTRANSPORT",
@@ -54,6 +54,7 @@ def normalize_leg(abschnitt: dict) -> dict:
             str(fahrt_nr),
             delays.pad_eva(str(leg["destination"]["id"])),
             delays.to_berlin_naive(leg["plannedArrival"]),
+            window=window,
         )
     return leg
 
@@ -63,9 +64,13 @@ async def journeys(
     from_id: str = Query(alias="from"),
     to_id: str = Query(alias="to"),
     departure: str = Query(),
+    window: int = Query(7),
+    paging_ref: str | None = Query(None, alias="pagingRef"),
 ):
+    if window not in (7, 15, 30):
+        raise HTTPException(422, "window must be 7, 15 or 30")
     try:
-        data = await bahn_api.journeys(from_id, to_id, departure)
+        data = await bahn_api.journeys(from_id, to_id, departure, paging_ref)
     except httpx.HTTPStatusError as e:
         raise HTTPException(502, f"bahn.de error {e.response.status_code}: {e.response.text[:300]}")
     except httpx.HTTPError as e:
@@ -73,7 +78,7 @@ async def journeys(
 
     journeys_out = []
     for verbindung in data.get("verbindungen", []):
-        legs = [normalize_leg(a) for a in verbindung.get("verbindungsAbschnitte", [])]
+        legs = [normalize_leg(a, window) for a in verbindung.get("verbindungsAbschnitte", [])]
         train_legs = [leg for leg in legs if not leg["walking"]]
         if not train_legs:
             continue
@@ -95,7 +100,8 @@ async def journeys(
             "maxLegAvgDelay": max(leg_avgs) if leg_avgs else None,
         })
 
-    return {"journeys": journeys_out}
+    ref = data.get("verbindungReference") or {}
+    return {"journeys": journeys_out, "earlierRef": ref.get("earlier"), "laterRef": ref.get("later")}
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
