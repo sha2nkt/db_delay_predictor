@@ -27,8 +27,13 @@ header { background: var(--db-red); }
   background: #fff; color: var(--db-red);
   font-weight: 800; font-size: 20px; padding: 2px 10px; border-radius: 4px;
 }
+.logo-butter {
+  height: 40px; width: auto; display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.3));
+}
 .header-title { color: #fff; font-size: 18px; font-weight: 600; }
 .header-title small { font-weight: 400; opacity: .85; }
+.tagline { display: block; font-size: 12px; font-weight: 400; font-style: italic; opacity: .8; }
 
 main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 
