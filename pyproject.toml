@@ -12,4 +12,5 @@ dependencies = [
     "pyarrow>=17.0",
     "lxml>=5.0",
     "huggingface-hub>=0.26",
+    "curl-cffi>=0.15.0",
 ]

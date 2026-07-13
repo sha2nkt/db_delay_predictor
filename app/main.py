@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import httpx
+from curl_cffi.requests.exceptions import HTTPError, RequestException
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 
@@ -14,7 +14,7 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 async def lifespan(app: FastAPI):
     delays.init()
     yield
-    await bahn_api.client.aclose()
+    await bahn_api.client.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -24,7 +24,7 @@ app = FastAPI(lifespan=lifespan)
 async def locations(query: str):
     try:
         results = await bahn_api.locations(query)
-    except httpx.HTTPError as e:
+    except RequestException as e:
         raise HTTPException(502, f"bahn.de error: {e}")
     return [
         {"id": r["id"], "extId": r["extId"], "name": r["name"]}
@@ -71,9 +71,9 @@ async def journeys(
         raise HTTPException(422, "window must be 7, 15 or 30")
     try:
         data = await bahn_api.journeys(from_id, to_id, departure, paging_ref)
-    except httpx.HTTPStatusError as e:
+    except HTTPError as e:
         raise HTTPException(502, f"bahn.de error {e.response.status_code}: {e.response.text[:300]}")
-    except httpx.HTTPError as e:
+    except RequestException as e:
         raise HTTPException(502, f"bahn.de error: {e}")
 
     journeys_out = []

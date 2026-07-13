@@ -1,7 +1,13 @@
-import httpx
+from curl_cffi import requests
 
-client = httpx.AsyncClient(
-    base_url="https://www.bahn.de/web/api",
+# bahn.de sits behind Akamai Bot Manager, which fingerprints the TLS/HTTP2
+# client (not just cookies) and returns 403 OPS_BLOCKED to plain HTTP stacks
+# like httpx/requests. curl_cffi's impersonate="chrome" reproduces a real
+# Chrome ClientHello, which passes the check with no cookie warmup needed.
+BASE_URL = "https://www.bahn.de/web/api"
+
+client = requests.AsyncSession(
+    impersonate="chrome",
     timeout=20,
     headers={"Accept": "application/json"},
 )
@@ -10,7 +16,7 @@ ALL_PRODUCTS = ["ICE", "EC_IC", "IR", "REGIONAL", "SBAHN", "BUS", "SCHIFF", "UBA
 
 
 async def locations(query: str) -> list[dict]:
-    resp = await client.get("/reiseloesung/orte", params={"suchbegriff": query, "typ": "ALL", "limit": 8})
+    resp = await client.get(f"{BASE_URL}/reiseloesung/orte", params={"suchbegriff": query, "typ": "ALL", "limit": 8})
     resp.raise_for_status()
     return resp.json()
 
@@ -41,6 +47,6 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     }
     if paging_ref:
         body["pagingReference"] = paging_ref
-    resp = await client.post("/angebote/fahrplan", json=body)
+    resp = await client.post(f"{BASE_URL}/angebote/fahrplan", json=body)
     resp.raise_for_status()
     return resp.json()
