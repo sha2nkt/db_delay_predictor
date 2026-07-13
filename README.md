@@ -35,6 +35,10 @@ Open http://localhost:8000, search a connection (e.g. Berlin Hbf → München Hb
 | `deutsche-bahn-data/` | git submodule: data collection project whose parser and dataset we reuse |
 | `data/` | gitignored: raw parquet mirror + `delays.parquet` |
 
+## Credits
+
+Historical delay data comes from [piebro/deutsche-bahn-data](https://github.com/piebro/deutsche-bahn-data) by [Piet Brömmel](https://github.com/piebro).
+
 ## Repo context for tooling and future work
 
 - `feature_list.md` — what the product does, feature by feature, with status
