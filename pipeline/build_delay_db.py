@@ -31,6 +31,16 @@ def get_window_parquet_files(raw_dir: Path, dates: list[date]) -> list[Path]:
     return sorted(parquet_files, key=sort_key)
 
 
+def prune_old_raw_days(raw_dir: Path, keep: set[date]):
+    """Delete mirrored day dirs outside the current window so the mirror doesn't grow unboundedly."""
+    for day_dir in sorted(raw_dir.glob("year=*/month=*/day=*")):
+        parts = {p.split("=")[0]: int(p.split("=")[1]) for p in day_dir.parts if "=" in p}
+        d = date(parts["year"], parts["month"], parts["day"])
+        if d not in keep:
+            shutil.rmtree(day_dir)
+            print(f"Pruned old raw day {d}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Download raw DB delay data from HuggingFace and build data/delays.parquet")
     parser.add_argument("--days", type=int, default=31, help="days of raw data to use; the oldest only catches cross-midnight trains (default: 31 = 30 full days)")
@@ -127,6 +137,7 @@ def main():
         ) TO '{output_file}' (FORMAT PARQUET)
     """)
     shutil.rmtree(temp_dir)
+    prune_old_raw_days(args.data_dir / "raw_data", set(dates))
 
     print(f"Saved {output_file}")
     duckdb.sql(f"""
