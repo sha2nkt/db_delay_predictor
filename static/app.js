@@ -8,6 +8,7 @@ const state = {
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
   lang: localStorage.getItem("lang") || "de",
+  chart: "scatter",  // which hero chart is shown: "scatter" | "violin"
   status: null,  // {key, params} of the current status message, re-rendered on lang switch
 };
 
@@ -38,6 +39,9 @@ const I18N = {
     earlier: "Frühere Verbindungen",
     later: "Spätere Verbindungen",
     chartAlt: "Verspätete Züge bleiben verspätet: Züge, die im Mai verspätet waren, waren es auch im Juni.",
+    violinAlt: "Pünktlich bleibt pünktlich, verspätet bleibt verspätet: Züge, gruppiert nach ihrer Mai-Verspätung, zeigen im Juni dieselbe Rangfolge.",
+    chartScatter: "Punktwolke",
+    chartViolin: "Verteilung",
     pickStations: "Bitte Start und Ziel aus der Vorschlagsliste wählen.",
     searching: "Suche Verbindungen…",
     noResults: "Keine Verbindungen gefunden.",
@@ -79,6 +83,9 @@ const I18N = {
     earlier: "Earlier connections",
     later: "Later connections",
     chartAlt: "Delayed trains stay delayed: trains that ran late in May also ran late in June.",
+    violinAlt: "Punctual stays punctual, late stays late: trains grouped by their May delay show the same ranking in June.",
+    chartScatter: "Scatter",
+    chartViolin: "Distribution",
     pickStations: "Please pick origin and destination from the suggestion list.",
     searching: "Searching for connections…",
     noResults: "No connections found.",
@@ -103,7 +110,17 @@ function t(key, ...args) {
   return typeof entry === "function" ? entry(...args) : entry;
 }
 
-const chartSrc = { de: "delay-correlation.svg?v=2", en: "delay-correlation-en.svg?v=2" };
+const chartSrcs = {
+  scatter: { de: "delay-correlation.svg?v=2", en: "delay-correlation-en.svg?v=2", alt: "chartAlt" },
+  violin: { de: "delay-violin.svg", en: "delay-violin-en.svg", alt: "violinAlt" },
+};
+
+function updateChartImg() {
+  const img = document.getElementById("chart-img");
+  const c = chartSrcs[state.chart];
+  img.src = c[state.lang];
+  img.alt = t(c.alt);
+}
 
 function setStatus(key, ...params) {
   state.status = key ? { key, params } : null;
@@ -123,9 +140,7 @@ function applyLang(lang) {
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
   document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); });
 
-  const img = document.getElementById("chart-img");
-  img.src = chartSrc[lang];
-  img.alt = t("chartAlt");
+  updateChartImg();
 
   if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
   render();
@@ -293,6 +308,15 @@ async function loadPage(dir) {
 
 document.querySelectorAll(".lang-btn").forEach((btn) => {
   btn.addEventListener("click", () => applyLang(btn.dataset.lang));
+});
+
+document.querySelectorAll(".chart-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".chart-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    state.chart = btn.dataset.chart;
+    updateChartImg();
+  });
 });
 
 // --- sorting ---

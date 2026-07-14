@@ -92,11 +92,13 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
   font-size: 14px; color: var(--text-muted);
 }
 .controls.hidden { display: none; }
-.sort-btn {
+.sort-btn, .chart-btn {
   background: #fff; border: 1px solid var(--gray-border); border-radius: 16px;
   padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text);
 }
-.sort-btn.active { background: var(--db-red); color: #fff; border-color: var(--db-red); }
+.sort-btn.active, .chart-btn.active { background: var(--db-red); color: #fff; border-color: var(--db-red); }
+
+.chart-toggle { display: flex; justify-content: center; gap: 8px; margin-bottom: 14px; }
 
 .status { margin: 16px 0; font-size: 14px; color: var(--text-muted); }
 .status.error { color: var(--red); }
