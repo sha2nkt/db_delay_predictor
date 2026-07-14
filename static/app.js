@@ -12,6 +12,9 @@ const state = {
   status: null,  // {key, params} of the current status message, re-rendered on lang switch
 };
 
+// no-op when the Umami script is blocked or unavailable
+const track = (name, data) => window.umami?.track(name, data);
+
 // --- i18n ---
 
 const I18N = {
@@ -243,6 +246,11 @@ async function search() {
     return;
   }
   state.departure = `${document.getElementById("date").value}T${document.getElementById("time").value}:00`;
+  track("search", {
+    from: state.from.name,
+    to: state.to.name,
+    window: Number(document.getElementById("window").value),
+  });
   statusEl.classList.remove("error");
   setStatus("searching");
   resultsEl.innerHTML = "";
@@ -307,7 +315,10 @@ async function loadPage(dir) {
 // --- language toggle ---
 
 document.querySelectorAll(".lang-btn").forEach((btn) => {
-  btn.addEventListener("click", () => applyLang(btn.dataset.lang));
+  btn.addEventListener("click", () => {
+    track("lang", { lang: btn.dataset.lang });
+    applyLang(btn.dataset.lang);
+  });
 });
 
 document.querySelectorAll(".chart-btn").forEach((btn) => {
@@ -326,6 +337,7 @@ document.querySelectorAll(".sort-btn").forEach((btn) => {
     document.querySelectorAll(".sort-btn").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     state.sort = btn.dataset.sort;
+    track("sort", { mode: state.sort });
     render();
   });
 });
@@ -436,6 +448,13 @@ function render() {
     book.href = bahnDeUrl(journey);
     book.target = "_blank";
     book.rel = "noopener";
+    book.addEventListener("click", () =>
+      track("book-bahn", {
+        from: state.from?.name,
+        to: state.to?.name,
+        price: journey.price ?? "na",
+      })
+    );
 
     head.append(times, meta, spacer, badge, price, book);
     card.appendChild(head);
