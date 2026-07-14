@@ -37,7 +37,7 @@ const I18N = {
     sortPrice: "Günstigster Preis",
     earlier: "Frühere Verbindungen",
     later: "Spätere Verbindungen",
-    chartAlt: "Verspätete Züge bleiben verspätet: Züge, die vom 1.–15. Juni verspätet waren, waren es auch vom 16.–30. Juni.",
+    chartAlt: "Verspätete Züge bleiben verspätet: Züge, die im Mai verspätet waren, waren es auch im Juni.",
     pickStations: "Bitte Start und Ziel aus der Vorschlagsliste wählen.",
     searching: "Suche Verbindungen…",
     noResults: "Keine Verbindungen gefunden.",
@@ -78,7 +78,7 @@ const I18N = {
     sortPrice: "Cheapest price",
     earlier: "Earlier connections",
     later: "Later connections",
-    chartAlt: "Delayed trains stay delayed: trains that ran late June 1–15 also ran late June 16–30.",
+    chartAlt: "Delayed trains stay delayed: trains that ran late in May also ran late in June.",
     pickStations: "Please pick origin and destination from the suggestion list.",
     searching: "Searching for connections…",
     noResults: "No connections found.",
@@ -103,7 +103,7 @@ function t(key, ...args) {
   return typeof entry === "function" ? entry(...args) : entry;
 }
 
-const chartSrc = { de: "delay-correlation.svg", en: "delay-correlation-en.svg" };
+const chartSrc = { de: "delay-correlation.svg?v=2", en: "delay-correlation-en.svg?v=2" };
 
 function setStatus(key, ...params) {
   state.status = key ? { key, params } : null;

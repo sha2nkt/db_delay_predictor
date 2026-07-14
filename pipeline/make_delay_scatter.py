@@ -1,7 +1,7 @@
-"""Generate homepage scatter SVGs (DE + EN) from the June per-train delay averages.
+"""Generate homepage scatter SVGs (DE + EN) from the May vs June per-train delay averages.
 
-Source data: monthly processed release from the HuggingFace dataset piebro/deutsche-bahn-data,
-e.g. hf_hub_download('piebro/deutsche-bahn-data', 'monthly_processed_data/data-2026-06.parquet',
+Source data: monthly processed releases from the HuggingFace dataset piebro/deutsche-bahn-data,
+e.g. hf_hub_download('piebro/deutsche-bahn-data', 'monthly_processed_data/data-2026-05.parquet',
 repo_type='dataset', local_dir='data'). Output is deterministic for a given seed.
 """
 
@@ -14,7 +14,8 @@ import numpy as np
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--parquet", default=PROJECT_ROOT / "data" / "monthly_processed_data" / "data-2026-06.parquet")
+parser.add_argument("--parquet-x", default=PROJECT_ROOT / "data" / "monthly_processed_data" / "data-2026-05.parquet")
+parser.add_argument("--parquet-y", default=PROJECT_ROOT / "data" / "monthly_processed_data" / "data-2026-06.parquet")
 parser.add_argument("--out-dir", default=PROJECT_ROOT / "static")
 parser.add_argument("--n-dots", type=int, default=1600)
 parser.add_argument("--seed", type=int, default=42)
@@ -24,17 +25,17 @@ df = duckdb.sql(f"""
     WITH events AS (
         SELECT train_type || ' ' || ltrim(train_number, '0') AS train,
                CAST(time AS DATE) AS day, delay_in_min
-        FROM read_parquet('{args.parquet}')
+        FROM read_parquet(['{args.parquet_x}', '{args.parquet_y}'])
         WHERE NOT is_canceled AND delay_in_min IS NOT NULL
           AND train_number IS NOT NULL AND train_number != ''
-          AND CAST(time AS DATE) BETWEEN DATE '2026-06-01' AND DATE '2026-06-30'
+          AND CAST(time AS DATE) BETWEEN DATE '2026-05-01' AND DATE '2026-06-30'
     )
-    SELECT avg(delay_in_min) FILTER (WHERE day <  DATE '2026-06-16') AS h1,
-           avg(delay_in_min) FILTER (WHERE day >= DATE '2026-06-16') AS h2,
-           count(*) FILTER (WHERE day <  DATE '2026-06-16') AS n1,
-           count(*) FILTER (WHERE day >= DATE '2026-06-16') AS n2
+    SELECT avg(delay_in_min) FILTER (WHERE day <  DATE '2026-06-01') AS h1,
+           avg(delay_in_min) FILTER (WHERE day >= DATE '2026-06-01') AS h2,
+           count(*) FILTER (WHERE day <  DATE '2026-06-01') AS n1,
+           count(*) FILTER (WHERE day >= DATE '2026-06-01') AS n2
     FROM events GROUP BY train
-    HAVING n1 >= 20 AND n2 >= 20
+    HAVING n1 >= 40 AND n2 >= 40
 """).df()
 
 AXIS_MAX = 12.0
@@ -75,29 +76,31 @@ trend = (f'  <line x1="{sx(0):.1f}" y1="{sy(intercept):.1f}" '
          f'x2="{sx(AXIS_MAX):.1f}" y2="{sy(slope * AXIS_MAX + intercept):.1f}" '
          f'stroke="#8f000e" stroke-width="2.5" stroke-linecap="round"/>')
 
+n_sample_de = f"{len(sample):,}".replace(",", ".")
+n_total_de = f"{len(df):,}".replace(",", ".")
 TEXTS = {
     "de": dict(
-        aria="Punktwolke: Züge, die vom 1. bis 15. Juni verspätet waren, waren auch vom 16. bis 30. Juni verspätet.",
+        aria="Punktwolke: Züge, die im Mai verspätet waren, waren auch im Juni verspätet.",
         title="Verspätete Züge bleiben verspätet.",
-        sub1="Jeder Punkt ist ein Zug. Rechts: je mehr Verspätung er vom 1.–15. Juni hatte.",
-        sub2="Oben: je mehr Verspätung derselbe Zug vom 16.–30. Juni hatte.",
-        xlab="Ø Verspätung 1.–15. Juni (Minuten)",
-        ylab="Ø Verspätung 16.–30. Juni (Minuten)",
+        sub1="Jeder Punkt ist ein Zug. Rechts: je mehr Verspätung er im Mai hatte.",
+        sub2="Oben: je mehr Verspätung derselbe Zug im Juni hatte.",
+        xlab="Ø Verspätung Mai (Minuten)",
+        ylab="Ø Verspätung Juni (Minuten)",
         corner_lo=("Pünktlich –", "bleibt pünktlich"),
         corner_hi=("Verspätet –", "bleibt verspätet"),
-        footer="Jeder Punkt = ein Zug (zufällige Auswahl von 1.600 aus 40.736) · Datenquelle: Deutsche-Bahn-Fahrplandaten (IRIS) · Juni 2026",
+        footer=f"Jeder Punkt = ein Zug (zufällige Auswahl von {n_sample_de} aus {n_total_de}) · Datenquelle: Deutsche-Bahn-Fahrplandaten (IRIS) · Mai–Juni 2026",
         fname="delay-correlation.svg",
     ),
     "en": dict(
-        aria="Scatter plot: trains that were delayed from June 1 to 15 were also delayed from June 16 to 30.",
+        aria="Scatter plot: trains that were delayed in May were also delayed in June.",
         title="Late trains stay late.",
-        sub1="Each dot is one train. Further right: the more delay it had June 1–15.",
-        sub2="Further up: the more delay the same train had June 16–30.",
-        xlab="avg delay June 1–15 (minutes)",
-        ylab="avg delay June 16–30 (minutes)",
+        sub1="Each dot is one train. Further right: the more delay it had in May.",
+        sub2="Further up: the more delay the same train had in June.",
+        xlab="avg delay May (minutes)",
+        ylab="avg delay June (minutes)",
         corner_lo=("Punctual —", "stays punctual"),
         corner_hi=("Late —", "stays late"),
-        footer="Each dot = one train (random sample of 1,600 out of 40,736) · Data: Deutsche Bahn timetable data (IRIS) · June 2026",
+        footer=f"Each dot = one train (random sample of {len(sample):,} out of {len(df):,}) · Data: Deutsche Bahn timetable data (IRIS) · May–June 2026",
         fname="delay-correlation-en.svg",
     ),
 }
