@@ -22,11 +22,10 @@ MVP complete and verified end-to-end. The app runs locally: pipeline builds `dat
 - **Window ends yesterday** by default: today's raw uploads (every 6 h) are incomplete.
 - **Selectable averaging window (7/15/30 days)**: pipeline default is `--days 31` (30 full days, raw mirror ~4.3 GB at ~140 MB/day); `/api/journeys` takes `window` (Literal 7/15/30, default 7); `leg_delay_stats` filters `CAST(arrival_planned_time AS DATE) >= _max_day - (window-1)` — anchored to the newest day in the parquet, not now(), so stale data still yields full windows; cache keyed by `(train, eva, window)`. If the parquet holds fewer days than requested, results degrade gracefully (badge shows e.g. 7/30 Tage).
 - **Site-wide DE/EN toggle (frontend only)**: header pills replace the chart-only toggle. Static text carries `data-i18n`/`data-i18n-placeholder`/`data-i18n-title` attributes; dynamic strings (status, badges, journey cards, tooltips) go through the `I18N` dict + `t()` in static/app.js. Status messages are stored as key+params so they re-render on switch; `<html lang>`, `document.title`, and the chart SVG (de/en variant) follow. Choice persists in localStorage. Data values (station names, prices, times) stay as the API returns them.
+- **Automated daily refresh**: systemd timer `delaybahn-pipeline.timer` on ps083 runs the pipeline daily at 05:30 Europe/Berlin (`Persistent=true`, up to 15 min randomized delay), then restarts `delaybahn.service` to reload the parquet. `prune_old_raw_days()` in pipeline/build_delay_db.py removes raw-mirror days outside the window after each build, keeping `data/raw_data/` a rolling ~31 days.
 
 ## Not done / next candidates
 
-- Scheduled daily pipeline refresh (cron/launchd); currently manual.
-- Old raw days accumulate in `data/raw_data/` (~140 MB/day); no pruning yet.
 - Passenger/class options in search.
 - Per-day delay breakdown in the UI (the data is there, only aggregates shown).
 - delays.py in-process cache never invalidates; fine while the server restarts after each pipeline run.

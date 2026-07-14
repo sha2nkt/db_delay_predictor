@@ -29,10 +29,10 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 
 | Feature | Status | Notes |
 |---|---|---|
-| Download raw data from HuggingFace | done | `piebro/deutsche-bahn-data` dataset, last 8 days, no API key; skips existing files |
+| Download raw data from HuggingFace | done | `piebro/deutsche-bahn-data` dataset, rolling ~31-day window, no API key; skips existing files |
 | Reprocess into per-stop delay table | done | reuses submodule parser; `data/delays.parquet` |
 | Skip-if-fresh | done | reprocess only when raw data newer than output (`--force` overrides) |
-| Scheduled daily refresh | planned | currently manual re-run; could be cron/launchd |
+| Scheduled daily refresh | done | systemd timer `delaybahn-pipeline.timer` on ps083, daily 05:30 Europe/Berlin, restarts the app service after the build |
 
 ## Booking
 
