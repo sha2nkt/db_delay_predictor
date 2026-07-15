@@ -52,6 +52,9 @@ const I18N = {
     noData: "keine Daten",
     badgeDays: (matched, total) => `(${matched}/${total} Tage)`,
     badgeTooltip: (win, max) => `Durchschnittliche Ankunftsverspätung der letzten ${win} Tage (max. +${max} min)`,
+    badgeClickHint: "Klicken für Verspätung pro Tag",
+    chartDayCaption: (win) => `Ankunftsverspätung pro Tag – letzte ${win} Tage`,
+    chartCanceled: "ausgefallen",
     direct: "direkt",
     transfers: (n) => `${n} Umstieg${n > 1 ? "e" : ""}`,
     walk: "Fußweg",
@@ -96,6 +99,9 @@ const I18N = {
     noData: "no data",
     badgeDays: (matched, total) => `(${matched}/${total} days)`,
     badgeTooltip: (win, max) => `Average arrival delay over the last ${win} days (max. +${max} min)`,
+    badgeClickHint: "Click for per-day delays",
+    chartDayCaption: (win) => `Arrival delay per day – last ${win} days`,
+    chartCanceled: "cancelled",
     direct: "direct",
     transfers: (n) => `${n} transfer${n > 1 ? "s" : ""}`,
     walk: "Walk",
@@ -377,18 +383,170 @@ function fmtDuration(seconds) {
 }
 
 function delayBadge(stats, big) {
-  const span = document.createElement("span");
-  span.className = "badge";
+  // badges with per-day data become buttons that toggle the day chart
+  const clickable = !!stats?.days?.length;
+  const el = document.createElement(clickable ? "button" : "span");
+  el.className = "badge";
+  if (clickable) el.type = "button";
   if (!stats || stats.avgDelay == null) {
-    span.classList.add("gray");
-    span.textContent = t("noData");
-    return span;
+    el.classList.add("gray");
+    el.textContent = t("noData");
+  } else {
+    const v = stats.avgDelay;
+    el.classList.add(v < 3 ? "green" : v < 10 ? "yellow" : "red");
+    el.innerHTML = `Ø +${v} min${big ? ` <small>${t("badgeDays", stats.daysMatched, state.windowUsed)}</small>` : ""}`;
+    el.title = t("badgeTooltip", state.windowUsed, stats.maxDelay);
   }
-  const v = stats.avgDelay;
-  span.classList.add(v < 3 ? "green" : v < 10 ? "yellow" : "red");
-  span.innerHTML = `Ø +${v} min${big ? ` <small>${t("badgeDays", stats.daysMatched, state.windowUsed)}</small>` : ""}`;
-  span.title = t("badgeTooltip", state.windowUsed, stats.maxDelay);
-  return span;
+  if (clickable) el.title = (el.title ? `${el.title} – ` : "") + t("badgeClickHint");
+  return el;
+}
+
+// --- per-day delay chart ---
+
+function wireDayChart(badge, stats, refEl, trainName) {
+  if (badge.tagName !== "BUTTON") return;
+  let panel = null;
+  badge.setAttribute("aria-expanded", "false");
+  badge.addEventListener("click", () => {
+    if (panel) {
+      panel.remove();
+      panel = null;
+      badge.setAttribute("aria-expanded", "false");
+      return;
+    }
+    panel = buildDayChart(stats, refEl);
+    badge.setAttribute("aria-expanded", "true");
+    track("day-chart", { train: trainName });
+  });
+}
+
+function fmtDay(iso) {
+  return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+}
+
+function svgEl(tag, attrs, text) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (text != null) el.textContent = text;
+  return el;
+}
+
+function tickStep(range) {
+  for (const s of [1, 2, 5, 10, 15, 20, 30, 60, 90, 120, 180, 240, 360]) {
+    if (range / s <= 5) return s;
+  }
+  return Math.ceil(range / 5);
+}
+
+// bar growing from the baseline: square there, 4px-rounded at the data end
+function barPath(x, w, yBase, yTip) {
+  const up = yTip < yBase;
+  const r = Math.min(4, w / 2, Math.abs(yBase - yTip));
+  const yr = up ? yTip + r : yTip - r;
+  return `M${x},${yBase} L${x},${yr} Q${x},${yTip} ${x + r},${yTip} L${x + w - r},${yTip} ` +
+    `Q${x + w},${yTip} ${x + w},${yr} L${x + w},${yBase} Z`;
+}
+
+function buildDayChart(stats, refEl) {
+  const panel = document.createElement("div");
+  panel.className = "day-chart";
+
+  const caption = document.createElement("div");
+  caption.className = "day-chart-caption";
+  const capText = t("chartDayCaption", state.windowUsed);
+  caption.appendChild(Object.assign(document.createElement("span"), { textContent: capText }));
+  if (stats.canceledDays) {
+    const legend = document.createElement("span");
+    legend.className = "day-chart-cancel";
+    legend.textContent = `✕ ${t("chartCanceled")}`;
+    caption.appendChild(legend);
+  }
+  panel.appendChild(caption);
+  refEl.insertAdjacentElement("afterend", panel);  // insert first so we can measure width
+
+  // one slot per calendar day of the window, so untracked days show as gaps
+  const byDay = new Map(stats.days.map((d) => [d.day, d]));
+  const slots = [];
+  const cursor = new Date(`${stats.windowStart}T00:00:00Z`);
+  for (let i = 0; i < 40; i++) {
+    const iso = cursor.toISOString().slice(0, 10);
+    slots.push({ iso, rec: byDay.get(iso) || null });
+    if (iso >= stats.windowEnd) break;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  const W = Math.max(320, panel.clientWidth || 640);
+  const H = 190;
+  const m = { top: 16, right: 8, bottom: 24, left: 38 };
+  const plotW = W - m.left - m.right;
+  const plotH = H - m.top - m.bottom;
+
+  const values = stats.days.map((d) => d.delay).filter((v) => v != null);
+  const step = tickStep(Math.max(5, ...values) - Math.min(0, ...values));
+  const yMax = Math.ceil(Math.max(5, ...values) / step) * step;
+  const yMin = Math.floor(Math.min(0, ...values) / step) * step;
+  const y = (v) => m.top + (plotH * (yMax - v)) / (yMax - yMin);
+
+  const svg = svgEl("svg", {
+    viewBox: `0 0 ${W} ${H}`, width: "100%", height: H, role: "img", "aria-label": capText,
+  });
+
+  for (let v = yMin; v <= yMax; v += step) {
+    svg.appendChild(svgEl("line", {
+      x1: m.left, x2: W - m.right, y1: y(v), y2: y(v),
+      stroke: v === 0 ? "#c9ced4" : "#e6eaee", "stroke-width": 1, "shape-rendering": "crispEdges",
+    }));
+    svg.appendChild(svgEl("text", {
+      x: m.left - 6, y: y(v) + 3, "text-anchor": "end", "font-size": 10, fill: "#646973",
+    }, String(v)));
+  }
+
+  const band = plotW / slots.length;
+  const barW = Math.min(24, Math.max(2, band - 2));  // 2px surface gap between bars
+  const labelEvery = slots.length <= 10 ? 1 : slots.length <= 16 ? 2 : 5;
+  const colors = { green: "#2a7230", yellow: "#b8860b", red: "#c50014" };
+
+  slots.forEach((slot, i) => {
+    const x0 = m.left + i * band;
+    const cx = x0 + band / 2;
+    const rec = slot.rec;
+
+    let title = `${fmtDay(slot.iso)} ${t("noData")}`;
+    if (rec?.canceled) {
+      title = `${fmtDay(slot.iso)} ${t("chartCanceled")}`;
+      svg.appendChild(svgEl("text", {
+        x: cx, y: y(0) - 5, "text-anchor": "middle",
+        "font-size": 13, "font-weight": 700, fill: colors.red,
+      }, "✕"));
+    } else if (rec) {
+      const v = rec.delay;
+      title = `${fmtDay(slot.iso)} ${v >= 0 ? "+" : ""}${v} min`;
+      const fill = v < 3 ? colors.green : v < 10 ? colors.yellow : colors.red;
+      if (v !== 0) {
+        svg.appendChild(svgEl("path", { d: barPath(cx - barW / 2, barW, y(0), y(v)), fill }));
+      }
+      if (slots.length <= 10) {
+        svg.appendChild(svgEl("text", {
+          x: cx, y: v >= 0 ? y(v) - 4 : y(v) + 11, "text-anchor": "middle",
+          "font-size": 10, fill: "#646973",
+        }, `${v >= 0 ? "+" : ""}${v}`));
+      }
+    }
+
+    if (i % labelEvery === 0) {
+      svg.appendChild(svgEl("text", {
+        x: cx, y: H - 8, "text-anchor": "middle", "font-size": 10, fill: "#646973",
+      }, fmtDay(slot.iso)));
+    }
+
+    // full-height hover target with a native tooltip
+    const hit = svgEl("rect", { x: x0, y: m.top, width: band, height: plotH, fill: "transparent" });
+    hit.appendChild(svgEl("title", {}, title));
+    svg.appendChild(hit);
+  });
+
+  panel.appendChild(svg);
+  return panel;
 }
 
 function bahnDeUrl(journey) {
@@ -430,8 +588,10 @@ function render() {
     const spacer = document.createElement("span");
     spacer.className = "spacer";
 
-    const finalStats = trainLegs.length ? trainLegs[trainLegs.length - 1].delayStats : null;
+    const finalLeg = trainLegs.length ? trainLegs[trainLegs.length - 1] : null;
+    const finalStats = finalLeg ? finalLeg.delayStats : null;
     const badge = delayBadge(finalStats, true);
+    if (finalStats) wireDayChart(badge, finalStats, head, finalLeg.line?.name);
 
     const price = document.createElement("span");
     price.className = "price";
@@ -477,7 +637,9 @@ function render() {
         const desc = document.createElement("span");
         desc.textContent = `${leg.origin?.name || ""} ${fmtTime(leg.plannedDeparture || leg.departure)} → ` +
           `${leg.destination?.name || ""} ${fmtTime(leg.plannedArrival || leg.arrival)}`;
-        row.append(train, desc, delayBadge(leg.delayStats, false));
+        const legBadge = delayBadge(leg.delayStats, false);
+        row.append(train, desc, legBadge);
+        if (leg.delayStats) wireDayChart(legBadge, leg.delayStats, row, leg.line?.name);
         if (leg.delayStats?.canceledDays) canceledTotal += leg.delayStats.canceledDays;
       }
       legsEl.appendChild(row);

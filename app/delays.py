@@ -50,7 +50,7 @@ def leg_delay_stats(
 
     tod = planned_arrival_local.strftime("%H:%M:%S")
     cutoff = _max_day - timedelta(days=window - 1)
-    row = _conn.execute(
+    rows = _conn.execute(
         """
         WITH candidates AS (
             SELECT CAST(arrival_planned_time AS DATE) AS day,
@@ -64,32 +64,35 @@ def leg_delay_stats(
             WHERE ltrim(train_number, '0') = ? AND eva = ?
               AND arrival_planned_time IS NOT NULL
               AND CAST(arrival_planned_time AS DATE) >= ?
-        ),
-        per_day AS (
-            -- one stop per calendar day: closest in time-of-day; reject same-numbered
-            -- trains running at a very different hour
-            SELECT DISTINCT ON (day) day, arr_delay, is_canceled
-            FROM candidates WHERE tod_diff <= 120
-            ORDER BY day, tod_diff
         )
-        SELECT count(*) AS days_matched,
-               sum(CASE WHEN is_canceled THEN 1 ELSE 0 END) AS canceled_days,
-               avg(arr_delay) FILTER (WHERE NOT is_canceled) AS avg_delay,
-               max(arr_delay) FILTER (WHERE NOT is_canceled) AS max_delay
-        FROM per_day
+        -- one stop per calendar day: closest in time-of-day; reject same-numbered
+        -- trains running at a very different hour
+        SELECT DISTINCT ON (day) day, arr_delay, is_canceled
+        FROM candidates WHERE tod_diff <= 120
+        ORDER BY day, tod_diff
         """,
         [tod, tod, train_number, eva_padded, cutoff],
-    ).fetchone()
+    ).fetchall()
 
-    days_matched, canceled_days, avg_delay, max_delay = row
-    if not days_matched:
+    if not rows:
         stats = None
     else:
+        ok_delays = [d for _, d, canceled in rows if not canceled and d is not None]
         stats = {
-            "avgDelay": round(avg_delay, 1) if avg_delay is not None else None,
-            "maxDelay": max_delay,
-            "daysMatched": days_matched,
-            "canceledDays": canceled_days or 0,
+            "avgDelay": round(sum(ok_delays) / len(ok_delays), 1) if ok_delays else None,
+            "maxDelay": max(ok_delays) if ok_delays else None,
+            "daysMatched": len(rows),
+            "canceledDays": sum(1 for _, _, canceled in rows if canceled),
+            "windowStart": cutoff.isoformat(),
+            "windowEnd": _max_day.isoformat(),
+            "days": [
+                {
+                    "day": day.isoformat(),
+                    "delay": None if canceled else delay,
+                    "canceled": bool(canceled),
+                }
+                for day, delay, canceled in rows
+            ],
         }
     _cache[cache_key] = stats
     return stats

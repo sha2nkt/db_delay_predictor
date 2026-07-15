@@ -135,6 +135,18 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .badge.gray { background: #9aa0a8; }
 .badge small { font-weight: 400; opacity: .9; }
 
+button.badge { border: none; font-family: inherit; cursor: pointer; }
+button.badge:hover { filter: brightness(1.12); }
+button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.day-chart { width: 100%; margin: 10px 0 2px; }
+.day-chart-caption {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font-size: 12px; color: var(--text-muted); margin-bottom: 4px;
+}
+.day-chart-cancel { color: var(--red); font-weight: 600; white-space: nowrap; }
+.day-chart svg { display: block; width: 100%; height: auto; }
+
 .legs { margin-top: 10px; border-top: 1px solid var(--gray-border); padding-top: 10px; }
 .leg {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
