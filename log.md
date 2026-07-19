@@ -43,3 +43,10 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - Proper fix: re-ran `build_delay_db.py` with the default 31 days → 30 full days (2026-06-14..07-13), 14.97M plan rows, 5 GB raw mirror. Verified end-to-end: `leg_delay_stats` and live `/api/journeys` both match 7/15/30 days for windows 7/15/30.
 - `build_delay_db.py` now prunes raw-mirror day dirs outside the current window after each build, so the local mirror stays a rolling ~31 days instead of growing 140 MB/day.
 - The daily `delaybahn-pipeline.timer` (05:39, set up earlier today) keeps the window full from here on; it runs with the 31-day default.
+
+## 2026-07-19 — Tight-transfer warnings, typed-station fallback, logo home link
+
+- `tight_transfers()` in app/main.py: for each pair of consecutive train legs, computes the transfer buffer (planned gap minus intermediate walking legs) and flags it when the arriving leg's median delay leaves ≤ `TRANSFER_TOLERANCE_MIN` (2) minutes; exposed per journey as `tightTransfers`. Frontend renders a red `.tight-flag` chip above the leg list (DE/EN strings).
+- `resolveTyped()` in app.js: a station typed but never picked from the dropdown now resolves via an exact case-insensitive name match against `/api/locations` before search, instead of failing with "pick stations".
+- Header logo is now a link back to `/` (clears results/params).
+- Cache-busters bumped: style.css v=6, app.js v=9 (Cloudflare edge caches static assets ~4 h).

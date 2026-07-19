@@ -2,9 +2,9 @@
 
 Snapshot of the current state. Update this file in place when the state changes; history lives in `log.md`.
 
-## Current state (2026-07-13)
+## Current state (2026-07-19)
 
-MVP complete and verified end-to-end. The app runs locally: pipeline builds `data/delays.parquet` (30 full days by default, ~450k stops/day), FastAPI serves the enriched journey search, frontend renders and sorts correctly. The averaging window is user-selectable: 7, 15, or 30 days (default 7). The UI language is switchable site-wide between German and English via a header toggle.
+Live at delaybahn.com. Pipeline builds `data/delays.parquet` (30 full days, refreshed daily by systemd timer), FastAPI serves the enriched journey search, frontend renders and sorts correctly. Delay statistics use the median (since 2026-07-19), with a per-day chart behind the delay badges. The statistics window is user-selectable: 7, 15, or 30 days (default 7). Site-wide DE/EN toggle. Newest additions (2026-07-19, implemented but not yet browser-verified): tight-transfer warnings, exact-match resolution of typed-but-not-selected station names, logo links home.
 
 ## Verified
 
@@ -17,7 +17,8 @@ MVP complete and verified end-to-end. The app runs locally: pipeline builds `dat
 
 - **bahn.de web API instead of v6.db.transport.rest**: transport.rest (planned upstream) was down (503 on v5+v6) during development. bahn.de's own web API is what db-vendo wraps anyway; it returns Berlin-local naive times (no tz conversion) and ticket prices. See log.md 2026-07-12.
 - **Arrival delay, not the dataset's `delay_in_min`**: the dataset's column prefers departure delay; passengers care about arrival. We compute `date_diff('minute', arrival_planned_time, arrival_change_time)` ourselves.
-- **Delay score = final leg's avg arrival delay** (delay at the destination), with worst-leg avg as tiebreaker/transfer-risk signal.
+- **Delay score = final leg's median arrival delay** (delay at the destination), with worst-leg median as tiebreaker/transfer-risk signal (avg → median switched 2026-07-19).
+- **Tight-transfer warning**: `tight_transfers()` in app/main.py flags transfers where the arriving leg's median delay leaves ≤ 2 min of buffer (`TRANSFER_TOLERANCE_MIN`); walking legs between trains are subtracted from the planned gap.
 - **EVA normalization**: dataset EVAs are 8-char zero-padded strings; bahn.de extIds are unpadded → `pad_eva()` in app/delays.py.
 - **Window ends yesterday** by default: today's raw uploads (every 6 h) are incomplete.
 - **Selectable averaging window (7/15/30 days)**: pipeline default is `--days 31` (30 full days, raw mirror ~4.3 GB at ~140 MB/day); `/api/journeys` takes `window` (Literal 7/15/30, default 7); `leg_delay_stats` filters `CAST(arrival_planned_time AS DATE) >= _max_day - (window-1)` — anchored to the newest day in the parquet, not now(), so stale data still yields full windows; cache keyed by `(train, eva, window)`. If the parquet holds fewer days than requested, results degrade gracefully (badge shows e.g. 7/30 Tage).
@@ -27,7 +28,7 @@ MVP complete and verified end-to-end. The app runs locally: pipeline builds `dat
 ## Not done / next candidates
 
 - Passenger/class options in search.
-- Per-day delay breakdown in the UI (the data is there, only aggregates shown).
+- Browser-verify the 2026-07-19 additions (tight-transfer flag, typed-station resolution).
 - delays.py in-process cache never invalidates; fine while the server restarts after each pipeline run.
 
 ## How to resume work
