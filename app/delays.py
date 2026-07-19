@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from statistics import median
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -79,7 +80,7 @@ def leg_delay_stats(
     else:
         ok_delays = [d for _, d, canceled in rows if not canceled and d is not None]
         stats = {
-            "avgDelay": round(sum(ok_delays) / len(ok_delays), 1) if ok_delays else None,
+            "medianDelay": round(median(ok_delays), 1) if ok_delays else None,
             "maxDelay": max(ok_delays) if ok_delays else None,
             "daysMatched": len(rows),
             "canceledDays": sum(1 for _, _, canceled in rows if canceled),

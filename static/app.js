@@ -3,7 +3,7 @@ const state = {
   to: null,
   journeys: [],
   sort: "departure",
-  windowUsed: 7,  // averaging window that produced the current results
+  windowUsed: 7,  // stats window that produced the current results
   departure: null,  // departure ISO of the current search (reused for paging)
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
@@ -51,7 +51,7 @@ const I18N = {
     error: (msg) => `Fehler: ${msg}`,
     noData: "keine Daten",
     badgeDays: (matched, total) => `(${matched}/${total} Tage)`,
-    badgeTooltip: (win, max) => `Durchschnittliche Ankunftsverspätung der letzten ${win} Tage (max. +${max} min)`,
+    badgeTooltip: (win, max) => `Mittlere Ankunftsverspätung (Median) der letzten ${win} Tage (max. +${max} min)`,
     badgeClickHint: "Klicken für Verspätung pro Tag",
     chartDayCaption: (win) => `Ankunftsverspätung pro Tag – letzte ${win} Tage`,
     chartCanceled: "ausgefallen",
@@ -98,7 +98,7 @@ const I18N = {
     error: (msg) => `Error: ${msg}`,
     noData: "no data",
     badgeDays: (matched, total) => `(${matched}/${total} days)`,
-    badgeTooltip: (win, max) => `Average arrival delay over the last ${win} days (max. +${max} min)`,
+    badgeTooltip: (win, max) => `Median arrival delay over the last ${win} days (max. +${max} min)`,
     badgeClickHint: "Click for per-day delays",
     chartDayCaption: (win) => `Arrival delay per day – last ${win} days`,
     chartCanceled: "cancelled",
@@ -356,7 +356,7 @@ function sortedJourneys() {
       if (aMissing !== bMissing) return aMissing ? 1 : -1;  // missing data last
       if (aMissing && bMissing) return 0;
       if (a.delayScore !== b.delayScore) return a.delayScore - b.delayScore;
-      return (a.maxLegAvgDelay ?? 0) - (b.maxLegAvgDelay ?? 0);
+      return (a.maxLegMedianDelay ?? 0) - (b.maxLegMedianDelay ?? 0);
     });
   } else if (state.sort === "price") {
     js.sort((a, b) => {
@@ -388,13 +388,13 @@ function delayBadge(stats, big) {
   const el = document.createElement(clickable ? "button" : "span");
   el.className = "badge";
   if (clickable) el.type = "button";
-  if (!stats || stats.avgDelay == null) {
+  if (!stats || stats.medianDelay == null) {
     el.classList.add("gray");
     el.textContent = t("noData");
   } else {
-    const v = stats.avgDelay;
+    const v = stats.medianDelay;
     el.classList.add(v < 3 ? "green" : v < 10 ? "yellow" : "red");
-    el.innerHTML = `Ø +${v} min${big ? ` <small>${t("badgeDays", stats.daysMatched, state.windowUsed)}</small>` : ""}`;
+    el.innerHTML = `+${v} min${big ? ` <small>${t("badgeDays", stats.daysMatched, state.windowUsed)}</small>` : ""}`;
     el.title = t("badgeTooltip", state.windowUsed, stats.maxDelay);
   }
   if (clickable) el.title = (el.title ? `${el.title} – ` : "") + t("badgeClickHint");

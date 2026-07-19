@@ -90,10 +90,10 @@ async def journeys(
             continue
 
         final_stats = train_legs[-1].get("delayStats")
-        leg_avgs = [
-            s["avgDelay"]
+        leg_medians = [
+            s["medianDelay"]
             for leg in train_legs
-            if (s := leg.get("delayStats")) and s["avgDelay"] is not None
+            if (s := leg.get("delayStats")) and s["medianDelay"] is not None
         ]
         price = (verbindung.get("angebotsPreis") or {}).get("betrag")
         journeys_out.append({
@@ -101,9 +101,9 @@ async def journeys(
             "transfers": verbindung.get("umstiegsAnzahl", 0),
             "durationSeconds": verbindung.get("verbindungsDauerInSeconds"),
             "price": price,
-            # headline: avg arrival delay at the passenger's destination (final leg)
-            "delayScore": final_stats["avgDelay"] if final_stats and final_stats["avgDelay"] is not None else None,
-            "maxLegAvgDelay": max(leg_avgs) if leg_avgs else None,
+            # headline: median arrival delay at the passenger's destination (final leg)
+            "delayScore": final_stats["medianDelay"] if final_stats and final_stats["medianDelay"] is not None else None,
+            "maxLegMedianDelay": max(leg_medians) if leg_medians else None,
         })
 
     ref = data.get("verbindungReference") or {}
