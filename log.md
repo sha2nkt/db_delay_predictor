@@ -57,3 +57,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - Focusing an empty Von/Nach input now suggests the last 6 searched stations under a "Letzte Suchen"/"Recent searches" label; stations are saved to localStorage (`recentStations`) on each search, deduped by id, newest first. Dropdown rendering unified into `showItems()` shared by recents and live autocomplete results.
 - Tight-transfer warning redesigned: the floated inline sentence chip is replaced by a `.tight-col` card column beside the leg list with a "Knapper Umstieg!" title and the transit time; the median-delay figure was dropped from the flag text (the per-leg badges already carry it). `.tight-flag` restyled as a left-red-border card.
 - style.css cache-buster bumped to v=12.
+
+## 2026-07-19 — Tight-transfer card: delay line + warning glyph
+
+- The tight-transfer card beside the leg list got a third line, "previous train delay: Y mins" (`tightDelay` in both languages), restoring the median-delay figure dropped in the previous redesign.
+- Card title now carries the ⚠ glyph ("⚠ Knapper Umstieg!" / "⚠ Tight transfer!"), matching the cancellation note. A brief station-name addition to the title was reverted same-session.
+- app.js cache-buster bumped to v=20.

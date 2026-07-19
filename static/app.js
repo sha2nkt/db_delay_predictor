@@ -64,8 +64,9 @@ const I18N = {
     priceNa: "Preis auf bahn.de",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
-    tightTitle: "Knapper Umstieg!",
+    tightTitle: "⚠ Knapper Umstieg!",
     tightTransit: (transfer) => `Umstiegszeit: ${transfer} min`,
+    tightDelay: (delay) => `Verspätung des vorherigen Zugs: ${delay} min`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
   },
   en: {
@@ -114,8 +115,9 @@ const I18N = {
     priceNa: "Price on bahn.de",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
-    tightTitle: "Tight transfer!",
+    tightTitle: "⚠ Tight transfer!",
     tightTransit: (transfer) => `transit time: ${transfer} mins`,
+    tightDelay: (delay) => `previous train delay: ${delay} mins`,
     footerOpenSource: "Open source – view the code on GitHub",
   },
 };
@@ -735,9 +737,11 @@ function render() {
         const title = document.createElement("div");
         title.className = "tight-title";
         title.textContent = t("tightTitle");
-        const line = document.createElement("div");
-        line.textContent = t("tightTransit", tt.transferMinutes);
-        flag.append(title, line);
+        const transit = document.createElement("div");
+        transit.textContent = t("tightTransit", tt.transferMinutes);
+        const delay = document.createElement("div");
+        delay.textContent = t("tightDelay", tt.medianDelay);
+        flag.append(title, transit, delay);
         col.appendChild(flag);
       }
       wrap.appendChild(col);
