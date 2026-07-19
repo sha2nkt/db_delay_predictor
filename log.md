@@ -51,3 +51,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - Header logo is now a link back to `/` (clears results/params).
 - Cache-busters bumped: style.css v=6, app.js v=9 (Cloudflare edge caches static assets ~4 h).
 - Shareable searches: `syncUrl()` writes fromId/from/toId/to/date/time/window into the query string via `history.replaceState` on every search; on load, matching params restore the form state and re-run the search (refresh, bookmark, shared link). app.js bumped to v=15.
+
+## 2026-07-19 — Recent-station suggestions + tight-transfer flag redesign
+
+- Focusing an empty Von/Nach input now suggests the last 6 searched stations under a "Letzte Suchen"/"Recent searches" label; stations are saved to localStorage (`recentStations`) on each search, deduped by id, newest first. Dropdown rendering unified into `showItems()` shared by recents and live autocomplete results.
+- Tight-transfer warning redesigned: the floated inline sentence chip is replaced by a `.tight-col` card column beside the leg list with a "Knapper Umstieg!" title and the transit time; the median-delay figure was dropped from the flag text (the per-leg badges already carry it). `.tight-flag` restyled as a left-red-border card.
+- style.css cache-buster bumped to v=12.

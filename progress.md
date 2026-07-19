@@ -4,7 +4,7 @@ Snapshot of the current state. Update this file in place when the state changes;
 
 ## Current state (2026-07-19)
 
-Live at delaybahn.com. Pipeline builds `data/delays.parquet` (30 full days, refreshed daily by systemd timer), FastAPI serves the enriched journey search, frontend renders and sorts correctly. Delay statistics use the median (since 2026-07-19), with a per-day chart behind the delay badges. The statistics window is user-selectable: 7, 15, or 30 days (default 7). Site-wide DE/EN toggle. Newest additions (2026-07-19, implemented but not yet browser-verified): tight-transfer warnings, exact-match resolution of typed-but-not-selected station names, shareable search URLs (query-string sync + restore), logo links home.
+Live at delaybahn.com. Pipeline builds `data/delays.parquet` (30 full days, refreshed daily by systemd timer), FastAPI serves the enriched journey search, frontend renders and sorts correctly. Delay statistics use the median (since 2026-07-19), with a per-day chart behind the delay badges. The statistics window is user-selectable: 7, 15, or 30 days (default 7). Site-wide DE/EN toggle. Newest additions (2026-07-19, implemented but not yet browser-verified): tight-transfer warnings (since redesigned as a card column beside the leg list), exact-match resolution of typed-but-not-selected station names, shareable search URLs (query-string sync + restore), logo links home, recent-station suggestions on focusing an empty input (localStorage, last 6).
 
 ## Verified
 
@@ -28,7 +28,7 @@ Live at delaybahn.com. Pipeline builds `data/delays.parquet` (30 full days, refr
 ## Not done / next candidates
 
 - Passenger/class options in search.
-- Browser-verify the 2026-07-19 additions (tight-transfer flag, typed-station resolution, shareable URLs).
+- Browser-verify the 2026-07-19 additions (tight-transfer flag, typed-station resolution, shareable URLs, recent-station suggestions).
 - delays.py in-process cache never invalidates; fine while the server restarts after each pipeline run.
 
 ## How to resume work

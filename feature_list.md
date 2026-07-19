@@ -14,6 +14,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Ticket prices | done | `angebotsPreis` from bahn.de; prominent per-card display, "Preis auf bahn.de" fallback when missing |
 | Sort by cheapest price | done | "Günstigster Preis" toggle; journeys without price last |
 | Shareable search URLs | partial | search params synced to the query string, restored (and re-searched) on load; implemented 2026-07-19, browser verification pending |
+| Recent-station suggestions | partial | focusing an empty Von/Nach input suggests the last 6 searched stations (localStorage, deduped); implemented 2026-07-19, browser verification pending |
 
 ## Delay statistics
 
@@ -23,7 +24,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Journey-level delay score | done | median arrival delay of the final train leg (= delay at the passenger's destination) |
 | Worst-leg indicator (`maxLegMedianDelay`) | done | transfer-risk signal, used as sort tiebreaker |
 | Per-day delay chart | done | per-day breakdown behind the delay badges (added 2026-07-15) |
-| Tight-transfer warning | partial | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted); implemented 2026-07-19, browser verification pending |
+| Tight-transfer warning | partial | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted); shown as a card column beside the leg list; implemented 2026-07-19, browser verification pending |
 | Cancellation tracking | done | cancelled days excluded from avg, surfaced as "N× (teil-)ausgefallen" note |
 | Honest partial coverage | done | badge shows "n/7 Tage"; no data → gray "keine Daten", never a fake 0 |
 | Color-coded badges | done | green < 3 min, yellow 3–9, red ≥ 10, gray no data |

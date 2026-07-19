@@ -64,8 +64,8 @@ const I18N = {
     priceNa: "Preis auf bahn.de",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
-    tightTransfer: (transfer, delay) =>
-      `⚠ Knapper Umstieg: ${transfer} min Umstiegszeit, vorherige Verbindung im Median +${delay} min verspätet`,
+    tightTitle: "Knapper Umstieg!",
+    tightTransit: (transfer) => `Umstiegszeit: ${transfer} min`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
   },
   en: {
@@ -114,8 +114,8 @@ const I18N = {
     priceNa: "Price on bahn.de",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
-    tightTransfer: (transfer, delay) =>
-      `⚠ Tight transfer: transit time is ${transfer} min, previous connection typically delayed +${delay} min`,
+    tightTitle: "Tight transfer!",
+    tightTransit: (transfer) => `transit time: ${transfer} mins`,
     footerOpenSource: "Open source – view the code on GitHub",
   },
 };
@@ -161,6 +161,23 @@ function applyLang(lang) {
   render();
 }
 
+// --- recent stations ---
+
+const RECENTS_KEY = "recentStations";
+const RECENTS_MAX = 6;
+
+function getRecents() {
+  try {
+    return (JSON.parse(localStorage.getItem(RECENTS_KEY)) || []).filter((s) => s?.id && s?.name);
+  } catch { return []; }
+}
+
+function saveRecent(station) {
+  const list = [{ id: station.id, name: station.name },
+    ...getRecents().filter((s) => s.id !== station.id)].slice(0, RECENTS_MAX);
+  localStorage.setItem(RECENTS_KEY, JSON.stringify(list));
+}
+
 // --- autocomplete ---
 
 function setupAutocomplete(inputId, dropdownId, key) {
@@ -168,28 +185,48 @@ function setupAutocomplete(inputId, dropdownId, key) {
   const dropdown = document.getElementById(dropdownId);
   let timer = null;
 
+  function showItems(items, recent) {
+    dropdown.innerHTML = "";
+    if (recent && items.length) {
+      const label = document.createElement("div");
+      label.className = "dropdown-label";
+      label.textContent = t("recentLabel");
+      dropdown.appendChild(label);
+    }
+    items.forEach((item) => {
+      const div = document.createElement("div");
+      div.textContent = item.name;
+      div.addEventListener("mousedown", () => {
+        state[key] = item;
+        input.value = item.name;
+        dropdown.classList.remove("open");
+      });
+      dropdown.appendChild(div);
+    });
+    dropdown.classList.toggle("open", items.length > 0);
+  }
+
+  function showRecents() {
+    if (input.value.trim() === "") showItems(getRecents(), true);
+  }
+
+  input.addEventListener("focus", showRecents);
+
   input.addEventListener("input", () => {
     state[key] = null;
     clearTimeout(timer);
     const q = input.value.trim();
-    if (q.length < 2) { dropdown.classList.remove("open"); return; }
+    if (q.length < 2) {
+      dropdown.classList.remove("open");
+      if (q === "") showRecents();
+      return;
+    }
     timer = setTimeout(async () => {
       try {
         const resp = await fetch(`/api/locations?query=${encodeURIComponent(q)}`);
         if (!resp.ok) return;
         const items = await resp.json();
-        dropdown.innerHTML = "";
-        items.forEach((item) => {
-          const div = document.createElement("div");
-          div.textContent = item.name;
-          div.addEventListener("mousedown", () => {
-            state[key] = item;
-            input.value = item.name;
-            dropdown.classList.remove("open");
-          });
-          dropdown.appendChild(div);
-        });
-        dropdown.classList.toggle("open", items.length > 0);
+        showItems(items, false);
       } catch { /* network hiccup: ignore */ }
     }, 250);
   });
@@ -288,6 +325,8 @@ async function search() {
     statusEl.classList.add("error");
     return;
   }
+  saveRecent(state.from);
+  saveRecent(state.to);
   state.departure = `${document.getElementById("date").value}T${document.getElementById("time").value}:00`;
   syncUrl();
   track("search", {
@@ -659,12 +698,6 @@ function render() {
 
     const legsEl = document.createElement("div");
     legsEl.className = "legs";
-    for (const tt of journey.tightTransfers || []) {
-      const flag = document.createElement("span");
-      flag.className = "tight-flag";
-      flag.textContent = t("tightTransfer", tt.transferMinutes, tt.medianDelay);
-      legsEl.appendChild(flag);
-    }
     let canceledTotal = 0;
     legs.forEach((leg, i) => {
       const row = document.createElement("div");
@@ -688,7 +721,28 @@ function render() {
       }
       legsEl.appendChild(row);
     });
-    card.appendChild(legsEl);
+
+    const wrap = document.createElement("div");
+    wrap.className = "legs-wrap";
+    wrap.appendChild(legsEl);
+    const tights = journey.tightTransfers || [];
+    if (tights.length) {
+      const col = document.createElement("div");
+      col.className = "tight-col";
+      for (const tt of tights) {
+        const flag = document.createElement("div");
+        flag.className = "tight-flag";
+        const title = document.createElement("div");
+        title.className = "tight-title";
+        title.textContent = t("tightTitle");
+        const line = document.createElement("div");
+        line.textContent = t("tightTransit", tt.transferMinutes);
+        flag.append(title, line);
+        col.appendChild(flag);
+      }
+      wrap.appendChild(col);
+    }
+    card.appendChild(wrap);
 
     if (canceledTotal > 0) {
       const note = document.createElement("div");
