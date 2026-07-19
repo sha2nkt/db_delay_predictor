@@ -63,6 +63,8 @@ const I18N = {
     priceNa: "Preis auf bahn.de",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
+    tightTransfer: (transfer, delay) =>
+      `⚠ Knapper Umstieg: ${transfer} min Umstiegszeit, vorherige Verbindung im Median +${delay} min verspätet`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
   },
   en: {
@@ -110,6 +112,8 @@ const I18N = {
     priceNa: "Price on bahn.de",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
+    tightTransfer: (transfer, delay) =>
+      `⚠ Tight transfer: transit time is ${transfer} min, previous connection typically delayed +${delay} min`,
     footerOpenSource: "Open source – view the code on GitHub",
   },
 };
@@ -621,8 +625,14 @@ function render() {
 
     const legsEl = document.createElement("div");
     legsEl.className = "legs";
+    for (const tt of journey.tightTransfers || []) {
+      const flag = document.createElement("span");
+      flag.className = "tight-flag";
+      flag.textContent = t("tightTransfer", tt.transferMinutes, tt.medianDelay);
+      legsEl.appendChild(flag);
+    }
     let canceledTotal = 0;
-    for (const leg of legs) {
+    legs.forEach((leg, i) => {
       const row = document.createElement("div");
       row.className = "leg";
       if (leg.walking) {
@@ -643,7 +653,7 @@ function render() {
         if (leg.delayStats?.canceledDays) canceledTotal += leg.delayStats.canceledDays;
       }
       legsEl.appendChild(row);
-    }
+    });
     card.appendChild(legsEl);
 
     if (canceledTotal > 0) {

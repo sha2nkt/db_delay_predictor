@@ -65,6 +65,45 @@ def normalize_leg(abschnitt: dict, window: int) -> dict:
     return leg
 
 
+# minutes of slack that must remain after the median delay for a transfer to count as safe
+TRANSFER_TOLERANCE_MIN = 2
+
+
+def tight_transfers(legs: list[dict]) -> list[dict]:
+    """Transfers where the arriving leg's median delay leaves <= TRANSFER_TOLERANCE_MIN
+    minutes to reach the next train (walking legs in between eat into the buffer)."""
+    out = []
+    train_idx = [i for i, leg in enumerate(legs) if not leg["walking"]]
+    for a, b in zip(train_idx, train_idx[1:]):
+        prev, nxt = legs[a], legs[b]
+        stats = prev.get("delayStats")
+        if not stats or stats["medianDelay"] is None:
+            continue
+        if not prev["plannedArrival"] or not nxt["plannedDeparture"]:
+            continue
+        gap_min = (
+            delays.to_berlin_naive(nxt["plannedDeparture"])
+            - delays.to_berlin_naive(prev["plannedArrival"])
+        ).total_seconds() / 60
+        walk_min = sum(
+            (
+                delays.to_berlin_naive(w["plannedArrival"])
+                - delays.to_berlin_naive(w["plannedDeparture"])
+            ).total_seconds() / 60
+            for w in legs[a + 1 : b]
+            if w["plannedArrival"] and w["plannedDeparture"]
+        )
+        transfer_min = gap_min - walk_min
+        if transfer_min - stats["medianDelay"] <= TRANSFER_TOLERANCE_MIN:
+            out.append({
+                "station": prev["destination"]["name"],
+                "legIndex": a,  # index of the arriving leg in `legs`
+                "transferMinutes": max(0, round(transfer_min)),
+                "medianDelay": stats["medianDelay"],
+            })
+    return out
+
+
 @app.get("/api/journeys")
 async def journeys(
     from_id: str = Query(alias="from"),
@@ -104,6 +143,7 @@ async def journeys(
             # headline: median arrival delay at the passenger's destination (final leg)
             "delayScore": final_stats["medianDelay"] if final_stats and final_stats["medianDelay"] is not None else None,
             "maxLegMedianDelay": max(leg_medians) if leg_medians else None,
+            "tightTransfers": tight_transfers(legs),
         })
 
     ref = data.get("verbindungReference") or {}
