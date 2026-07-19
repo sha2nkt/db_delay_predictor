@@ -249,7 +249,26 @@ function updatePageButtons() {
   laterBtn.classList.toggle("hidden", !state.journeys.length || !state.laterRef);
 }
 
+async function resolveTyped(key) {
+  // Typed but not picked from the dropdown: accept an exact name match.
+  if (state[key]) return;
+  const input = document.getElementById(key);
+  const q = input.value.trim();
+  if (q.length < 2) return;
+  try {
+    const resp = await fetch(`/api/locations?query=${encodeURIComponent(q)}`);
+    if (!resp.ok) return;
+    const items = await resp.json();
+    const match = items.find((it) => it.name.toLowerCase() === q.toLowerCase());
+    if (match) {
+      state[key] = match;
+      input.value = match.name;
+    }
+  } catch { /* network hiccup: leave unresolved */ }
+}
+
 async function search() {
+  await Promise.all([resolveTyped("from"), resolveTyped("to")]);
   if (!state.from || !state.to) {
     setStatus("pickStations");
     statusEl.classList.add("error");
