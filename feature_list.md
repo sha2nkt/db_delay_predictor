@@ -13,6 +13,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Swap origin/destination | done | ⇅ button |
 | Ticket prices | done | `angebotsPreis` from bahn.de; prominent per-card display, "Preis auf bahn.de" fallback when missing |
 | Sort by cheapest price | done | "Günstigster Preis" toggle; journeys without price last |
+| Shareable search URLs | partial | search params synced to the query string, restored (and re-searched) on load; implemented 2026-07-19, browser verification pending |
 
 ## Delay statistics
 

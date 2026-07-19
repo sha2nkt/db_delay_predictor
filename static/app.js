@@ -45,6 +45,7 @@ const I18N = {
     violinAlt: "Pünktlich bleibt pünktlich, verspätet bleibt verspätet: Züge, gruppiert nach ihrer Mai-Verspätung, zeigen im Juni dieselbe Rangfolge.",
     chartScatter: "Punktwolke",
     chartViolin: "Verteilung",
+    recentLabel: "Letzte Suchen",
     pickStations: "Bitte Start und Ziel aus der Vorschlagsliste wählen.",
     searching: "Suche Verbindungen…",
     noResults: "Keine Verbindungen gefunden.",
@@ -94,6 +95,7 @@ const I18N = {
     violinAlt: "Punctual stays punctual, late stays late: trains grouped by their May delay show the same ranking in June.",
     chartScatter: "Scatter",
     chartViolin: "Distribution",
+    recentLabel: "Recent searches",
     pickStations: "Please pick origin and destination from the suggestion list.",
     searching: "Searching for connections…",
     noResults: "No connections found.",
@@ -267,6 +269,18 @@ async function resolveTyped(key) {
   } catch { /* network hiccup: leave unresolved */ }
 }
 
+function syncUrl() {
+  // keep the search in the URL so refresh/bookmark/share restores the results
+  const params = new URLSearchParams({
+    fromId: state.from.id, from: state.from.name,
+    toId: state.to.id, to: state.to.name,
+    date: document.getElementById("date").value,
+    time: document.getElementById("time").value,
+    window: document.getElementById("window").value,
+  });
+  history.replaceState(null, "", `?${params}`);
+}
+
 async function search() {
   await Promise.all([resolveTyped("from"), resolveTyped("to")]);
   if (!state.from || !state.to) {
@@ -275,6 +289,7 @@ async function search() {
     return;
   }
   state.departure = `${document.getElementById("date").value}T${document.getElementById("time").value}:00`;
+  syncUrl();
   track("search", {
     from: state.from.name,
     to: state.to.name,
@@ -689,3 +704,16 @@ function render() {
 // --- init ---
 
 applyLang(state.lang);
+
+// restore a search from the URL (refresh, bookmark, shared link)
+const qp = new URLSearchParams(location.search);
+if (qp.get("fromId") && qp.get("toId")) {
+  state.from = { id: qp.get("fromId"), name: qp.get("from") || "" };
+  state.to = { id: qp.get("toId"), name: qp.get("to") || "" };
+  document.getElementById("from").value = state.from.name;
+  document.getElementById("to").value = state.to.name;
+  if (qp.get("date")) document.getElementById("date").value = qp.get("date");
+  if (qp.get("time")) document.getElementById("time").value = qp.get("time");
+  if (["7", "15", "30"].includes(qp.get("window"))) document.getElementById("window").value = qp.get("window");
+  search();
+}
