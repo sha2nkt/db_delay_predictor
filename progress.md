@@ -2,9 +2,9 @@
 
 Snapshot of the current state. Update this file in place when the state changes; history lives in `log.md`.
 
-## Current state (2026-07-19)
+## Current state (2026-07-20)
 
-Live at delaybahn.com. Pipeline builds `data/delays.parquet` (30 full days, refreshed daily by systemd timer), FastAPI serves the enriched journey search, frontend renders and sorts correctly. Delay statistics use the median (since 2026-07-19), with a per-day chart behind the delay badges. The statistics window is user-selectable: 7, 15, or 30 days (default 7). Site-wide DE/EN toggle. Newest additions (2026-07-19, implemented but not yet browser-verified): tight-transfer warnings (since redesigned as a card column beside the leg list titled "⚠ Tight transfer!", showing transit time and the previous train's median delay), exact-match resolution of typed-but-not-selected station names, shareable search URLs (query-string sync + restore), logo links home, recent-station suggestions on focusing an empty input (localStorage, last 6).
+Live at delaybahn.com. Pipeline builds `data/delays.parquet` (30 full days, refreshed daily by systemd timer), FastAPI serves the enriched journey search, frontend renders and sorts correctly. Delay statistics use the median (since 2026-07-19), with a per-day chart behind the delay badges. The statistics window is user-selectable: 7, 15, or 30 days (default 7). Site-wide DE/EN toggle. Newest additions (2026-07-19/20, implemented but not yet browser-verified): tight-transfer warnings (since 2026-07-20 an inline red strip under the affected leg row: "⚠ Knapper Umstieg: X min Umstiegszeit – dieser Zug kommt typischerweise +Y min verspätet an"), exact-match resolution of typed-but-not-selected station names, shareable search URLs (query-string sync + restore), logo links home, recent-station suggestions on focusing an empty input (localStorage, last 6).
 
 ## Verified
 

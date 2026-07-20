@@ -63,3 +63,10 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - The tight-transfer card beside the leg list got a third line, "previous train delay: Y mins" (`tightDelay` in both languages), restoring the median-delay figure dropped in the previous redesign.
 - Card title now carries the ⚠ glyph ("⚠ Knapper Umstieg!" / "⚠ Tight transfer!"), matching the cancellation note. A brief station-name addition to the title was reverted same-session.
 - app.js cache-buster bumped to v=20.
+
+## 2026-07-20 — Tight-transfer warning moved inline under the leg row
+
+- The tight-transfer card column beside the leg list (`.legs-wrap`/`.tight-col`/`.tight-flag`) is replaced by an inline `.leg-tight` strip rendered directly under the affected leg row, keyed by `tightTransfers[].legIndex`. Single-sentence text: "⚠ Knapper Umstieg: X min Umstiegszeit – dieser Zug kommt typischerweise +Y min verspätet an" (DE/EN); the separate `tightTransit`/`tightDelay` strings collapsed into one `tightDetail`.
+- Styling: left-red-border strip matching the previous flag's palette; the mobile `.legs-wrap` column stacking rule is gone with the wrapper.
+- Cache-busters bumped: style.css v=14, app.js v=21.
+- `.claude/settings.json` (pre-commit docs hook) now committed; `.claude/settings.local.json` gitignored.

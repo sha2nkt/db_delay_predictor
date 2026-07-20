@@ -64,9 +64,8 @@ const I18N = {
     priceNa: "Preis auf bahn.de",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
-    tightTitle: "⚠ Knapper Umstieg!",
-    tightTransit: (transfer) => `Umstiegszeit: ${transfer} min`,
-    tightDelay: (delay) => `Verspätung des vorherigen Zugs: ${delay} min`,
+    tightTitle: "Knapper Umstieg:",
+    tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
   },
   en: {
@@ -115,9 +114,8 @@ const I18N = {
     priceNa: "Price on bahn.de",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
-    tightTitle: "⚠ Tight transfer!",
-    tightTransit: (transfer) => `transit time: ${transfer} mins`,
-    tightDelay: (delay) => `previous train delay: ${delay} mins`,
+    tightTitle: "Tight transfer:",
+    tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
     footerOpenSource: "Open source – view the code on GitHub",
   },
 };
@@ -700,6 +698,7 @@ function render() {
 
     const legsEl = document.createElement("div");
     legsEl.className = "legs";
+    const tightByLeg = new Map((journey.tightTransfers || []).map((tt) => [tt.legIndex, tt]));
     let canceledTotal = 0;
     legs.forEach((leg, i) => {
       const row = document.createElement("div");
@@ -722,31 +721,17 @@ function render() {
         if (leg.delayStats?.canceledDays) canceledTotal += leg.delayStats.canceledDays;
       }
       legsEl.appendChild(row);
-    });
-
-    const wrap = document.createElement("div");
-    wrap.className = "legs-wrap";
-    wrap.appendChild(legsEl);
-    const tights = journey.tightTransfers || [];
-    if (tights.length) {
-      const col = document.createElement("div");
-      col.className = "tight-col";
-      for (const tt of tights) {
-        const flag = document.createElement("div");
-        flag.className = "tight-flag";
-        const title = document.createElement("div");
-        title.className = "tight-title";
-        title.textContent = t("tightTitle");
-        const transit = document.createElement("div");
-        transit.textContent = t("tightTransit", tt.transferMinutes);
-        const delay = document.createElement("div");
-        delay.textContent = t("tightDelay", tt.medianDelay);
-        flag.append(title, transit, delay);
-        col.appendChild(flag);
+      const tt = tightByLeg.get(i);
+      if (tt) {
+        const warn = document.createElement("div");
+        warn.className = "leg-tight";
+        const lead = document.createElement("strong");
+        lead.textContent = `⚠ ${t("tightTitle")}`;
+        warn.append(lead, document.createTextNode(" " + t("tightDetail", tt.transferMinutes, tt.medianDelay)));
+        legsEl.appendChild(warn);
       }
-      wrap.appendChild(col);
-    }
-    card.appendChild(wrap);
+    });
+    card.appendChild(legsEl);
 
     if (canceledTotal > 0) {
       const note = document.createElement("div");
