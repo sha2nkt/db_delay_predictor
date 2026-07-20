@@ -29,15 +29,23 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Honest partial coverage | done | badge shows "n/7 Tage"; no data → gray "keine Daten", never a fake 0 |
 | Color-coded badges | done | green < 3 min, yellow 3–9, red ≥ 10, gray no data |
 | Sort by least delay | done | missing-data journeys last; ties broken by worst leg |
+| Swiss delay coverage | done | official istdaten v2 daily files; 31-day history from day one; all operators feeding SBB customer info (SBB/BLS/RhB/SOB verified) |
+| French delay coverage | done | SNCF GTFS-RT poller + 35-day mirror backfill; TGV/Ouigo/TER/Intercités; "actual" = last realtime projection before arrival |
+| Austrian delay coverage | planned | no per-stop open data; ÖBB HAFAS (Scotty) board polling is the identified path |
 
 ## Data pipeline
 
 | Feature | Status | Notes |
 |---|---|---|
 | Download raw data from HuggingFace | done | `piebro/deutsche-bahn-data` dataset, rolling ~31-day window, no API key; skips existing files |
-| Reprocess into per-stop delay table | done | reuses submodule parser; `data/delays.parquet` |
+| Reprocess into per-stop delay table | done | reuses submodule parser; now writes `data/de/delays.parquet` (`--output`) |
+| Swiss daily ingest | done | `build_ch_days.py`: scrapes the CKAN page for the rotating download URL, filters trains, per-day parquets, catch-up + prune |
+| French 24/7 poller + consolidation | partial | `fr_poller.py` (running from session; systemd unit pending deploy) → `consolidate_fr.py` rewrites last 2 start_dates daily |
+| French history backfill | done | `backfill_fr.py` from mirror.traines.eu tarballs (resumable, skip-if-exists); re-run later for seam days 07-19/20 |
+| SNCF-UIC → DB-EVA crosswalk | done | `build_fr_crosswalk.py` → committed `config/fr_uic_to_eva.json` (3472/3534 stations; trainline seed + bahn.de `i=U×` token match) |
+| Country merge | done | `merge_delays.py`: eva-prefix partition (080/085/087) + global last-midnight cut; tolerant of missing sources |
 | Skip-if-fresh | done | reprocess only when raw data newer than output (`--force` overrides) |
-| Scheduled daily refresh | done | systemd timer `delaybahn-pipeline.timer` on ps083, daily 05:30 Europe/Berlin, restarts the app service after the build |
+| Scheduled daily refresh | partial | timer unchanged (05:30); pipeline unit must be updated to the 4-step DE→CH→FR→merge flow (deploy pending) |
 
 ## Booking
 
@@ -52,3 +60,6 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 - Walking legs and vehicles without a train number (some buses) get no badge.
 - Journey search covers what bahn.de returns (6 results per query, no pagination yet).
 - bahn.de web API is unofficial and could change without notice.
+- France: Trenitalia France and other non-SNCF operators are absent from the feed; "actual" times are the last realtime projection, not measured; poller downtime creates permanent holes for those hours.
+- Switzerland: GESCHAETZT (estimated) actuals are accepted alongside REAL; foreign stops of international trains carry no Swiss actuals (each country's own source covers its own stations).
+- Austria not covered yet — Austrian legs show "keine Daten" as before.

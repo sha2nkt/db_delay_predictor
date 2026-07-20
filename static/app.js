@@ -67,6 +67,7 @@ const I18N = {
     tightTitle: "Knapper Umstieg:",
     tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
+    footerData: "Verspätungsdaten:",
   },
   en: {
     pageTitle: "DB Connection Search with Delay Statistics",
@@ -117,6 +118,7 @@ const I18N = {
     tightTitle: "Tight transfer:",
     tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
     footerOpenSource: "Open source – view the code on GitHub",
+    footerData: "Delay data:",
   },
 };
 

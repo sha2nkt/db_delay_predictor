@@ -46,6 +46,7 @@ def main():
     parser.add_argument("--days", type=int, default=31, help="days of raw data to use; the oldest only catches cross-midnight trains (default: 31 = 30 full days)")
     parser.add_argument("--end-date", type=lambda s: date.fromisoformat(s), default=None, help="last day of the window, YYYY-MM-DD (default: yesterday in Europe/Berlin)")
     parser.add_argument("--data-dir", type=Path, default=PROJECT_ROOT / "data", help="directory for raw data mirror and output parquet")
+    parser.add_argument("--output", type=Path, default=None, help="output parquet path (default: <data-dir>/de/delays.parquet)")
     parser.add_argument("--force", action="store_true", help="reprocess even if delays.parquet is newer than the newest raw file")
     args = parser.parse_args()
 
@@ -56,7 +57,8 @@ def main():
     window_end = end_date + timedelta(days=1)
 
     args.data_dir.mkdir(parents=True, exist_ok=True)
-    output_file = args.data_dir / "delays.parquet"
+    output_file = args.output or args.data_dir / "de" / "delays.parquet"
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Window: {window_start} .. {end_date} (downloading {len(dates)} days incl. boundary day)")
     snapshot_download(

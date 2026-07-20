@@ -13,4 +13,6 @@ dependencies = [
     "lxml>=5.0",
     "huggingface-hub>=0.26",
     "curl-cffi>=0.15.0",
+    "gtfs-realtime-bindings>=2.1.0",
+    "brotli>=1.2.0",
 ]
