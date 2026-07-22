@@ -81,3 +81,8 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - Deps: gtfs-realtime-bindings, brotli. Frontend: footer got a data-attribution line (DB IRIS · opentransportdata.swiss — contractually required · SNCF/ODbL), `footerData` i18n key, cache-busters app.js v=22 / style.css v=15.
 - Verified E2E on :8001 against the merged parquet (DE 14.0M + CH 4.3M + FR 2.2M rows): Zürich→Bern IC/IR 7/7 days; Paris→Lyon TGVs matched (weekday-variant 5/7) incl. a med=25 red badge; Paris Est→Zürich shows stats on every leg (TGV + TER + IC). Window anchor confirmed 2026-07-19 23:59 across sources; app RSS 5.4 GB vs 3.4 GB before (123 GB box). Multi-agent review: 3 confirmed findings, all fixed (midnight cut, cancellation marker propagation, dead incremental_vacuum pragma).
 - Deploy (systemd, needs sudo): replace `delaybahn-pipeline.service` with the 4-step DE→CH→FR→merge flow (`-` prefixes tolerate per-country failure) and install+enable new `delaybahn-fr-poller.service`.
+
+## 2026-07-22 — "Unlikely transfer" variant of the tight-transfer warning
+
+- `tight_transfers()` entries now carry an `unlikely` flag: true when the arriving leg's median delay exceeds the transfer time by more than `UNLIKELY_EXCESS_MIN` (30) minutes. The frontend then renders "⛔ Unwahrscheinlicher Umstieg:" / "⛔ Unlikely transfer:" instead of "⚠ Knapper Umstieg:" / "⚠ Tight transfer:"; detail text and strip styling unchanged.
+- app.js cache-buster bumped to v=23.

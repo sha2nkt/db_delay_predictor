@@ -67,6 +67,8 @@ def normalize_leg(abschnitt: dict, window: int) -> dict:
 
 # minutes of slack that must remain after the median delay for a transfer to count as safe
 TRANSFER_TOLERANCE_MIN = 2
+# median delay exceeding the transfer time by more than this makes the transfer unlikely
+UNLIKELY_EXCESS_MIN = 30
 
 
 def tight_transfers(legs: list[dict]) -> list[dict]:
@@ -100,6 +102,7 @@ def tight_transfers(legs: list[dict]) -> list[dict]:
                 "legIndex": a,  # index of the arriving leg in `legs`
                 "transferMinutes": max(0, round(transfer_min)),
                 "medianDelay": stats["medianDelay"],
+                "unlikely": stats["medianDelay"] - transfer_min > UNLIKELY_EXCESS_MIN,
             })
     return out
 

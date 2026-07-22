@@ -65,6 +65,7 @@ const I18N = {
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
     tightTitle: "Knapper Umstieg:",
+    unlikelyTitle: "Unwahrscheinlicher Umstieg:",
     tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
     footerData: "Verspätungsdaten:",
@@ -116,6 +117,7 @@ const I18N = {
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
     tightTitle: "Tight transfer:",
+    unlikelyTitle: "Unlikely transfer:",
     tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
     footerOpenSource: "Open source – view the code on GitHub",
     footerData: "Delay data:",
@@ -728,7 +730,7 @@ function render() {
         const warn = document.createElement("div");
         warn.className = "leg-tight";
         const lead = document.createElement("strong");
-        lead.textContent = `⚠ ${t("tightTitle")}`;
+        lead.textContent = tt.unlikely ? `⛔ ${t("unlikelyTitle")}` : `⚠ ${t("tightTitle")}`;
         warn.append(lead, document.createTextNode(" " + t("tightDetail", tt.transferMinutes, tt.medianDelay)));
         legsEl.appendChild(warn);
       }
