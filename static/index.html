@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>delaybahn.com – DB Verbindungssuche mit Verspätungsstatistik</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=17">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -22,6 +22,11 @@
 
 <main>
   <section class="search-card">
+    <div id="past-banner" class="past-banner">
+      <strong data-i18n="pastTitle">Verspätungs-Check für vergangene Reisen</strong>
+      <span class="past-coverage"><span data-i18n="pastCoverageLabel">Daten verfügbar:</span> <span id="past-coverage"></span></span>
+      <button id="past-exit" class="past-exit" type="button" data-i18n="pastExit">← Zur Verbindungssuche</button>
+    </div>
     <div class="field autocomplete-wrap">
       <label for="from" data-i18n="from">Von</label>
       <input id="from" type="text" placeholder="z.B. Berlin Hbf" data-i18n-placeholder="fromPlaceholder" autocomplete="off">
@@ -52,6 +57,11 @@
     <button id="search" class="search-btn" type="button" data-i18n="search">Suchen</button>
   </section>
 
+  <button id="refund-cta" class="refund-cta" type="button">
+    <strong data-i18n="refundCtaTitle">Über 1 Stunde Verspätung gehabt?</strong>
+    <span data-i18n="refundCtaSub">Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks</span>
+  </button>
+
   <section id="hero-chart" class="hero-chart">
     <div class="chart-toggle">
       <button class="chart-btn active" type="button" data-chart="scatter" data-i18n="chartScatter">Punktwolke</button>
@@ -72,6 +82,7 @@
   <button id="earlier" class="page-btn hidden" type="button"><span data-i18n="earlier">Frühere Verbindungen</span> <span class="arrow">↑</span></button>
   <section id="results"></section>
   <button id="later" class="page-btn hidden" type="button"><span data-i18n="later">Spätere Verbindungen</span> <span class="arrow">↓</span></button>
+  <p id="past-disclaimer" class="past-disclaimer hidden" data-i18n="pastDisclaimer">Entschädigung nach EU-Fahrgastrechten: 25 % des Ticketpreises ab 60 min, 50 % ab 120 min Verspätung am Ziel. Auszahlung ab 4 €. Angezeigte Verspätungen basieren auf unseren aufgezeichneten Daten – maßgeblich ist die tatsächliche Ankunft.</p>
 </main>
 <footer class="site-footer">
   <a href="https://github.com/sha2nkt/db_delay_predictor" target="_blank" rel="noopener" data-i18n="footerOpenSource">Open Source – Quellcode auf GitHub</a>
@@ -82,6 +93,6 @@
     <a href="https://transport.data.gouv.fr/datasets/horaires-sncf" target="_blank" rel="noopener">SNCF via transport.data.gouv.fr (ODbL)</a>
   </p>
 </footer>
-<script src="app.js?v=25"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

@@ -10,7 +10,14 @@ const state = {
   lang: localStorage.getItem("lang") || "de",
   chart: "scatter",  // which hero chart is shown: "scatter" | "violin"
   status: null,  // {key, params} of the current status message, re-rendered on lang switch
+  mode: "future",  // "future" = delay forecast, "past" = compensation check for a past journey
+  coverage: null,  // {minDay, maxDay} of the local delay data, fetched on demand
 };
+
+// DB digital compensation flow lives in the customer account's past-trips list
+const CLAIM_URL = "https://www.bahn.de/buchung/reiseuebersicht/vergangene";
+// fallback for tickets not bought via a bahn.de account
+const CLAIM_FORM_URL = "https://www.bahn.de/fahrgastrechte";
 
 // no-op when the Umami script is blocked or unavailable
 const track = (name, data) => window.umami?.track(name, data);
@@ -71,6 +78,27 @@ const I18N = {
     tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
     footerData: "Verspätungsdaten:",
+    refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
+    refundCtaSub: "Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks",
+    pastTitle: "Verspätungs-Check für vergangene Reisen",
+    pastCoverageLabel: "Daten verfügbar:",
+    pastExit: "← Zur Verbindungssuche",
+    searchPast: "Reise prüfen",
+    dateOutOfRange: (a, b) => `Verspätungsdaten sind nur für Reisen vom ${a} bis ${b} verfügbar.`,
+    thatDayTooltip: "Tatsächliche Ankunftsverspätung an diesem Tag",
+    claimPct: (pct) => `${pct} % zurückholen →`,
+    claimNone: "Keine Entschädigung (unter 60 min)",
+    claimCanceled: "Ausgefallen – Anspruch prüfen →",
+    claimMissed: "Anschluss verpasst – Anspruch prüfen →",
+    claimSteps: "Auf bahn.de: einloggen → Reise auswählen → Entschädigung beantragen.",
+    claimAltPre: "Ticket nicht im DB-Konto?",
+    claimAltLink: "Zum Fahrgastrechte-Formular",
+    missedBadge: "⛔ Anschluss verpasst",
+    missedLegBadge: "verpasst",
+    simContinuation: "↳ Tatsächliche Weiterfahrt mit der nächsten möglichen Verbindung:",
+    simBadgeTooltip: "Simulierte Verspätung am Ziel – verpasste Anschlüsse und tatsächliche Weiterfahrt berücksichtigt",
+    simIncomplete: "Keine Ersatzverbindung in den Daten gefunden – tatsächliche Ankunft unbekannt",
+    pastDisclaimer: "Entschädigung nach EU-Fahrgastrechten: 25 % des Ticketpreises ab 60 min, 50 % ab 120 min Verspätung am Ziel. Auszahlung ab 4 €. Angezeigte Verspätungen basieren auf unseren aufgezeichneten Daten – maßgeblich ist die tatsächliche Ankunft.",
   },
   en: {
     pageTitle: "DB Connection Search with Delay Statistics",
@@ -125,6 +153,27 @@ const I18N = {
     tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
     footerOpenSource: "Open source – view the code on GitHub",
     footerData: "Delay data:",
+    refundCtaTitle: "Hit by over 1 hour of delay?",
+    refundCtaSub: "Get your money back from DB in 3 easy clicks",
+    pastTitle: "Delay check for past journeys",
+    pastCoverageLabel: "Data available:",
+    pastExit: "← Back to connection search",
+    searchPast: "Check my journey",
+    dateOutOfRange: (a, b) => `Delay data is only available for journeys from ${a} to ${b}.`,
+    thatDayTooltip: "Actual arrival delay on this day",
+    claimPct: (pct) => `Get ${pct}% back →`,
+    claimNone: "No compensation (under 60 min)",
+    claimCanceled: "Cancelled – check your claim →",
+    claimMissed: "Missed connection – check your claim →",
+    claimSteps: "On bahn.de: log in → select your trip → request compensation.",
+    claimAltPre: "Ticket not in your DB account?",
+    claimAltLink: "Use the passenger rights form",
+    missedBadge: "⛔ Missed connection",
+    missedLegBadge: "missed",
+    simContinuation: "↳ Actual onward journey with the next possible connection:",
+    simBadgeTooltip: "Simulated delay at destination – missed connections and the actual onward journey taken into account",
+    simIncomplete: "No replacement connection found in the data – actual arrival unknown",
+    pastDisclaimer: "Compensation under EU passenger rights: 25% of the ticket price from 60 min, 50% from 120 min delay at your destination. Paid out from €4. Shown delays are based on our recorded data – the actual arrival is authoritative.",
   },
 };
 
@@ -276,11 +325,67 @@ document.getElementById("window").addEventListener("change", () => {
   if (state.journeys.length && state.from && state.to) search();
 });
 
+// --- past mode (compensation check) ---
+
+function fmtDateFull(iso) {
+  return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
+}
+
+async function ensureCoverage() {
+  if (state.coverage) return;
+  try {
+    const resp = await fetch("/api/coverage");
+    if (resp.ok) state.coverage = await resp.json();
+  } catch { /* no coverage info: skip client-side date bounds */ }
+}
+
+async function setMode(mode) {
+  if (state.mode === mode) return;
+  state.mode = mode;
+  document.body.classList.toggle("past-mode", mode === "past");
+  state.journeys = [];
+  state.earlierRef = state.laterRef = null;
+  resultsEl.innerHTML = "";
+  controlsEl.classList.add("hidden");
+  earlierBtn.classList.add("hidden");
+  laterBtn.classList.add("hidden");
+  document.getElementById("past-disclaimer").classList.add("hidden");
+  statusEl.classList.remove("error");
+  setStatus(null);
+  searchBtn.dataset.i18n = mode === "past" ? "searchPast" : "search";
+  searchBtn.textContent = t(searchBtn.dataset.i18n);
+  const dateEl = document.getElementById("date");
+  if (mode === "past") {
+    document.getElementById("hero-chart").classList.add("hidden");
+    await ensureCoverage();
+    if (state.coverage?.minDay) {
+      dateEl.min = state.coverage.minDay;
+      dateEl.max = state.coverage.maxDay;
+      if (dateEl.value < dateEl.min || dateEl.value > dateEl.max) dateEl.value = state.coverage.maxDay;
+      document.getElementById("past-coverage").textContent =
+        `${fmtDateFull(state.coverage.minDay)} – ${fmtDateFull(state.coverage.maxDay)}`;
+    }
+  } else {
+    document.getElementById("hero-chart").classList.remove("hidden");
+    dateEl.min = "";
+    dateEl.max = "";
+    dateEl.value = new Date().toISOString().slice(0, 10);
+  }
+}
+
+document.getElementById("refund-cta").addEventListener("click", () => {
+  track("refund-cta");
+  setMode("past");
+  document.getElementById("from").focus();
+});
+document.getElementById("past-exit").addEventListener("click", () => setMode("future"));
+
 async function fetchJourneys(pagingRef) {
   const win = document.getElementById("window").value;
   const params = new URLSearchParams({
     from: state.from.id, to: state.to.id, departure: state.departure, window: win,
   });
+  if (state.mode === "past") params.set("mode", "past");
   if (pagingRef) params.set("pagingRef", pagingRef);
   const resp = await fetch(`/api/journeys?${params}`);
   if (!resp.ok) {
@@ -323,6 +428,7 @@ function syncUrl() {
     time: document.getElementById("time").value,
     window: document.getElementById("window").value,
   });
+  if (state.mode === "past") params.set("mode", "past");
   history.replaceState(null, "", `?${params}`);
 }
 
@@ -335,12 +441,22 @@ async function search() {
   }
   saveRecent(state.from);
   saveRecent(state.to);
+  if (state.mode === "past") {
+    await ensureCoverage();
+    const day = document.getElementById("date").value;
+    if (state.coverage?.minDay && (day < state.coverage.minDay || day > state.coverage.maxDay)) {
+      setStatus("dateOutOfRange", fmtDateFull(state.coverage.minDay), fmtDateFull(state.coverage.maxDay));
+      statusEl.classList.add("error");
+      return;
+    }
+  }
   state.departure = `${document.getElementById("date").value}T${document.getElementById("time").value}:00`;
   syncUrl();
   track("search", {
     from: state.from.name,
     to: state.to.name,
     window: Number(document.getElementById("window").value),
+    mode: state.mode,
   });
   statusEl.classList.remove("error");
   setStatus("searching");
@@ -359,6 +475,8 @@ async function search() {
     if (state.journeys.length) setStatus(null);
     else setStatus("noResults");
     controlsEl.classList.toggle("hidden", state.journeys.length === 0);
+    document.getElementById("past-disclaimer").classList.toggle(
+      "hidden", !(state.mode === "past" && state.journeys.length));
     updatePageButtons();
     render();
   } catch (e) {
@@ -436,14 +554,18 @@ document.querySelectorAll(".sort-btn").forEach((btn) => {
 function sortedJourneys() {
   const js = [...state.journeys];
   if (state.sort === "delay") {
-    const unlikely = (j) => (j.tightTransfers || []).some((tt) => tt.unlikely);
+    const past = state.mode === "past";
+    const score = (j) => (past ? j.arrivalDelay : j.delayScore);
+    // past mode: simulated arrivalDelay already reflects missed connections;
+    // journeys whose outcome stayed unknown have a null score and sort last
+    const unlikely = (j) => (past ? false : (j.tightTransfers || []).some((tt) => tt.unlikely));
     js.sort((a, b) => {
-      const aMissing = a.delayScore == null, bMissing = b.delayScore == null;
+      const aMissing = score(a) == null, bMissing = score(b) == null;
       if (aMissing !== bMissing) return aMissing ? 1 : -1;  // missing data last
       if (aMissing && bMissing) return 0;
       const aUnlikely = unlikely(a), bUnlikely = unlikely(b);
       if (aUnlikely !== bUnlikely) return aUnlikely ? 1 : -1;  // likely-missed connections after reliable ones
-      if (a.delayScore !== b.delayScore) return a.delayScore - b.delayScore;
+      if (score(a) !== score(b)) return score(a) - score(b);
       return (a.maxLegMedianDelay ?? 0) - (b.maxLegMedianDelay ?? 0);
     });
   } else if (state.sort === "price") {
@@ -487,6 +609,65 @@ function delayBadge(stats, big) {
   }
   if (clickable) el.title = (el.title ? `${el.title} – ` : "") + t("badgeClickHint");
   return el;
+}
+
+// past mode: badge for a concrete delay value in minutes
+function delayValueBadge(v, title) {
+  const el = document.createElement("span");
+  el.className = `badge ${v < 3 ? "green" : v < 10 ? "yellow" : "red"}`;
+  el.textContent = `${v >= 0 ? "+" : ""}${v} min`;
+  if (title) el.title = title;
+  return el;
+}
+
+// past mode: the actual delay of one leg on the searched day
+function exactDelayBadge(d) {
+  if (d && !d.canceled) return delayValueBadge(d.delayMin, t("thatDayTooltip"));
+  const el = document.createElement("span");
+  el.className = "badge";
+  if (!d) {
+    el.classList.add("gray");
+    el.textContent = t("noData");
+  } else {
+    el.classList.add("red");
+    el.textContent = t("chartCanceled");
+  }
+  return el;
+}
+
+// one leg row (train or walk); struck = leg was missed in the simulated journey
+function buildLegRow(leg, past, struck) {
+  const row = document.createElement("div");
+  row.className = "leg";
+  if (leg.walking) {
+    const w = document.createElement("span");
+    w.className = "walk";
+    w.textContent = `${t("walk")} · ${leg.origin?.name || ""} → ${leg.destination?.name || ""}`;
+    row.appendChild(w);
+    return row;
+  }
+  const train = document.createElement("span");
+  train.className = "train";
+  train.textContent = leg.line?.name || t("train");
+  const desc = document.createElement("span");
+  desc.className = "leg-desc";
+  desc.textContent = `${leg.origin?.name || ""} ${fmtTime(leg.plannedDeparture || leg.departure)} → ` +
+    `${leg.destination?.name || ""} ${fmtTime(leg.plannedArrival || leg.arrival)}`;
+  let badge;
+  if (struck) {
+    badge = document.createElement("span");
+    if (leg.delayOnDate?.canceled) {
+      badge.className = "badge red";
+      badge.textContent = t("chartCanceled");
+    } else {
+      badge.className = "badge gray";
+      badge.textContent = t("missedLegBadge");
+    }
+  } else {
+    badge = past ? exactDelayBadge(leg.delayOnDate) : delayBadge(leg.delayStats, false);
+  }
+  row.append(train, desc, badge);
+  return row;
 }
 
 // --- per-day delay chart ---
@@ -664,9 +845,19 @@ function render() {
     const head = document.createElement("div");
     head.className = "journey-head";
 
+    const sim = state.mode === "past" ? journey.simulation : null;
     const times = document.createElement("span");
     times.className = "journey-times";
-    times.textContent = `${fmtTime(first.plannedDeparture)} → ${fmtTime(last.plannedArrival)}`;
+    if (sim?.actualArrival) {
+      // planned arrival is struck out, the simulated actual arrival follows
+      times.append(
+        document.createTextNode(`${fmtTime(first.plannedDeparture)} → `),
+        Object.assign(document.createElement("s"), { textContent: fmtTime(last.plannedArrival) }),
+        document.createTextNode(` ${fmtTime(sim.actualArrival)}`),
+      );
+    } else {
+      times.textContent = `${fmtTime(first.plannedDeparture)} → ${fmtTime(last.plannedArrival)}`;
+    }
 
     const meta = document.createElement("span");
     meta.className = "journey-meta";
@@ -676,73 +867,132 @@ function render() {
     const spacer = document.createElement("span");
     spacer.className = "spacer";
 
+    const past = state.mode === "past";
     const finalLeg = trainLegs.length ? trainLegs[trainLegs.length - 1] : null;
-    const finalStats = finalLeg ? finalLeg.delayStats : null;
-    const unlikelyTts = (journey.tightTransfers || []).filter((tt) => tt.unlikely);
+    const missed = past && (journey.missedTransfers || []).length > 0;
     let badge;
-    if (unlikelyTts.length) {
-      // final-leg stats are meaningless if an earlier connection is likely missed
-      badge = document.createElement("span");
-      badge.className = "badge red";
-      badge.textContent = t("unlikelyBadge");
-      badge.title = t("unlikelyBadgeTooltip", unlikelyTts.map((tt) => tt.station).join(", "));
+    if (past) {
+      if (sim && journey.arrivalDelay != null) {
+        // simulated delay at the destination, replacement connections included
+        badge = delayValueBadge(journey.arrivalDelay, t("simBadgeTooltip"));
+      } else if (missed) {
+        // connection missed and no replacement found: arrival unknown
+        badge = document.createElement("span");
+        badge.className = "badge red";
+        badge.textContent = t("missedBadge");
+        badge.title = (journey.missedTransfers || []).map((mt) => mt.station).join(", ");
+      } else {
+        badge = exactDelayBadge(finalLeg?.delayOnDate);
+      }
     } else {
-      badge = delayBadge(finalStats, true);
-      if (finalStats) wireDayChart(badge, finalStats, head, finalLeg.line?.name);
+      const finalStats = finalLeg ? finalLeg.delayStats : null;
+      const unlikelyTts = (journey.tightTransfers || []).filter((tt) => tt.unlikely);
+      if (unlikelyTts.length) {
+        // final-leg stats are meaningless if an earlier connection is likely missed
+        badge = document.createElement("span");
+        badge.className = "badge red";
+        badge.textContent = t("unlikelyBadge");
+        badge.title = t("unlikelyBadgeTooltip", unlikelyTts.map((tt) => tt.station).join(", "));
+      } else {
+        badge = delayBadge(finalStats, true);
+        if (finalStats) wireDayChart(badge, finalStats, head, finalLeg.line?.name);
+      }
     }
 
-    const price = document.createElement("span");
-    price.className = "price";
-    if (journey.price != null) {
-      price.textContent = t("priceFrom", journey.price);
+    let claimable = false;
+    if (past) {
+      const pct = journey.compensationPct;
+      // with a completed simulation pct reflects the realistic arrival; the
+      // cancelled/missed wordings only apply when the outcome stayed unknown
+      const canceledish = journey.arrivalCanceled
+        || (journey.missedTransfers || []).some((mt) => mt.canceled);
+      claimable = (pct != null && pct >= 25) || (pct == null && (canceledish || missed));
+      let action;
+      if (claimable) {
+        action = document.createElement("a");
+        action.className = "claim-btn";
+        action.textContent = pct != null && pct >= 25 ? t("claimPct", pct)
+          : canceledish ? t("claimCanceled")
+          : t("claimMissed");
+        action.href = CLAIM_URL;
+        action.target = "_blank";
+        action.rel = "noopener";
+        action.addEventListener("click", () =>
+          track("claim-db", {
+            from: state.from?.name,
+            to: state.to?.name,
+            pct: pct ?? "na",
+            canceled: journey.arrivalCanceled,
+            missed,
+          })
+        );
+      } else {
+        action = document.createElement("span");
+        action.className = "claim-none";
+        action.textContent = pct === 0 ? t("claimNone") : t("noData");
+      }
+      head.append(times, meta, spacer, badge, action);
     } else {
-      price.classList.add("price-na");
-      price.textContent = t("priceNa");
+      const price = document.createElement("span");
+      price.className = "price";
+      if (journey.price != null) {
+        price.textContent = t("priceFrom", journey.price);
+      } else {
+        price.classList.add("price-na");
+        price.textContent = t("priceNa");
+      }
+
+      const book = document.createElement("a");
+      book.className = "book-btn";
+      book.textContent = t("book");
+      book.href = bahnDeUrl(journey);
+      book.target = "_blank";
+      book.rel = "noopener";
+      book.addEventListener("click", () =>
+        track("book-bahn", {
+          from: state.from?.name,
+          to: state.to?.name,
+          price: journey.price ?? "na",
+        })
+      );
+
+      head.append(times, meta, spacer, badge, price, book);
     }
-
-    const book = document.createElement("a");
-    book.className = "book-btn";
-    book.textContent = t("book");
-    book.href = bahnDeUrl(journey);
-    book.target = "_blank";
-    book.rel = "noopener";
-    book.addEventListener("click", () =>
-      track("book-bahn", {
-        from: state.from?.name,
-        to: state.to?.name,
-        price: journey.price ?? "na",
-      })
-    );
-
-    head.append(times, meta, spacer, badge, price, book);
     card.appendChild(head);
+
+    if (claimable) {
+      const hint = document.createElement("div");
+      hint.className = "claim-row";
+      const alt = document.createElement("a");
+      alt.href = CLAIM_FORM_URL;
+      alt.target = "_blank";
+      alt.rel = "noopener";
+      alt.textContent = t("claimAltLink");
+      hint.append(
+        document.createTextNode(`${t("claimSteps")} ${t("claimAltPre")} `), alt);
+      card.appendChild(hint);
+    }
 
     const legsEl = document.createElement("div");
     legsEl.className = "legs";
-    const tightByLeg = new Map((journey.tightTransfers || []).map((tt) => [tt.legIndex, tt]));
+    // future mode only: in past mode the struck-out legs already carry
+    // missed/cancelled badges, so no extra warning strip
+    const warnByLeg = past
+      ? new Map()
+      : new Map((journey.tightTransfers || []).map((tt) => [tt.legIndex, tt]));
     let canceledTotal = 0;
+    const missedAt = sim ? sim.missedAtLegIndex : null;
     legs.forEach((leg, i) => {
-      const row = document.createElement("div");
-      row.className = "leg";
-      if (leg.walking) {
-        const w = document.createElement("span");
-        w.className = "walk";
-        w.textContent = `${t("walk")} · ${leg.origin?.name || ""} → ${leg.destination?.name || ""}`;
-        row.appendChild(w);
-      } else {
-        const train = document.createElement("span");
-        train.className = "train";
-        train.textContent = leg.line?.name || t("train");
-        const desc = document.createElement("span");
-        desc.textContent = `${leg.origin?.name || ""} ${fmtTime(leg.plannedDeparture || leg.departure)} → ` +
-          `${leg.destination?.name || ""} ${fmtTime(leg.plannedArrival || leg.arrival)}`;
-        const legBadge = delayBadge(leg.delayStats, false);
-        row.append(train, desc, legBadge);
+      const struck = missedAt != null && i >= missedAt;
+      const row = buildLegRow(leg, past, struck);
+      if (struck) row.classList.add("leg-missed");
+      if (!past && !leg.walking) {
+        const legBadge = row.querySelector(".badge");
         if (leg.delayStats) wireDayChart(legBadge, leg.delayStats, row, leg.line?.name);
         if (leg.delayStats?.canceledDays) canceledTotal += leg.delayStats.canceledDays;
       }
       legsEl.appendChild(row);
-      const tt = tightByLeg.get(i);
+      const tt = warnByLeg.get(i);
       if (tt) {
         const warn = document.createElement("div");
         warn.className = "leg-tight";
@@ -752,6 +1002,21 @@ function render() {
         legsEl.appendChild(warn);
       }
     });
+    if (sim) {
+      if (sim.legs?.length) {
+        const contHead = document.createElement("div");
+        contHead.className = "leg-continuation";
+        contHead.textContent = t("simContinuation");
+        legsEl.appendChild(contHead);
+        sim.legs.forEach((leg) => legsEl.appendChild(buildLegRow(leg, true, false)));
+      }
+      if (sim.incomplete) {
+        const note = document.createElement("div");
+        note.className = "sim-note";
+        note.textContent = t("simIncomplete");
+        legsEl.appendChild(note);
+      }
+    }
     card.appendChild(legsEl);
 
     if (canceledTotal > 0) {
@@ -771,13 +1036,17 @@ applyLang(state.lang);
 
 // restore a search from the URL (refresh, bookmark, shared link)
 const qp = new URLSearchParams(location.search);
-if (qp.get("fromId") && qp.get("toId")) {
-  state.from = { id: qp.get("fromId"), name: qp.get("from") || "" };
-  state.to = { id: qp.get("toId"), name: qp.get("to") || "" };
-  document.getElementById("from").value = state.from.name;
-  document.getElementById("to").value = state.to.name;
-  if (qp.get("date")) document.getElementById("date").value = qp.get("date");
-  if (qp.get("time")) document.getElementById("time").value = qp.get("time");
-  if (["7", "15", "30"].includes(qp.get("window"))) document.getElementById("window").value = qp.get("window");
-  search();
-}
+(async () => {
+  if (qp.get("mode") === "past") await setMode("past");
+  if (qp.get("fromId") && qp.get("toId")) {
+    state.from = { id: qp.get("fromId"), name: qp.get("from") || "" };
+    state.to = { id: qp.get("toId"), name: qp.get("to") || "" };
+    document.getElementById("from").value = state.from.name;
+    document.getElementById("to").value = state.to.name;
+    // date after setMode so a restored past date wins over the coverage clamp
+    if (qp.get("date")) document.getElementById("date").value = qp.get("date");
+    if (qp.get("time")) document.getElementById("time").value = qp.get("time");
+    if (["7", "15", "30"].includes(qp.get("window"))) document.getElementById("window").value = qp.get("window");
+    search();
+  }
+})();

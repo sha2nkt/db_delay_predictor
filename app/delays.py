@@ -10,21 +10,28 @@ BERLIN = ZoneInfo("Europe/Berlin")
 
 _conn: duckdb.DuckDBPyConnection | None = None
 _max_day: date | None = None
+_min_day: date | None = None
 _cache: dict[tuple[str, str, int], dict | None] = {}
+_date_cache: dict[tuple[str, str, date], dict | None] = {}
+_dep_date_cache: dict[tuple[str, str, date], dict | None] = {}
 
 
 def init():
-    global _conn, _max_day
+    global _conn, _max_day, _min_day
     if not DELAYS_PARQUET.exists():
         raise RuntimeError(
             f"{DELAYS_PARQUET} not found - run: uv run python pipeline/build_delay_db.py"
         )
     _conn = duckdb.connect()
     _conn.execute(f"CREATE TABLE delays AS SELECT * FROM read_parquet('{DELAYS_PARQUET}')")
-    _max_day = _conn.execute(
-        "SELECT max(CAST(arrival_planned_time AS DATE)) FROM delays"
-        " WHERE arrival_planned_time IS NOT NULL"
-    ).fetchone()[0]
+    _min_day, _max_day = _conn.execute(
+        "SELECT min(CAST(arrival_planned_time AS DATE)), max(CAST(arrival_planned_time AS DATE))"
+        " FROM delays WHERE arrival_planned_time IS NOT NULL"
+    ).fetchone()
+
+
+def coverage() -> tuple[date | None, date | None]:
+    return _min_day, _max_day
 
 
 def pad_eva(stop_id: str) -> str:
@@ -97,3 +104,93 @@ def leg_delay_stats(
         }
     _cache[cache_key] = stats
     return stats
+
+
+def leg_delay_on_date(
+    train_number: str, eva_padded: str, planned_arrival_local: datetime
+) -> dict | None:
+    """Exact arrival delay for one train at one station on one specific day, or None
+    if that day has no matching observation. Same train/station/time-of-day matching
+    as leg_delay_stats, restricted to the planned arrival's calendar date."""
+    if _max_day is None:
+        return None
+    train_number = train_number.lstrip("0")
+    day = planned_arrival_local.date()
+    cache_key = (train_number, eva_padded, day)
+    if cache_key in _date_cache:
+        return _date_cache[cache_key]
+
+    tod = planned_arrival_local.strftime("%H:%M:%S")
+    row = _conn.execute(
+        """
+        SELECT date_diff('minute', arrival_planned_time, arrival_change_time) AS arr_delay,
+               is_canceled
+        FROM delays
+        WHERE ltrim(train_number, '0') = ? AND eva = ?
+          AND arrival_planned_time IS NOT NULL
+          AND CAST(arrival_planned_time AS DATE) = ?
+          AND least(
+                  abs(date_diff('minute', CAST(arrival_planned_time AS TIME), CAST(? AS TIME))),
+                  1440 - abs(date_diff('minute', CAST(arrival_planned_time AS TIME), CAST(? AS TIME)))
+              ) <= 120
+        ORDER BY abs(date_diff('minute', arrival_planned_time, ?))
+        LIMIT 1
+        """,
+        [train_number, eva_padded, day, tod, tod, planned_arrival_local],
+    ).fetchone()
+
+    if row is None:
+        result = None
+    else:
+        arr_delay, canceled = row
+        result = {
+            # no change message recorded means no delay was reported: on time
+            "delayMin": None if canceled else int(arr_delay or 0),
+            "canceled": bool(canceled),
+        }
+    _date_cache[cache_key] = result
+    return result
+
+
+def leg_departure_on_date(
+    train_number: str, eva_padded: str, planned_departure_local: datetime
+) -> dict | None:
+    """Exact departure delay for one train at one station on one specific day, or None.
+    Used to decide whether a delayed connecting train was still catchable."""
+    if _max_day is None:
+        return None
+    train_number = train_number.lstrip("0")
+    day = planned_departure_local.date()
+    cache_key = (train_number, eva_padded, day)
+    if cache_key in _dep_date_cache:
+        return _dep_date_cache[cache_key]
+
+    tod = planned_departure_local.strftime("%H:%M:%S")
+    row = _conn.execute(
+        """
+        SELECT date_diff('minute', departure_planned_time, departure_change_time) AS dep_delay,
+               is_canceled
+        FROM delays
+        WHERE ltrim(train_number, '0') = ? AND eva = ?
+          AND departure_planned_time IS NOT NULL
+          AND CAST(departure_planned_time AS DATE) = ?
+          AND least(
+                  abs(date_diff('minute', CAST(departure_planned_time AS TIME), CAST(? AS TIME))),
+                  1440 - abs(date_diff('minute', CAST(departure_planned_time AS TIME), CAST(? AS TIME)))
+              ) <= 120
+        ORDER BY abs(date_diff('minute', departure_planned_time, ?))
+        LIMIT 1
+        """,
+        [train_number, eva_padded, day, tod, tod, planned_departure_local],
+    ).fetchone()
+
+    if row is None:
+        result = None
+    else:
+        dep_delay, canceled = row
+        result = {
+            "delayMin": None if canceled else int(dep_delay or 0),
+            "canceled": bool(canceled),
+        }
+    _dep_date_cache[cache_key] = result
+    return result

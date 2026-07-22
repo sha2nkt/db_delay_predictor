@@ -54,6 +54,16 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Deep-link to bahn.de booking | done | pre-filled origin/destination/time, opens in new tab |
 | Real in-app booking | not possible | no public booking API exists |
 
+## Compensation checker (past journeys, 2026-07-23)
+
+| Feature | Status | Notes |
+|---|---|---|
+| Past-journey mode | done | home-page CTA flips the search card into `mode=past`; date picker clamped to `/api/coverage`; shareable via `&mode=past` |
+| Exact per-day leg delays | done | `leg_delay_on_date`: same matching as the median query, restricted to the searched calendar day; cancellations shown |
+| Missed-connection simulation | done | journey walked with actual delays; transfer made only if the connecting train's actual departure (own delay included) leaves > 2 min; miss/cancellation → re-plan via bahn.de to the destination, ≤ 3 chained re-plans, earliest-actual-arrival candidate (delayed earlier trains considered) |
+| Struck-out legs + actual continuation | done | missed legs struck out with "verpasst"/"ausgefallen" badges; "↳ Tatsächliche Weiterfahrt" section shows the replacement legs; header shows planned arrival struck + simulated actual |
+| Compensation % + claim link | done | 25 % ≥ 60 min / 50 % ≥ 120 min vs booked planned arrival, from the simulated arrival; button → bahn.de/buchung/reiseuebersicht/vergangene, fallback link to the Fahrgastrechte form; disclaimer (ticket price basis, €4 minimum) |
+
 ## Known limitations
 
 - Delay stats are per-train-number history; a rescheduled or renumbered train shows "keine Daten".
@@ -63,3 +73,5 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 - France: Trenitalia France and other non-SNCF operators are absent from the feed; "actual" times are the last realtime projection, not measured; poller downtime creates permanent holes for those hours.
 - Switzerland: GESCHAETZT (estimated) actuals are accepted alongside REAL; foreign stops of international trains carry no Swiss actuals (each country's own source covers its own stations).
 - Austria not covered yet — Austrian legs show "keine Daten" as before.
+- Compensation checker: reaches back only as far as the live parquet (~30 days) while DB accepts claims up to 1 year; monthly archives are not wired up yet.
+- Simulation assumes a rational passenger taking the earliest-arriving catchable connection; replacement legs without delay data count as on time; the DB claim page lists only journeys booked in that bahn.de account (form fallback linked).
