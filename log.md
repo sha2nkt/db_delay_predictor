@@ -86,3 +86,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 
 - `tight_transfers()` entries now carry an `unlikely` flag: true when the arriving leg's median delay exceeds the transfer time by more than `UNLIKELY_EXCESS_MIN` (30) minutes. The frontend then renders "⛔ Unwahrscheinlicher Umstieg:" / "⛔ Unlikely transfer:" instead of "⚠ Knapper Umstieg:" / "⚠ Tight transfer:"; detail text and strip styling unchanged.
 - app.js cache-buster bumped to v=23.
+
+## 2026-07-22 — Headline badge override + sort penalty for unlikely transfers
+
+- The journey-card headline badge (previously always the final leg's median, so a doomed Tübingen→Zürich chain still showed "+0 min") is replaced by a red non-clickable "⛔ Anschluss wohl verpasst" / "⛔ Connection likely missed" pill whenever any `tightTransfers[]` entry has `unlikely: true`; the tooltip lists the affected station(s). New i18n keys `unlikelyBadge`/`unlikelyBadgeTooltip`.
+- "Wenigste Verspätung" sort now ranks journeys with a likely-missed connection after all normal journeys (still by delayScore among themselves); no-data journeys stay last. Frontend-only change; verified headless (Playwright) on :8001 — badge, tooltip, DE/EN, sort order, per-leg day charts intact.
+- app.js cache-buster bumped to v=24.

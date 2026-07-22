@@ -66,6 +66,8 @@ const I18N = {
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
     tightTitle: "Knapper Umstieg:",
     unlikelyTitle: "Unwahrscheinlicher Umstieg:",
+    unlikelyBadge: "⛔ Anschluss wohl verpasst",
+    unlikelyBadgeTooltip: (stations) => `Die typische Verspätung übersteigt die Umstiegszeit deutlich (${stations})`,
     tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
     footerData: "Verspätungsdaten:",
@@ -118,6 +120,8 @@ const I18N = {
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
     tightTitle: "Tight transfer:",
     unlikelyTitle: "Unlikely transfer:",
+    unlikelyBadge: "⛔ Connection likely missed",
+    unlikelyBadgeTooltip: (stations) => `Typical delay far exceeds the transfer time (${stations})`,
     tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
     footerOpenSource: "Open source – view the code on GitHub",
     footerData: "Delay data:",
@@ -432,10 +436,13 @@ document.querySelectorAll(".sort-btn").forEach((btn) => {
 function sortedJourneys() {
   const js = [...state.journeys];
   if (state.sort === "delay") {
+    const unlikely = (j) => (j.tightTransfers || []).some((tt) => tt.unlikely);
     js.sort((a, b) => {
       const aMissing = a.delayScore == null, bMissing = b.delayScore == null;
       if (aMissing !== bMissing) return aMissing ? 1 : -1;  // missing data last
       if (aMissing && bMissing) return 0;
+      const aUnlikely = unlikely(a), bUnlikely = unlikely(b);
+      if (aUnlikely !== bUnlikely) return aUnlikely ? 1 : -1;  // likely-missed connections after reliable ones
       if (a.delayScore !== b.delayScore) return a.delayScore - b.delayScore;
       return (a.maxLegMedianDelay ?? 0) - (b.maxLegMedianDelay ?? 0);
     });
@@ -671,8 +678,18 @@ function render() {
 
     const finalLeg = trainLegs.length ? trainLegs[trainLegs.length - 1] : null;
     const finalStats = finalLeg ? finalLeg.delayStats : null;
-    const badge = delayBadge(finalStats, true);
-    if (finalStats) wireDayChart(badge, finalStats, head, finalLeg.line?.name);
+    const unlikelyTts = (journey.tightTransfers || []).filter((tt) => tt.unlikely);
+    let badge;
+    if (unlikelyTts.length) {
+      // final-leg stats are meaningless if an earlier connection is likely missed
+      badge = document.createElement("span");
+      badge.className = "badge red";
+      badge.textContent = t("unlikelyBadge");
+      badge.title = t("unlikelyBadgeTooltip", unlikelyTts.map((tt) => tt.station).join(", "));
+    } else {
+      badge = delayBadge(finalStats, true);
+      if (finalStats) wireDayChart(badge, finalStats, head, finalLeg.line?.name);
+    }
 
     const price = document.createElement("span");
     price.className = "price";

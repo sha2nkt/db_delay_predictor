@@ -21,14 +21,14 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Feature | Status | Notes |
 |---|---|---|
 | Median arrival delay per train leg | done | matched by train number + arrival EVA + time-of-day ±120 min, closest match per day; median since 2026-07-19 (was avg) |
-| Journey-level delay score | done | median arrival delay of the final train leg (= delay at the passenger's destination) |
+| Journey-level delay score | done | median arrival delay of the final train leg (= delay at the passenger's destination); headline badge overridden by a red "Connection likely missed" pill when any transfer is unlikely (2026-07-22, browser-verified) |
 | Worst-leg indicator (`maxLegMedianDelay`) | done | transfer-risk signal, used as sort tiebreaker |
 | Per-day delay chart | done | per-day breakdown behind the delay badges (added 2026-07-15) |
 | Tight-transfer warning | partial | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted); shown as an inline red strip under the affected leg row with transfer time and the previous train's median delay; escalates to "⛔ Unwahrscheinlicher Umstieg / Unlikely transfer" when the median delay exceeds the transfer time by > 30 min (2026-07-22); implemented 2026-07-19 (inline since 2026-07-20), browser verification pending |
 | Cancellation tracking | done | cancelled days excluded from avg, surfaced as "N× (teil-)ausgefallen" note |
 | Honest partial coverage | done | badge shows "n/7 Tage"; no data → gray "keine Daten", never a fake 0 |
 | Color-coded badges | done | green < 3 min, yellow 3–9, red ≥ 10, gray no data |
-| Sort by least delay | done | missing-data journeys last; ties broken by worst leg |
+| Sort by least delay | done | missing-data journeys last; journeys with a likely-missed connection after normal ones (2026-07-22); ties broken by worst leg |
 | Swiss delay coverage | done | official istdaten v2 daily files; 31-day history from day one; all operators feeding SBB customer info (SBB/BLS/RhB/SOB verified) |
 | French delay coverage | done | SNCF GTFS-RT poller + 35-day mirror backfill; TGV/Ouigo/TER/Intercités; "actual" = last realtime projection before arrival |
 | Austrian delay coverage | planned | no per-stop open data; ÖBB HAFAS (Scotty) board polling is the identified path |
