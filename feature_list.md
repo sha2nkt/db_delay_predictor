@@ -58,7 +58,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 
 | Feature | Status | Notes |
 |---|---|---|
-| Past-journey mode | done | home-page CTA flips the search card into `mode=past`; date picker clamped to `/api/coverage`; shareable via `&mode=past` |
+| Past-journey mode | done | home-page-only CTA (hidden after future-mode results) flips the search card into `mode=past`; "Entschädigung prüfen / Find my compensation" button; date picker clamped to `/api/coverage`, too-recent dates get a check-back-when message; shareable via `&mode=past` |
 | Exact per-day leg delays | done | `leg_delay_on_date`: same matching as the median query, restricted to the searched calendar day; cancellations shown |
 | Missed-connection simulation | done | journey walked with actual delays; transfer made only if the connecting train's actual departure (own delay included) leaves > 2 min; miss/cancellation → re-plan via bahn.de to the destination, ≤ 3 chained re-plans, earliest-actual-arrival candidate (delayed earlier trains considered) |
 | Struck-out legs + actual continuation | done | missed legs struck out with "verpasst"/"ausgefallen" badges; "↳ Tatsächliche Weiterfahrt" section shows the replacement legs; header shows planned arrival struck + simulated actual |

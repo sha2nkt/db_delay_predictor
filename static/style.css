@@ -191,6 +191,7 @@ button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px
 .refund-cta strong { display: block; font-size: 16px; color: var(--db-red); }
 .refund-cta span { font-size: 13px; color: var(--text-muted); }
 .refund-cta:hover { background: color-mix(in srgb, var(--db-red) 4%, #fff); }
+.refund-cta.hidden { display: none; }
 body.past-mode .refund-cta { display: none; }
 
 .past-banner {

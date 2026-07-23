@@ -83,14 +83,16 @@ const I18N = {
     pastTitle: "Verspätungs-Check für vergangene Reisen",
     pastCoverageLabel: "Daten verfügbar:",
     pastExit: "← Zur Verbindungssuche",
-    searchPast: "Reise prüfen",
+    searchPast: "Entschädigung prüfen",
     dateOutOfRange: (a, b) => `Verspätungsdaten sind nur für Reisen vom ${a} bis ${b} verfügbar.`,
+    dateNotYet: (d) => `Verspätungsdaten für dieses Datum sind noch nicht verfügbar. Neue Daten kommen jeden Morgen dazu – schau ab dem ${d} wieder vorbei.`,
+    dateNotYetLag: "Verspätungsdaten für dieses Datum sind noch nicht verfügbar – die Daten hängen gerade etwas hinterher. Schau in den nächsten Tagen wieder vorbei.",
     thatDayTooltip: "Tatsächliche Ankunftsverspätung an diesem Tag",
     claimPct: (pct) => `${pct} % zurückholen →`,
     claimNone: "Keine Entschädigung (unter 60 min)",
     claimCanceled: "Ausgefallen – Anspruch prüfen →",
     claimMissed: "Anschluss verpasst – Anspruch prüfen →",
-    claimSteps: "Auf bahn.de: einloggen → Reise auswählen → Entschädigung beantragen.",
+    claimSteps: "Auf bahn.de: einloggen → Reise auswählen → Reisedetails anzeigen → Entschädigung beantragen.",
     claimAltPre: "Ticket nicht im DB-Konto?",
     claimAltLink: "Zum Fahrgastrechte-Formular",
     missedBadge: "⛔ Anschluss verpasst",
@@ -158,14 +160,16 @@ const I18N = {
     pastTitle: "Delay check for past journeys",
     pastCoverageLabel: "Data available:",
     pastExit: "← Back to connection search",
-    searchPast: "Check my journey",
+    searchPast: "Check compensation",
     dateOutOfRange: (a, b) => `Delay data is only available for journeys from ${a} to ${b}.`,
+    dateNotYet: (d) => `Delay data for this date isn't available yet. New data arrives every morning – check back on ${d}.`,
+    dateNotYetLag: "Delay data for this date isn't available yet – the data is currently running a bit behind. Please check back in the next few days.",
     thatDayTooltip: "Actual arrival delay on this day",
     claimPct: (pct) => `Get ${pct}% back →`,
     claimNone: "No compensation (under 60 min)",
     claimCanceled: "Cancelled – check your claim →",
     claimMissed: "Missed connection – check your claim →",
-    claimSteps: "On bahn.de: log in → select your trip → request compensation.",
+    claimSteps: "On bahn.de: log in → select your trip → click Trip Details → request compensation.",
     claimAltPre: "Ticket not in your DB account?",
     claimAltLink: "Use the passenger rights form",
     missedBadge: "⛔ Missed connection",
@@ -367,6 +371,7 @@ async function setMode(mode) {
     }
   } else {
     document.getElementById("hero-chart").classList.remove("hidden");
+    document.getElementById("refund-cta").classList.remove("hidden");
     dateEl.min = "";
     dateEl.max = "";
     dateEl.value = new Date().toISOString().slice(0, 10);
@@ -444,8 +449,20 @@ async function search() {
   if (state.mode === "past") {
     await ensureCoverage();
     const day = document.getElementById("date").value;
-    if (state.coverage?.minDay && (day < state.coverage.minDay || day > state.coverage.maxDay)) {
+    if (state.coverage?.minDay && day < state.coverage.minDay) {
       setStatus("dateOutOfRange", fmtDateFull(state.coverage.minDay), fmtDateFull(state.coverage.maxDay));
+      statusEl.classList.add("error");
+      return;
+    }
+    if (state.coverage?.maxDay && day > state.coverage.maxDay) {
+      // data for a day normally lands the next morning; if that morning has
+      // already passed, the pipeline is running behind
+      const next = new Date(`${day}T12:00:00`);
+      next.setDate(next.getDate() + 1);
+      const nextIso = next.toISOString().slice(0, 10);
+      const todayIso = new Date().toLocaleDateString("sv-SE");  // local YYYY-MM-DD
+      if (nextIso > todayIso) setStatus("dateNotYet", fmtDateFull(nextIso));
+      else setStatus("dateNotYetLag");
       statusEl.classList.add("error");
       return;
     }
@@ -465,6 +482,7 @@ async function search() {
   earlierBtn.classList.add("hidden");
   laterBtn.classList.add("hidden");
   document.getElementById("hero-chart").classList.add("hidden");
+  document.getElementById("refund-cta").classList.add("hidden");
   searchBtn.disabled = true;
 
   try {
