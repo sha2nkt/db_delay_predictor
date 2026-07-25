@@ -45,6 +45,7 @@ BINS = [(-np.inf, 1), (1, 2), (2, 4), (4, 6), (6, np.inf)]
 X0, X1 = 90, 700
 Y0, Y1 = 130, 470
 HALF_W = 46
+TOP_SHIFT = 34  # vertical space freed by dropping the in-chart headline
 def sy(v): return Y1 - (v / args.axis_max) * (Y1 - Y0)
 
 grid_y = np.arange(0, args.axis_max + 1e-9, 0.1)
@@ -83,7 +84,6 @@ last = groups[-1]
 TEXTS = {
     "de": dict(
         aria="Violinplot: Züge, die im Mai pünktlich waren, sind es auch im Juni — Züge, die im Mai verspätet waren, bleiben verspätet.",
-        title="Pünktlich bleibt pünktlich, verspätet bleibt verspätet.",
         sub1="Züge sind nach ihrer Ø-Verspätung im Mai gruppiert: links die pünktlichen, rechts die verspäteten.",
         sub2="Jede Form zeigt, wie sich ihre Ø-Verspätung im Juni verteilt: je breiter, desto häufiger. Punkt = Median.",
         ylab="Ø Verspätung Juni (Minuten)",
@@ -96,7 +96,6 @@ TEXTS = {
     ),
     "en": dict(
         aria="Violin plot: trains that were punctual in May stay punctual in June — trains that were late in May stay late.",
-        title="Punctual stays punctual, late stays late.",
         sub1="Trains are grouped by their average May delay: punctual ones on the left, late ones on the right.",
         sub2="Each shape shows how their average June delay is distributed: the wider, the more frequent. Dot = median.",
         ylab="avg delay June (minutes)",
@@ -115,11 +114,12 @@ for t in TEXTS.values():
         f'  <text class="xmed" x="{g["cx"]:.1f}" y="{Y1 + 39}" text-anchor="middle">{t["med"](g["med"])}</text>'
         for g, name in zip(groups, t["names"])
     )
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" role="img"
+    # the headline lives in the page above the chart; everything below the subtitle
+    # is shifted up by TOP_SHIFT to close the gap the dropped title left behind
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 {560 - TOP_SHIFT}" role="img"
      aria-label="{t['aria']}">
   <style>
     text {{ font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }}
-    .title    {{ font-size: 23px; font-weight: 700; fill: #282d37; }}
     .subtitle {{ font-size: 13.5px; fill: #646973; }}
     .tick     {{ font-size: 12px; fill: #8a8f98; }}
     .axis     {{ font-size: 12.5px; fill: #646973; }}
@@ -130,12 +130,12 @@ for t in TEXTS.values():
     .footer   {{ font-size: 11px; fill: #8a8f98; }}
   </style>
 
-  <rect width="760" height="560" fill="#ffffff"/>
+  <rect width="760" height="{560 - TOP_SHIFT}" fill="#ffffff"/>
 
-  <text class="title" x="40" y="38">{t['title']}</text>
-  <text class="subtitle" x="40" y="63">{t['sub1']}</text>
-  <text class="subtitle" x="40" y="81">{t['sub2']}</text>
+  <text class="subtitle" x="40" y="28">{t['sub1']}</text>
+  <text class="subtitle" x="40" y="46">{t['sub2']}</text>
 
+  <g transform="translate(0,-{TOP_SHIFT})">
 {grid}
   <line x1="{X0}" y1="{Y1}.5" x2="{X1}" y2="{Y1}.5" stroke="#c9cfd6" stroke-width="1"/>
 
@@ -148,8 +148,9 @@ for t in TEXTS.values():
 {xlabels}
   <text class="axis" x="{(X0 + X1) / 2:.0f}" y="{Y1 + 60}" text-anchor="middle">{t['xcaption']}</text>
   <text class="axis" transform="translate({X0 - 48},{(Y0 + Y1) / 2:.0f}) rotate(-90)" text-anchor="middle">{t['ylab']}</text>
+  </g>
 
-  <text class="footer" x="40" y="546">{t['footer']}</text>
+  <text class="footer" x="40" y="{546 - TOP_SHIFT}">{t['footer']}</text>
 </svg>
 '''
     out = Path(args.out_dir) / t["fname"]

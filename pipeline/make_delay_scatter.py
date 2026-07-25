@@ -39,6 +39,7 @@ df = duckdb.sql(f"""
 """).df()
 
 AXIS_MAX = 12.0
+TOP_SHIFT = 34  # vertical space freed by dropping the in-chart headline
 vis = df[(df.h1 >= 0) & (df.h2 >= 0) & (df.h1 <= AXIS_MAX) & (df.h2 <= AXIS_MAX)]
 print(f"{len(df)} trains, {len(vis)} inside 0..{AXIS_MAX} min ({len(vis)/len(df):.0%})")
 print(f"pearson r (all): {df.h1.corr(df.h2):+.3f}")
@@ -81,7 +82,6 @@ n_total_de = f"{len(df):,}".replace(",", ".")
 TEXTS = {
     "de": dict(
         aria="Punktwolke: Züge, die im Mai verspätet waren, waren auch im Juni verspätet.",
-        title="Verspätete Züge bleiben verspätet.",
         sub1="Jeder Punkt ist ein Zug. Rechts: je mehr Verspätung er im Mai hatte.",
         sub2="Oben: je mehr Verspätung derselbe Zug im Juni hatte.",
         xlab="Ø Verspätung Mai (Minuten)",
@@ -93,7 +93,6 @@ TEXTS = {
     ),
     "en": dict(
         aria="Scatter plot: trains that were delayed in May were also delayed in June.",
-        title="Late trains stay late.",
         sub1="Each dot is one train. Further right: the more delay it had in May.",
         sub2="Further up: the more delay the same train had in June.",
         xlab="avg delay May (minutes)",
@@ -106,11 +105,12 @@ TEXTS = {
 }
 
 for t in TEXTS.values():
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" role="img"
+    # the headline lives in the page above the chart; everything below the subtitle
+    # is shifted up by TOP_SHIFT to close the gap the dropped title left behind
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 {560 - TOP_SHIFT}" role="img"
      aria-label="{t['aria']}">
   <style>
     text {{ font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }}
-    .title    {{ font-size: 23px; font-weight: 700; fill: #282d37; }}
     .subtitle {{ font-size: 13.5px; fill: #646973; }}
     .tick     {{ font-size: 12px; fill: #8a8f98; }}
     .axis     {{ font-size: 12.5px; fill: #646973; }}
@@ -119,12 +119,12 @@ for t in TEXTS.values():
     .footer   {{ font-size: 11px; fill: #8a8f98; }}
   </style>
 
-  <rect width="760" height="560" fill="#ffffff"/>
+  <rect width="760" height="{560 - TOP_SHIFT}" fill="#ffffff"/>
 
-  <text class="title" x="40" y="38">{t['title']}</text>
-  <text class="subtitle" x="40" y="63">{t['sub1']}</text>
-  <text class="subtitle" x="40" y="81">{t['sub2']}</text>
+  <text class="subtitle" x="40" y="28">{t['sub1']}</text>
+  <text class="subtitle" x="40" y="46">{t['sub2']}</text>
 
+  <g transform="translate(0,-{TOP_SHIFT})">
 {grid}
   <line x1="{X0}" y1="{Y1}.5" x2="{X1}" y2="{Y1}.5" stroke="#c9cfd6" stroke-width="1"/>
   <line x1="{X0}.5" y1="{Y0}" x2="{X0}.5" y2="{Y1}" stroke="#c9cfd6" stroke-width="1"/>
@@ -141,8 +141,9 @@ for t in TEXTS.values():
 {yticks}
   <text class="axis" x="{(X0 + X1) / 2:.0f}" y="{Y1 + 44}" text-anchor="middle">{t['xlab']}</text>
   <text class="axis" transform="translate({X0 - 48},{(Y0 + Y1) / 2:.0f}) rotate(-90)" text-anchor="middle">{t['ylab']}</text>
+  </g>
 
-  <text class="footer" x="40" y="546">{t['footer']}</text>
+  <text class="footer" x="40" y="{546 - TOP_SHIFT}">{t['footer']}</text>
 </svg>
 '''
     out = Path(args.out_dir) / t["fname"]

@@ -1,8 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" role="img"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 526" role="img"
      aria-label="Violinplot: Züge, die im Mai pünktlich waren, sind es auch im Juni — Züge, die im Mai verspätet waren, bleiben verspätet.">
   <style>
     text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
-    .title    { font-size: 23px; font-weight: 700; fill: #282d37; }
     .subtitle { font-size: 13.5px; fill: #646973; }
     .tick     { font-size: 12px; fill: #8a8f98; }
     .axis     { font-size: 12.5px; fill: #646973; }
@@ -13,12 +12,12 @@
     .footer   { font-size: 11px; fill: #8a8f98; }
   </style>
 
-  <rect width="760" height="560" fill="#ffffff"/>
+  <rect width="760" height="526" fill="#ffffff"/>
 
-  <text class="title" x="40" y="38">Pünktlich bleibt pünktlich, verspätet bleibt verspätet.</text>
-  <text class="subtitle" x="40" y="63">Züge sind nach ihrer Ø-Verspätung im Mai gruppiert: links die pünktlichen, rechts die verspäteten.</text>
-  <text class="subtitle" x="40" y="81">Jede Form zeigt, wie sich ihre Ø-Verspätung im Juni verteilt: je breiter, desto häufiger. Punkt = Median.</text>
+  <text class="subtitle" x="40" y="28">Züge sind nach ihrer Ø-Verspätung im Mai gruppiert: links die pünktlichen, rechts die verspäteten.</text>
+  <text class="subtitle" x="40" y="46">Jede Form zeigt, wie sich ihre Ø-Verspätung im Juni verteilt: je breiter, desto häufiger. Punkt = Median.</text>
 
+  <g transform="translate(0,-34)">
   <line x1="90" y1="385.0" x2="700" y2="385.0" stroke="#eceff2" stroke-width="1"/>
   <line x1="90" y1="300.0" x2="700" y2="300.0" stroke="#eceff2" stroke-width="1"/>
   <line x1="90" y1="215.0" x2="700" y2="215.0" stroke="#eceff2" stroke-width="1"/>
@@ -61,6 +60,7 @@
   <text class="xmed" x="639.0" y="509" text-anchor="middle">Juni: 7,7 min</text>
   <text class="axis" x="395" y="530" text-anchor="middle">Ø Verspätung im Mai</text>
   <text class="axis" transform="translate(42,300) rotate(-90)" text-anchor="middle">Ø Verspätung Juni (Minuten)</text>
+  </g>
 
-  <text class="footer" x="40" y="546">41.138 Züge mit mind. 40 Halten pro Monat · Datenquelle: Deutsche-Bahn-Fahrplandaten (IRIS) · Mai–Juni 2026</text>
+  <text class="footer" x="40" y="512">41.138 Züge mit mind. 40 Halten pro Monat · Datenquelle: Deutsche-Bahn-Fahrplandaten (IRIS) · Mai–Juni 2026</text>
 </svg>

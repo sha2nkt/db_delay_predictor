@@ -4,7 +4,8 @@ A bahn.com-style train connection search that shows the **average arrival delay 
 
 ## How it works
 
-- **Journey search**: the bahn.de web API (`www.bahn.de/web/api`) provides station autocomplete and journey options including transfers and prices — the same API the bahn.de website uses.
+- **Journey search**: the bahn.de web API (`www.bahn.de/web/api`) provides journey options including transfers and prices — the same API the bahn.de website uses. Station autocomplete is answered from the local delay data, falling back to that API for stations without delay history.
+- **Today's delays**: for a journey the nightly pipeline has not ingested yet, delays are read at request time from the [DB Timetables API](https://developers.deutschebahn.com/db-api-marketplace/apis/product/timetables) (IRIS `plan` + `fchg`) — the same field the pipeline stores, so the answer does not change later. Optional: set `DB_API_KEY`/`DB_CLIENT_ID` (e.g. in a `.env`); without them the site simply stops at the last ingested day.
 - **Historical delays**: the public HuggingFace dataset [piebro/deutsche-bahn-data](https://huggingface.co/datasets/piebro/deutsche-bahn-data) publishes raw Deutsche Bahn IRIS timetable responses every 6 hours. The pipeline downloads the last 8 days, reuses the parser from the [deutsche-bahn-data](deutsche-bahn-data/) submodule, and builds a per-stop delay table (`data/delays.parquet`, ~3M rows/week, all German stations).
 - **Matching**: each train leg of a journey is matched against history by train number + arrival-station EVA + time-of-day proximity (±120 min), one closest match per calendar day. Arrival delay at the leg destination is averaged over the matched days; cancelled days are excluded from the average but counted.
 

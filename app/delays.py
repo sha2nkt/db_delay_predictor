@@ -14,6 +14,7 @@ _min_day: date | None = None
 _cache: dict[tuple[str, str, int], dict | None] = {}
 _date_cache: dict[tuple[str, str, date], dict | None] = {}
 _dep_date_cache: dict[tuple[str, str, date], dict | None] = {}
+_stations: list[dict] = []
 
 
 def init():
@@ -28,10 +29,82 @@ def init():
         "SELECT min(CAST(arrival_planned_time AS DATE)), max(CAST(arrival_planned_time AS DATE))"
         " FROM delays WHERE arrival_planned_time IS NOT NULL"
     ).fetchone()
+    _build_station_index()
 
 
 def coverage() -> tuple[date | None, date | None]:
     return _min_day, _max_day
+
+
+def _fold(s: str) -> str:
+    """Diacritic/separator-insensitive form so 'Munchen'/'Tubingen' match the umlaut names
+    and 'Berlin Hbf' matches the stored 'Berlin Hauptbahnhof'."""
+    s = s.lower()
+    for a, b in (("ü", "u"), ("ö", "o"), ("ä", "a"), ("ß", "ss"),
+                 ("é", "e"), ("è", "e"), ("ê", "e"), ("á", "a"), ("à", "a"),
+                 ("hauptbahnhof", "hbf"),
+                 ("-", " "), (".", " "), (",", " ")):
+        s = s.replace(a, b)
+    return " ".join(s.split())
+
+
+def _build_station_index():
+    """Every station in the delay data as an autocomplete entry, deduped by name (the
+    multi-level Hbf EVAs collapse to one — journey search resolves any level the same)
+    and ranked by observation volume. Lets /api/locations answer without calling bahn.de."""
+    global _stations
+    rows = _conn.execute(
+        """
+        SELECT eva, station_name, count(*) AS cnt
+        FROM delays
+        WHERE station_name IS NOT NULL AND station_name <> '' AND eva IS NOT NULL
+        GROUP BY eva, station_name
+        """
+    ).fetchall()
+
+    # one entry per folded name: keep the busiest EVA/spelling, sum volume across levels
+    best: dict[str, tuple[str, str, int]] = {}  # norm -> (eva, display name, its count)
+    totals: dict[str, int] = {}
+    for eva, name, cnt in rows:
+        norm = _fold(name)
+        totals[norm] = totals.get(norm, 0) + cnt
+        if norm not in best or cnt > best[norm][2]:
+            best[norm] = (eva, name, cnt)
+
+    stations = []
+    for norm, (eva, name, _) in best.items():
+        ext = eva.lstrip("0")  # bahn.de extId / HAFAS L= is unpadded
+        stations.append({
+            "id": f"A=1@O={name}@L={ext}@",
+            "extId": ext,
+            "name": name,
+            "norm": norm,
+            "total": totals[norm],
+            "is_hbf": "hbf" in norm.split(),
+        })
+    _stations = stations
+
+
+def station_search(query: str, limit: int = 8) -> list[dict]:
+    """Local autocomplete: {id, extId, name} for stations matching `query`, or [] if none.
+    prefix > word-start > substring; within a tier main stations lead, then busier ones."""
+    q = _fold(query)
+    if not q:
+        return []
+    scored = []
+    for s in _stations:
+        n = s["norm"]
+        if n.startswith(q):
+            rank = 0
+        elif (" " + q) in n:
+            rank = 1
+        elif q in n:
+            rank = 2
+        else:
+            continue
+        scored.append((rank, 0 if s["is_hbf"] else 1, -s["total"], s))
+    scored.sort(key=lambda x: x[:3])
+    return [{"id": s["id"], "extId": s["extId"], "name": s["name"]} for *_, s in scored[:limit]]
 
 
 def pad_eva(stop_id: str) -> str:

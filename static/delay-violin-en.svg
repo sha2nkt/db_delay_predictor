@@ -1,8 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" role="img"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 526" role="img"
      aria-label="Violin plot: trains that were punctual in May stay punctual in June — trains that were late in May stay late.">
   <style>
     text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
-    .title    { font-size: 23px; font-weight: 700; fill: #282d37; }
     .subtitle { font-size: 13.5px; fill: #646973; }
     .tick     { font-size: 12px; fill: #8a8f98; }
     .axis     { font-size: 12.5px; fill: #646973; }
@@ -13,12 +12,12 @@
     .footer   { font-size: 11px; fill: #8a8f98; }
   </style>
 
-  <rect width="760" height="560" fill="#ffffff"/>
+  <rect width="760" height="526" fill="#ffffff"/>
 
-  <text class="title" x="40" y="38">Punctual stays punctual, late stays late.</text>
-  <text class="subtitle" x="40" y="63">Trains are grouped by their average May delay: punctual ones on the left, late ones on the right.</text>
-  <text class="subtitle" x="40" y="81">Each shape shows how their average June delay is distributed: the wider, the more frequent. Dot = median.</text>
+  <text class="subtitle" x="40" y="28">Trains are grouped by their average May delay: punctual ones on the left, late ones on the right.</text>
+  <text class="subtitle" x="40" y="46">Each shape shows how their average June delay is distributed: the wider, the more frequent. Dot = median.</text>
 
+  <g transform="translate(0,-34)">
   <line x1="90" y1="385.0" x2="700" y2="385.0" stroke="#eceff2" stroke-width="1"/>
   <line x1="90" y1="300.0" x2="700" y2="300.0" stroke="#eceff2" stroke-width="1"/>
   <line x1="90" y1="215.0" x2="700" y2="215.0" stroke="#eceff2" stroke-width="1"/>
@@ -61,6 +60,7 @@
   <text class="xmed" x="639.0" y="509" text-anchor="middle">June: 7.7 min</text>
   <text class="axis" x="395" y="530" text-anchor="middle">avg delay in May</text>
   <text class="axis" transform="translate(42,300) rotate(-90)" text-anchor="middle">avg delay June (minutes)</text>
+  </g>
 
-  <text class="footer" x="40" y="546">41,138 trains with at least 40 stops per month · Data: Deutsche Bahn timetable data (IRIS) · May–June 2026</text>
+  <text class="footer" x="40" y="512">41,138 trains with at least 40 stops per month · Data: Deutsche Bahn timetable data (IRIS) · May–June 2026</text>
 </svg>

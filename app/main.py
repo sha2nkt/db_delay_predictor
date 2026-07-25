@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import httpx
 from curl_cffi.requests.exceptions import HTTPError, RequestException
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.staticfiles import StaticFiles
 
-from app import bahn_api, delays
+from app import bahn_api, delays, live_delays
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
     delays.init()
     yield
     await bahn_api.close()
+    await live_delays.close()
     await umami.aclose()
 
 
@@ -28,7 +30,13 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/api/locations")
-async def locations(query: str):
+async def locations(query: str, response: Response):
+    response.headers["Cache-Control"] = "public, max-age=600"
+    # Serve from the local station index first; only stations without delay data
+    # (rural stops, POIs, addresses) fall through to bahn.de.
+    local = delays.station_search(query)
+    if local:
+        return local
     try:
         results = await bahn_api.locations(query)
     except RequestException as e:
@@ -40,7 +48,7 @@ async def locations(query: str):
     ]
 
 
-def normalize_leg(abschnitt: dict, window: int, past: bool = False) -> dict:
+def normalize_leg(abschnitt: dict, window: int, past: bool = False, live: bool = False) -> dict:
     vm = abschnitt.get("verkehrsmittel") or {}
     leg = {
         "walking": vm.get("typ") != "PUBLICTRANSPORT",
@@ -61,10 +69,36 @@ def normalize_leg(abschnitt: dict, window: int, past: bool = False) -> dict:
         eva = delays.pad_eva(str(leg["destination"]["id"]))
         arrival = delays.to_berlin_naive(leg["plannedArrival"])
         if past:
-            leg["delayOnDate"] = delays.leg_delay_on_date(train, eva, arrival)
+            # on a day the parquet doesn't cover yet, IRIS answers directly; the
+            # parquet stays authoritative wherever it has the day
+            hit = live_delays.leg_delay_on_date(train, eva, arrival) if live else None
+            leg["delayOnDate"] = hit if hit is not None else delays.leg_delay_on_date(train, eva, arrival)
         else:
             leg["delayStats"] = delays.leg_delay_stats(train, eva, arrival, window=window)
     return leg
+
+
+def _live_stops(abschnitte: list[dict]) -> set[tuple[str, datetime]]:
+    """Every (station, planned time) an itinerary touches, for a live IRIS prefetch."""
+    stops = set()
+    for a in abschnitte:
+        vm = a.get("verkehrsmittel") or {}
+        if vm.get("typ") != "PUBLICTRANSPORT" or not vm.get("nummer"):
+            continue
+        for ext_id, event in (
+            (a.get("abfahrtsOrtExtId"), (a.get("abfahrt") or {}).get("sollzeit")),
+            (a.get("ankunftsOrtExtId"), (a.get("ankunft") or {}).get("sollzeit")),
+        ):
+            if ext_id and event:
+                stops.add((delays.pad_eva(str(ext_id)), delays.to_berlin_naive(event)))
+    return stops
+
+
+async def _warm_live(data: dict | None) -> None:
+    stops = set()
+    for verbindung in (data or {}).get("verbindungen", []):
+        stops |= _live_stops(verbindung.get("verbindungsAbschnitte", []))
+    await live_delays.warm(stops)
 
 
 # minutes of slack that must remain after the median delay for a transfer to count as safe
@@ -138,13 +172,15 @@ def _actual_arrival(leg: dict):
     return arr
 
 
-def _departure_info(leg: dict) -> dict | None:
+def _departure_info(leg: dict, live: bool = False) -> dict | None:
     """That day's actual departure delay/cancellation of a train leg at its origin."""
     nr = leg["line"]["fahrtNr"]
     dep = _planned_dt(leg, "plannedDeparture")
     if leg["walking"] or not nr or dep is None or not leg["origin"]["id"]:
         return None
-    return delays.leg_departure_on_date(str(nr), delays.pad_eva(str(leg["origin"]["id"])), dep)
+    train, eva = str(nr), delays.pad_eva(str(leg["origin"]["id"]))
+    hit = live_delays.leg_departure_on_date(train, eva, dep) if live else None
+    return hit if hit is not None else delays.leg_departure_on_date(train, eva, dep)
 
 
 async def _replan(origin: dict, dest: dict, ready) -> dict | None:
@@ -166,7 +202,7 @@ async def _replan(origin: dict, dest: dict, ready) -> dict | None:
     return data
 
 
-async def _next_connection(origin: dict, dest: dict, ready, window: int) -> list[dict] | None:
+async def _next_connection(origin: dict, dest: dict, ready, window: int, live: bool = False) -> list[dict] | None:
     """Earliest-arriving catchable connection from `ready` on, as normalized legs.
     Probes 45 min before `ready` first so that trains with an earlier planned
     departure that were themselves delayed past `ready` — typically the train the
@@ -174,15 +210,17 @@ async def _next_connection(origin: dict, dest: dict, ready, window: int) -> list
     best_arrival, best_legs = None, None
     for probe in (ready - timedelta(minutes=45), ready):
         data = await _replan(origin, dest, probe)
+        if live:
+            await _warm_live(data)
         for verbindung in (data or {}).get("verbindungen", []):
-            rlegs = [normalize_leg(a, window, past=True) for a in verbindung.get("verbindungsAbschnitte", [])]
+            rlegs = [normalize_leg(a, window, past=True, live=live) for a in verbindung.get("verbindungsAbschnitte", [])]
             rtrain = [l for l in rlegs if not l["walking"]]
             if not rtrain:
                 continue
             first_dep = _planned_dt(rtrain[0], "plannedDeparture")
             if first_dep is None:
                 continue
-            fd = _departure_info(rtrain[0])
+            fd = _departure_info(rtrain[0], live)
             if fd and fd["canceled"]:
                 continue
             fdelay = fd["delayMin"] if fd and fd["delayMin"] is not None else 0
@@ -199,7 +237,7 @@ async def _next_connection(origin: dict, dest: dict, ready, window: int) -> list
     return best_legs
 
 
-async def _simulate_walk(legs: list[dict], window: int, replans_left: int) -> dict:
+async def _simulate_walk(legs: list[dict], window: int, replans_left: int, live: bool = False) -> dict:
     """Ride `legs` with each leg's actual delay that day. A connection counts as made
     when the next train's actual departure (its own delay included) leaves more than
     TRANSFER_TOLERANCE_MIN minutes after the passenger arrives. On a miss or a
@@ -220,7 +258,7 @@ async def _simulate_walk(legs: list[dict], window: int, replans_left: int) -> di
         leg = legs[i]
         d = leg.get("delayOnDate")
         dep_planned = _planned_dt(leg, "plannedDeparture")
-        dep_info = _departure_info(leg) if pos > 0 else None
+        dep_info = _departure_info(leg, live) if pos > 0 else None
         canceled = bool(d and d["canceled"]) or bool(dep_info and dep_info["canceled"])
 
         missed_event = None
@@ -268,10 +306,10 @@ async def _simulate_walk(legs: list[dict], window: int, replans_left: int) -> di
         base = {"missedAtLegIndex": i, "missed": missed_event}
         if replans_left <= 0 or ready is None or not leg["origin"]["id"] or not dest["id"]:
             return {**base, "extra": [], "arrival": None, "incomplete": True, "uncertain": uncertain}
-        cand_legs = await _next_connection(leg["origin"], dest, ready, window)
+        cand_legs = await _next_connection(leg["origin"], dest, ready, window, live)
         if cand_legs is None:
             return {**base, "extra": [], "arrival": None, "incomplete": True, "uncertain": uncertain}
-        sub = await _simulate_walk(cand_legs, window, replans_left - 1)
+        sub = await _simulate_walk(cand_legs, window, replans_left - 1, live)
         kept = cand_legs if sub["missedAtLegIndex"] is None else cand_legs[: sub["missedAtLegIndex"]]
         for l in kept:
             l["replacement"] = True
@@ -296,6 +334,7 @@ def compensation_pct(arrival_delay: int | None) -> int | None:
 
 @app.get("/api/journeys")
 async def journeys(
+    response: Response,
     from_id: str = Query(alias="from"),
     to_id: str = Query(alias="to"),
     departure: str = Query(),
@@ -307,6 +346,7 @@ async def journeys(
         raise HTTPException(422, "window must be 7, 15 or 30")
     if mode not in ("future", "past"):
         raise HTTPException(422, "mode must be future or past")
+    response.headers["Cache-Control"] = "public, max-age=120"
     past = mode == "past"
     try:
         data = await bahn_api.journeys(from_id, to_id, departure, paging_ref)
@@ -315,9 +355,15 @@ async def journeys(
     except RequestException as e:
         raise HTTPException(502, f"bahn.de error: {e}")
 
+    # days the nightly parquet hasn't reached yet are answered live from IRIS
+    parquet_max = delays.coverage()[1]
+    live = past and live_max_day() is not None and (parquet_max is None or departure[:10] > parquet_max.isoformat())
+    if live:
+        await _warm_live(data)
+
     journeys_out = []
     for verbindung in data.get("verbindungen", []):
-        legs = [normalize_leg(a, window, past) for a in verbindung.get("verbindungsAbschnitte", [])]
+        legs = [normalize_leg(a, window, past, live) for a in verbindung.get("verbindungsAbschnitte", [])]
         train_legs = [leg for leg in legs if not leg["walking"]]
         if not train_legs:
             continue
@@ -331,7 +377,11 @@ async def journeys(
         }
         if past:
             final_d = train_legs[-1].get("delayOnDate")
-            sim = await _simulate_walk(legs, window, MAX_REPLANS)
+            sim = await _simulate_walk(legs, window, MAX_REPLANS, live)
+            if live:
+                # on a live day a missing observation means "not reported yet",
+                # which is a different message than "we have no data for this train"
+                journey["pending"] = any(leg.get("delayOnDate") is None for leg in train_legs)
             if sim["missedAtLegIndex"] is not None:
                 # a connection was missed: the realistic arrival comes from the
                 # simulated continuation, not the booked itinerary's final leg
@@ -380,11 +430,22 @@ async def journeys(
     return {"journeys": journeys_out, "earlierRef": ref.get("earlier"), "laterRef": ref.get("later")}
 
 
+def live_max_day() -> date | None:
+    """Last day answerable live from IRIS, or None when no credentials are configured."""
+    return datetime.now(ZoneInfo("Europe/Berlin")).date() if live_delays.configured() else None
+
+
 @app.get("/api/coverage")
 async def coverage():
-    """Date range the local delay data covers (bounds for the past-journey date picker)."""
+    """Date range the past-journey date picker may offer: the local delay data, plus
+    today when live IRIS lookups are available."""
     lo, hi = delays.coverage()
-    return {"minDay": lo.isoformat() if lo else None, "maxDay": hi.isoformat() if hi else None}
+    live_hi = live_max_day()
+    return {
+        "minDay": lo.isoformat() if lo else None,
+        "maxDay": hi.isoformat() if hi else None,
+        "liveMaxDay": live_hi.isoformat() if live_hi else None,
+    }
 
 
 @app.get("/stats/script.js")

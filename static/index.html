@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>delaybahn.com – DB Verbindungssuche mit Verspätungsstatistik</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=19">
+<link rel="stylesheet" href="style.css?v=22">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -65,12 +65,22 @@
   </button>
 
   <section id="hero-chart" class="hero-chart">
-    <div class="chart-toggle">
-      <button class="chart-btn active" type="button" data-chart="scatter" data-i18n="chartScatter">Punktwolke</button>
-      <button class="chart-btn" type="button" data-chart="violin" data-i18n="chartViolin">Verteilung</button>
+    <h2 class="hero-claim">
+      <span data-i18n="heroClaimLate">Verspätete Züge bleiben verspätet.</span>
+      <span data-i18n="heroClaimPunctual">Pünktliche Züge bleiben pünktlich.</span>
+    </h2>
+    <p class="hero-sub">
+      <span data-i18n="heroSubScope">41.138 Züge im Mai und Juni 2026 verglichen</span>
+      <span data-i18n="heroSubFinding">Wer im Mai zu spät kam, kam auch im Juni zu spät.</span>
+    </p>
+    <div class="chart-switch">
+      <span class="chart-switch-label" data-i18n="chartSwitchLabel">Daten ansehen</span>
+      <div class="chart-toggle">
+        <button class="chart-btn" type="button" data-chart="scatter" data-i18n="chartScatter">Punktwolke</button>
+        <button class="chart-btn" type="button" data-chart="violin" data-i18n="chartViolin">Verteilung</button>
+      </div>
     </div>
-    <img id="chart-img" src="delay-correlation.svg?v=2"
-         alt="Verspätete Züge bleiben verspätet: Züge, die im Mai verspätet waren, waren es auch im Juni.">
+    <img id="chart-img" alt="">
   </section>
 
   <section id="controls" class="controls hidden">
@@ -95,6 +105,6 @@
     <a href="https://transport.data.gouv.fr/datasets/horaires-sncf" target="_blank" rel="noopener">SNCF via transport.data.gouv.fr (ODbL)</a>
   </p>
 </footer>
-<script src="app.js?v=34"></script>
+<script src="app.js?v=38"></script>
 </body>
 </html>

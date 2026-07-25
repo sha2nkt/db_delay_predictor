@@ -6,7 +6,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 
 | Feature | Status | Notes |
 |---|---|---|
-| Station autocomplete (Von/Nach) | done | `/api/locations` → bahn.de `/reiseloesung/orte`, debounced 250 ms in UI |
+| Station autocomplete (Von/Nach) | done | `/api/locations` served from the local delay data (folded-name index built at startup, multi-level Hbf EVAs deduped, ranked prefix > word-start > substring then volume); bahn.de `/reiseloesung/orte` only for stations with no delay history; debounced 250 ms in UI |
 | Typed-station fallback | partial | exact case-insensitive name match resolves un-selected input at search time; implemented 2026-07-19, browser verification pending |
 | Journey search with transfers | done | `/api/journeys` → bahn.de `/angebote/fahrplan` (POST), 1 adult 2nd class, all products |
 | Departure date/time selection | done | defaults to now; Berlin-local naive timestamps end to end |
@@ -41,11 +41,12 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Reprocess into per-stop delay table | done | reuses submodule parser; now writes `data/de/delays.parquet` (`--output`) |
 | Swiss daily ingest | done | `build_ch_days.py`: scrapes the CKAN page for the rotating download URL, filters trains, per-day parquets, catch-up + prune |
 | French 24/7 poller + consolidation | partial | `fr_poller.py` (running from session; systemd unit pending deploy) → `consolidate_fr.py` rewrites last 2 start_dates daily |
-| French history backfill | done | `backfill_fr.py` from mirror.traines.eu tarballs (resumable, skip-if-exists); re-run later for seam days 07-19/20 |
+| French history backfill | done | `backfill_fr.py` from mirror.traines.eu tarballs (resumable, skip-if-exists); seam days 07-19..22 plugged 2026-07-25 |
 | SNCF-UIC → DB-EVA crosswalk | done | `build_fr_crosswalk.py` → committed `config/fr_uic_to_eva.json` (3472/3534 stations; trainline seed + bahn.de `i=U×` token match) |
 | Country merge | done | `merge_delays.py`: eva-prefix partition (080/085/087) + global last-midnight cut; tolerant of missing sources |
 | Skip-if-fresh | done | reprocess only when raw data newer than output (`--force` overrides) |
-| Scheduled daily refresh | partial | timer unchanged (05:30); pipeline unit must be updated to the 4-step DE→CH→FR→merge flow (deploy pending) |
+| Scheduled daily refresh | partial | timer unchanged (05:30); pipeline unit still runs only `build_delay_db.py`, so the served `data/delays.parquet` went unwritten 07-20..07-25 until a manual catch-up — must be updated to the 4-step DE→CH→FR→merge flow (deploy pending, needs sudo) |
+| Live same-day delay lookup | done | `app/live_delays.py`: IRIS `plan` + `fchg` at request time for days the parquet hasn't reached, same `ar/@ct` field the nightly build stores; measured 14–17 h lookback; DE only; inert without `DB_API_KEY`/`DB_CLIENT_ID` |
 
 ## Booking
 
@@ -63,6 +64,8 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Missed-connection simulation | done | journey walked with actual delays; transfer made only if the connecting train's actual departure (own delay included) leaves > 2 min; miss/cancellation → re-plan via bahn.de to the destination, ≤ 3 chained re-plans, earliest-actual-arrival candidate (delayed earlier trains considered) |
 | Struck-out legs + actual continuation | done | missed legs struck out with "verpasst"/"ausgefallen" badges; "↳ Tatsächliche Weiterfahrt" section shows the replacement legs; header shows planned arrival struck + simulated actual |
 | Compensation % + claim link | done | 25 % ≥ 60 min / 50 % ≥ 120 min vs booked planned arrival, from the simulated arrival; button → bahn.de/buchung/reiseuebersicht/vergangene, fallback link to the Fahrgastrechte form; disclaimer (ticket price basis, €4 minimum) |
+| Same-day journeys (checkable on arrival) | done | date picker reaches today via `liveMaxDay` in `/api/coverage`; delays come from IRIS live (2026-07-25, verified minutes after the trains ran), re-planning after a missed connection resolves live too |
+| Not-yet-reported legs | done | a leg IRIS hasn't reported shows "noch offen / pending" instead of "keine Daten", and the card says "Ankunft noch nicht bestätigt – morgen früh prüfen"; stops still in the future are never reported as on time |
 
 ## Known limitations
 
@@ -73,5 +76,6 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 - France: Trenitalia France and other non-SNCF operators are absent from the feed; "actual" times are the last realtime projection, not measured; poller downtime creates permanent holes for those hours.
 - Switzerland: GESCHAETZT (estimated) actuals are accepted alongside REAL; foreign stops of international trains carry no Swiss actuals (each country's own source covers its own stations).
 - Austria not covered yet — Austrian legs show "keine Daten" as before.
-- Compensation checker: reaches back only as far as the live parquet (~30 days) while DB accepts claims up to 1 year; monthly archives are not wired up yet.
+- Compensation checker: reaches back only as far as the live parquet (~30 days) while DB accepts claims up to 1 year; monthly archives are not wired up yet. The recent end is covered live, so the gap is at the far end only.
+- Live same-day lookups are German only (IRIS has no CH/FR stops) and need `DB_API_KEY`/`DB_CLIENT_ID`; without credentials the date picker stops at the parquet's last day, exactly as before. S-Bahn legs where bahn.de sends a line label instead of a Zugnummer stay unmatched, live and in the parquet alike.
 - Simulation assumes a rational passenger taking the earliest-arriving catchable connection; replacement legs without delay data count as on time; the DB claim page lists only journeys booked in that bahn.de account (form fallback linked).

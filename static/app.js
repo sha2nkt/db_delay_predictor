@@ -8,10 +8,11 @@ const state = {
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
   lang: localStorage.getItem("lang") || "de",
-  chart: "scatter",  // which hero chart is shown: "scatter" | "violin"
+  chart: null,  // which hero chart is expanded: null (collapsed) | "scatter" | "violin"
   status: null,  // {key, params} of the current status message, re-rendered on lang switch
   mode: "future",  // "future" = delay forecast, "past" = compensation check for a past journey
-  coverage: null,  // {minDay, maxDay} of the local delay data, fetched on demand
+  coverage: null,  // {minDay, maxDay, liveMaxDay} for the date picker, fetched on demand
+  liveDay: false,  // searched day is past the local data and answered live from IRIS
 };
 
 // DB digital compensation flow lives in the customer account's past-trips list
@@ -48,6 +49,11 @@ const I18N = {
     sortPrice: "Günstigster Preis",
     earlier: "Frühere Verbindungen",
     later: "Spätere Verbindungen",
+    heroClaimLate: "Verspätete Züge bleiben verspätet.",
+    heroClaimPunctual: "Pünktliche Züge bleiben pünktlich.",
+    heroSubScope: "41.138 Züge im Mai und Juni 2026 verglichen:",
+    heroSubFinding: "Wer im Mai zu spät kam, kam auch im Juni zu spät.",
+    chartSwitchLabel: "Daten ansehen",
     chartAlt: "Verspätete Züge bleiben verspätet: Züge, die im Mai verspätet waren, waren es auch im Juni.",
     violinAlt: "Pünktlich bleibt pünktlich, verspätet bleibt verspätet: Züge, gruppiert nach ihrer Mai-Verspätung, zeigen im Juni dieselbe Rangfolge.",
     chartScatter: "Punktwolke",
@@ -89,6 +95,9 @@ const I18N = {
     dateOutOfRange: (a, b) => `Verspätungsdaten sind nur für Reisen vom ${a} bis ${b} verfügbar.`,
     dateNotYet: (d) => `Verspätungsdaten für dieses Datum sind noch nicht verfügbar. Neue Daten kommen jeden Morgen dazu – schau ab dem ${d} wieder vorbei.`,
     dateNotYetLag: "Verspätungsdaten für dieses Datum sind noch nicht verfügbar – die Daten hängen gerade etwas hinterher. Schau in den nächsten Tagen wieder vorbei.",
+    notYetBadge: "noch offen",
+    notYetTooltip: "Für diesen Halt liegt noch keine Ist-Meldung vor – sie kommt spätestens am nächsten Morgen dazu.",
+    claimPending: "Ankunft noch nicht bestätigt – morgen früh prüfen",
     thatDayTooltip: "Tatsächliche Ankunftsverspätung an diesem Tag",
     claimPct: (pct) => `${pct} % zurückholen →`,
     claimNone: "Keine Entschädigung (unter 60 min)",
@@ -127,6 +136,11 @@ const I18N = {
     sortPrice: "Cheapest price",
     earlier: "Earlier connections",
     later: "Later connections",
+    heroClaimLate: "Late trains stay late.",
+    heroClaimPunctual: "Punctual trains stay punctual.",
+    heroSubScope: "41,138 trains compared across May and June 2026",
+    heroSubFinding: "the ones that ran late in May ran late again in June.",
+    chartSwitchLabel: "See the data",
     chartAlt: "Delayed trains stay delayed: trains that ran late in May also ran late in June.",
     violinAlt: "Punctual stays punctual, late stays late: trains grouped by their May delay show the same ranking in June.",
     chartScatter: "Scatter",
@@ -168,6 +182,9 @@ const I18N = {
     dateOutOfRange: (a, b) => `Delay data is only available for journeys from ${a} to ${b}.`,
     dateNotYet: (d) => `Delay data for this date isn't available yet. New data arrives every morning – check back on ${d}.`,
     dateNotYetLag: "Delay data for this date isn't available yet – the data is currently running a bit behind. Please check back in the next few days.",
+    notYetBadge: "pending",
+    notYetTooltip: "No actual time reported for this stop yet – it lands by tomorrow morning at the latest.",
+    claimPending: "Arrival not confirmed yet – check tomorrow morning",
     thatDayTooltip: "Actual arrival delay on this day",
     claimPct: (pct) => `Get ${pct}% back →`,
     claimNone: "No compensation (under 60 min)",
@@ -191,11 +208,14 @@ function t(key, ...args) {
 }
 
 const chartSrcs = {
-  scatter: { de: "delay-correlation.svg?v=2", en: "delay-correlation-en.svg?v=2", alt: "chartAlt" },
-  violin: { de: "delay-violin.svg", en: "delay-violin-en.svg", alt: "violinAlt" },
+  scatter: { de: "delay-correlation.svg?v=3", en: "delay-correlation-en.svg?v=3", alt: "chartAlt" },
+  violin: { de: "delay-violin.svg?v=2", en: "delay-violin-en.svg?v=2", alt: "violinAlt" },
 };
 
 function updateChartImg() {
+  // the chart itself only loads once a toggle button expands it
+  document.getElementById("hero-chart").classList.toggle("chart-open", !!state.chart);
+  if (!state.chart) return;
   const img = document.getElementById("chart-img");
   const c = chartSrcs[state.chart];
   img.src = c[state.lang];
@@ -339,6 +359,13 @@ function fmtDateFull(iso) {
   return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 }
 
+// last day past mode can answer: the local data, extended to today where live
+// IRIS lookups are available
+function latestPastDay() {
+  const c = state.coverage || {};
+  return c.liveMaxDay && c.liveMaxDay > c.maxDay ? c.liveMaxDay : c.maxDay;
+}
+
 async function ensureCoverage() {
   if (state.coverage) return;
   try {
@@ -367,11 +394,13 @@ async function setMode(mode) {
     document.getElementById("hero-chart").classList.add("hidden");
     await ensureCoverage();
     if (state.coverage?.minDay) {
+      // live IRIS lookups extend the pickable range to today
+      const maxDay = latestPastDay();
       dateEl.min = state.coverage.minDay;
-      dateEl.max = state.coverage.maxDay;
-      if (dateEl.value < dateEl.min || dateEl.value > dateEl.max) dateEl.value = state.coverage.maxDay;
+      dateEl.max = maxDay;
+      if (dateEl.value < dateEl.min || dateEl.value > dateEl.max) dateEl.value = maxDay;
       document.getElementById("past-coverage").textContent =
-        `${fmtDateFull(state.coverage.minDay)} – ${fmtDateFull(state.coverage.maxDay)}`;
+        `${fmtDateFull(state.coverage.minDay)} – ${fmtDateFull(maxDay)}`;
     }
   } else {
     document.getElementById("hero-chart").classList.remove("hidden");
@@ -453,12 +482,15 @@ async function search() {
   if (state.mode === "past") {
     await ensureCoverage();
     const day = document.getElementById("date").value;
+    const latest = latestPastDay();
     if (state.coverage?.minDay && day < state.coverage.minDay) {
-      setStatus("dateOutOfRange", fmtDateFull(state.coverage.minDay), fmtDateFull(state.coverage.maxDay));
+      setStatus("dateOutOfRange", fmtDateFull(state.coverage.minDay), fmtDateFull(latest));
       statusEl.classList.add("error");
       return;
     }
-    if (state.coverage?.maxDay && day > state.coverage.maxDay) {
+    // days past the local data but within the live range are answered from IRIS
+    state.liveDay = !!(state.coverage?.maxDay && day > state.coverage.maxDay);
+    if (latest && day > latest) {
       // data for a day normally lands the next morning; if that morning has
       // already passed, the pipeline is running behind
       const next = new Date(`${day}T12:00:00`);
@@ -554,10 +586,12 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
 
 document.querySelectorAll(".chart-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
+    const open = state.chart !== btn.dataset.chart;  // clicking the open chart collapses it again
     document.querySelectorAll(".chart-btn").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    state.chart = btn.dataset.chart;
+    btn.classList.toggle("active", open);
+    state.chart = open ? btn.dataset.chart : null;
     updateChartImg();
+    if (open) track("hero-chart", { chart: state.chart });
   });
 });
 
@@ -649,7 +683,10 @@ function exactDelayBadge(d) {
   el.className = "badge";
   if (!d) {
     el.classList.add("gray");
-    el.textContent = t("noData");
+    // on a live day the arrival simply hasn't been reported yet, which is not
+    // the same as having no data for this train at all
+    el.textContent = state.liveDay ? t("notYetBadge") : t("noData");
+    if (state.liveDay) el.title = t("notYetTooltip");
   } else {
     el.classList.add("red");
     el.textContent = t("chartCanceled");
@@ -951,7 +988,11 @@ function render() {
       } else {
         action = document.createElement("span");
         action.className = "claim-none";
-        action.textContent = pct === 0 ? t("claimNone") : t("noData");
+        // pending: the day is live and some leg hasn't been reported yet, so the
+        // arrival - and with it the claim - can't be settled until the morning
+        action.textContent = pct === 0 ? t("claimNone")
+          : journey.pending ? t("claimPending")
+          : t("noData");
       }
       head.append(times, meta, spacer, badge, action);
     } else {
