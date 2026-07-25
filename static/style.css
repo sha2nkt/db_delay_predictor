@@ -189,7 +189,8 @@ button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px
   box-shadow: 0 1px 4px rgba(0,0,0,.12);
 }
 .refund-cta strong { display: block; font-size: 16px; color: var(--db-red); }
-.refund-cta span { font-size: 13px; color: var(--text-muted); }
+.refund-cta span { display: block; font-size: 13px; color: var(--text-muted); }
+.refund-cta span[data-i18n="refundCtaLead"] { margin-top: 4px; color: var(--text); }
 .refund-cta:hover { background: color-mix(in srgb, var(--db-red) 4%, #fff); }
 .refund-cta.hidden { display: none; }
 body.past-mode .refund-cta { display: none; }
@@ -202,6 +203,7 @@ body.past-mode .refund-cta { display: none; }
 body.past-mode .past-banner { display: flex; }
 .past-banner strong { font-size: 15px; }
 .past-coverage { font-size: 12px; color: var(--text-muted); flex: 1; }
+.past-lead { flex-basis: 100%; font-size: 13px; color: var(--text-muted); }
 .past-exit {
   background: none; border: none; color: var(--db-red); font-size: 13px;
   font-weight: 600; cursor: pointer; padding: 0; font-family: inherit;
