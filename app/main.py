@@ -62,6 +62,8 @@ def normalize_leg(abschnitt: dict, window: int, past: bool = False, live: bool =
         "plannedDeparture": (abschnitt.get("abfahrt") or {}).get("sollzeit"),
         "plannedArrival": (abschnitt.get("ankunft") or {}).get("sollzeit"),
     }
+    if leg["walking"]:
+        leg["durationSeconds"] = abschnitt.get("abschnittsDauer")
 
     fahrt_nr = leg["line"]["fahrtNr"]
     if not leg["walking"] and fahrt_nr and leg["plannedArrival"] and leg["destination"]["id"]:

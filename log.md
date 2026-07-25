@@ -155,3 +155,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - The compensation check was reachable only through the mid-page CTA; the header now carries a solid white pill button ("Entschädigung beantragen / Apply delay compensation") between the title and the language toggle — the only filled element on the red bar, so it reads as the primary action. In past mode it shows a pressed state (red-tinted fill + inset shadow) keyed off `body.past-mode`, so it lights up regardless of entry path (header button, CTA, or `?mode=past` deep link). Clicking tracks `refund-nav` in Umami (separate from `refund-cta`, so the two entry points can be compared) and focuses the From field; a second click is a no-op (`setMode` returns early on the same mode).
 - `.header-inner` wraps on ≤700 px screens; the button carries `margin-left: auto` so it and the DE/EN pills drop to a right-aligned second row instead of overflowing narrow phones.
 - Cache-busters app.js v=40, style.css v=24.
+
+## 2026-07-25 — Walk legs show their duration
+
+- Walk rows read only "Fußweg/Walk · A → B", leaving the transfer's footwork time invisible (e.g. the 30-min Paris Est → Paris Nord station change). `normalize_leg` now passes bahn.de's `abschnittsDauer` (seconds) through as `durationSeconds` on walking legs, and `buildLegRow` renders "Fußweg 30 min / Walk 30 min · A → B" — falling back to the planned departure→arrival gap when the field is missing, and to the bare label when neither exists. Simulated-continuation walk legs get the same treatment for free since they render through the same row builder.
+- Verified headless (Playwright + local server): Paris Est → Hauptbf (Pariser Platz), Stuttgart returns `durationSeconds: 1800` on the walk leg and the card shows "Walk 30 min · Paris Est → Paris Nord".
+- Cache-buster app.js v=41.

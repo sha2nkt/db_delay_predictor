@@ -701,6 +701,14 @@ function exactDelayBadge(d) {
   return el;
 }
 
+function walkMinutes(leg) {
+  if (leg.durationSeconds) return Math.round(leg.durationSeconds / 60);
+  if (leg.plannedDeparture && leg.plannedArrival) {
+    return Math.round((Date.parse(leg.plannedArrival) - Date.parse(leg.plannedDeparture)) / 60000);
+  }
+  return null;
+}
+
 // one leg row (train or walk); struck = leg was missed in the simulated journey
 function buildLegRow(leg, past, struck) {
   const row = document.createElement("div");
@@ -708,7 +716,9 @@ function buildLegRow(leg, past, struck) {
   if (leg.walking) {
     const w = document.createElement("span");
     w.className = "walk";
-    w.textContent = `${t("walk")} · ${leg.origin?.name || ""} → ${leg.destination?.name || ""}`;
+    const mins = walkMinutes(leg);
+    const label = mins ? `${t("walk")} ${mins} min` : t("walk");
+    w.textContent = `${label} · ${leg.origin?.name || ""} → ${leg.destination?.name || ""}`;
     row.appendChild(w);
     return row;
   }

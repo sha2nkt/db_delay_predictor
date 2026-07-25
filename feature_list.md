@@ -9,6 +9,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Station autocomplete (Von/Nach) | done | `/api/locations` served from the local delay data (folded-name index built at startup, multi-level Hbf EVAs deduped, ranked prefix > word-start > substring then volume); bahn.de `/reiseloesung/orte` only for stations with no delay history; debounced 250 ms in UI |
 | Typed-station fallback | partial | exact case-insensitive name match resolves un-selected input at search time; implemented 2026-07-19, browser verification pending |
 | Journey search with transfers | done | `/api/journeys` → bahn.de `/angebote/fahrplan` (POST), 1 adult 2nd class, all products |
+| Walk-leg duration | done | walk rows show "Fußweg 30 min / Walk 30 min · A → B" from bahn.de `abschnittsDauer` (fallback: planned departure→arrival gap); added 2026-07-25 |
 | Departure date/time selection | done | defaults to now; Berlin-local naive timestamps end to end |
 | Swap origin/destination | done | ⇅ button |
 | Ticket prices | done | `angebotsPreis` from bahn.de; prominent per-card display, "Preis auf bahn.de" fallback when missing |
