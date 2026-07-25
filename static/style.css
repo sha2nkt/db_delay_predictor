@@ -103,7 +103,19 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .hero-chart.chart-open img { display: inline-block; opacity: 1; }
 @starting-style { .hero-chart.chart-open img { opacity: 0; } }
 
-.header-lang { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; }
+.refund-nav {
+  margin-left: auto; flex-shrink: 0;
+  background: #fff; border: none; border-radius: 18px;
+  padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--db-red);
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.refund-nav:hover { background: color-mix(in srgb, var(--db-red) 8%, #fff); }
+body.past-mode .refund-nav {
+  background: color-mix(in srgb, var(--db-red) 12%, #fff);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.25); cursor: default;
+}
+
+.header-lang { display: flex; gap: 6px; flex-shrink: 0; }
 .lang-btn {
   background: transparent; border: 1px solid rgba(255,255,255,.6); border-radius: 16px;
   padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #fff;
@@ -275,6 +287,7 @@ body.past-mode .field-window { display: none; }
 .site-footer .footer-data { margin-top: 6px; font-size: 12px; color: var(--text-muted); }
 
 @media (max-width: 700px) {
+  .header-inner { flex-wrap: wrap; row-gap: 8px; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
   .field input, .field select { min-width: 0; width: 100%; }

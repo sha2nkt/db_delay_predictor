@@ -149,3 +149,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - `Cache-Control` added to both API endpoints: `public, max-age=600` on `/api/locations`, `public, max-age=120` on `/api/journeys` (matching the in-process TTLs).
 - Hero chart reworked: the headline moved out of the SVG into the page as a two-line claim ("Verspätete Züge bleiben verspätet. / Pünktliche Züge bleiben pünktlich.") with a scope+finding sub-line, and the plot now sits behind a "Daten ansehen" toggle, fading in via `allow-discrete`/`@starting-style`. `make_delay_scatter.py`/`make_delay_violin.py` drop the in-chart title and shift everything below the subtitle up by `TOP_SHIFT=34`, shrinking the viewBox; all four SVGs regenerated.
 - Cache-busters app.js v=38, style.css v=22.
+
+## 2026-07-25 — Header button for the compensation check
+
+- The compensation check was reachable only through the mid-page CTA; the header now carries a solid white pill button ("Entschädigung beantragen / Apply delay compensation") between the title and the language toggle — the only filled element on the red bar, so it reads as the primary action. In past mode it shows a pressed state (red-tinted fill + inset shadow) keyed off `body.past-mode`, so it lights up regardless of entry path (header button, CTA, or `?mode=past` deep link). Clicking tracks `refund-nav` in Umami (separate from `refund-cta`, so the two entry points can be compared) and focuses the From field; a second click is a no-op (`setMode` returns early on the same mode).
+- `.header-inner` wraps on ≤700 px screens; the button carries `margin-left: auto` so it and the DE/EN pills drop to a right-aligned second row instead of overflowing narrow phones.
+- Cache-busters app.js v=40, style.css v=24.

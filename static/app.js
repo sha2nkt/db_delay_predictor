@@ -84,6 +84,7 @@ const I18N = {
     tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
     footerData: "Verspätungsdaten:",
+    navRefund: "Entschädigung beantragen",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
     refundCtaLead: "Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.",
     refundCtaSub: "Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks",
@@ -171,6 +172,7 @@ const I18N = {
     tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
     footerOpenSource: "Open source – view the code on GitHub",
     footerData: "Delay data:",
+    navRefund: "Apply delay compensation",
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
     refundCtaSub: "Get your money back from DB in 3 easy clicks",
@@ -413,6 +415,11 @@ async function setMode(mode) {
 
 document.getElementById("refund-cta").addEventListener("click", () => {
   track("refund-cta");
+  setMode("past");
+  document.getElementById("from").focus();
+});
+document.getElementById("refund-nav").addEventListener("click", () => {
+  track("refund-nav");
   setMode("past");
   document.getElementById("from").focus();
 });
