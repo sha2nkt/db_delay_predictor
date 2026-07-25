@@ -20,7 +20,7 @@ umami = httpx.AsyncClient(base_url="http://127.0.0.1:3001", timeout=5)
 async def lifespan(app: FastAPI):
     delays.init()
     yield
-    await bahn_api.client.close()
+    await bahn_api.close()
     await umami.aclose()
 
 

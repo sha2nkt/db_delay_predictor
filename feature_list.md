@@ -69,7 +69,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 - Delay stats are per-train-number history; a rescheduled or renumbered train shows "keine Daten".
 - Walking legs and vehicles without a train number (some buses) get no badge.
 - Journey search covers what bahn.de returns (6 results per query, no pagination yet).
-- bahn.de web API is unofficial and could change without notice.
+- bahn.de web API is unofficial and could change without notice; it is bot-protected by Akamai, which blocks one TLS fingerprint at a time (the app rotates through firefox/safari/chrome profiles on a 403, but a simultaneous block of all three would take the search down).
 - France: Trenitalia France and other non-SNCF operators are absent from the feed; "actual" times are the last realtime projection, not measured; poller downtime creates permanent holes for those hours.
 - Switzerland: GESCHAETZT (estimated) actuals are accepted alongside REAL; foreign stops of international trains carry no Swiss actuals (each country's own source covers its own stations).
 - Austria not covered yet — Austrian legs show "keine Daten" as before.

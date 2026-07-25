@@ -1,24 +1,105 @@
+import asyncio
+import logging
+import time
+from collections import OrderedDict
+from typing import Awaitable, Callable
+
 from curl_cffi import requests
+
+log = logging.getLogger(__name__)
 
 # bahn.de sits behind Akamai Bot Manager, which fingerprints the TLS/HTTP2
 # client (not just cookies) and returns 403 OPS_BLOCKED to plain HTTP stacks
-# like httpx/requests. curl_cffi's impersonate="chrome" reproduces a real
-# Chrome ClientHello, which passes the check with no cookie warmup needed.
+# like httpx/requests. curl_cffi's impersonate=... reproduces a real browser
+# ClientHello, which passes the check with no cookie warmup needed.
 BASE_URL = "https://www.bahn.de/web/api"
 
-client = requests.AsyncSession(
-    impersonate="chrome",
-    timeout=20,
-    headers={"Accept": "application/json"},
-)
+# Akamai flags one fingerprint at a time: on 2026-07-23 every chrome profile
+# started getting 403 OPS_BLOCKED (fresh sessions too, so it was the
+# fingerprint rather than cookies or rate) while firefox and safari passed.
+# So keep spares and rotate to the next profile whenever one gets blocked.
+PROFILES = ["firefox135", "safari17_0", "chrome"]
+
+JOURNEYS_TTL = 120
+LOCATIONS_TTL = 600
+CACHE_MAX = 512
+
+_sessions: dict[str, requests.AsyncSession] = {}
+_profile_idx = 0
+_rotate_lock = asyncio.Lock()
+
+# key -> (expires_at, task). The task is shared, so concurrent callers asking
+# for the same thing during a traffic spike ride one upstream request.
+_cache: OrderedDict[tuple, tuple[float, "asyncio.Task"]] = OrderedDict()
 
 ALL_PRODUCTS = ["ICE", "EC_IC", "IR", "REGIONAL", "SBAHN", "BUS", "SCHIFF", "UBAHN", "TRAM", "ANRUFPFLICHTIG"]
 
 
+def _session(profile: str) -> requests.AsyncSession:
+    if profile not in _sessions:
+        _sessions[profile] = requests.AsyncSession(
+            impersonate=profile,
+            timeout=20,
+            headers={"Accept": "application/json"},
+        )
+    return _sessions[profile]
+
+
+async def _rotate(blocked: str) -> None:
+    global _profile_idx
+    async with _rotate_lock:
+        if PROFILES[_profile_idx] != blocked:
+            return  # another request already rotated away from this profile
+        _profile_idx = (_profile_idx + 1) % len(PROFILES)
+        log.warning("bahn.de blocked impersonate=%s, switching to %s", blocked, PROFILES[_profile_idx])
+
+
+async def _request(method: str, path: str, **kwargs):
+    for attempt in range(len(PROFILES)):
+        profile = PROFILES[_profile_idx]
+        resp = await getattr(_session(profile), method)(f"{BASE_URL}{path}", **kwargs)
+        if resp.status_code == 403 and attempt < len(PROFILES) - 1:
+            await _rotate(profile)
+            continue
+        resp.raise_for_status()
+        return resp.json()
+
+
+def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable]) -> "asyncio.Task":
+    hit = _cache.get(key)
+    if hit and (time.monotonic() < hit[0] or not hit[1].done()):
+        _cache.move_to_end(key)
+        return hit[1]
+
+    task = asyncio.ensure_future(call())
+    _cache[key] = (time.monotonic() + ttl, task)
+    _cache.move_to_end(key)
+    while len(_cache) > CACHE_MAX:
+        _cache.popitem(last=False)
+
+    def drop_if_failed(done: "asyncio.Task") -> None:
+        # never serve a cached error: a block clears as soon as we rotate
+        if done.cancelled() or done.exception() is not None:
+            entry = _cache.get(key)
+            if entry and entry[1] is done:
+                del _cache[key]
+
+    task.add_done_callback(drop_if_failed)
+    return task
+
+
+async def close() -> None:
+    for session in _sessions.values():
+        await session.close()
+    _sessions.clear()
+
+
 async def locations(query: str) -> list[dict]:
-    resp = await client.get(f"{BASE_URL}/reiseloesung/orte", params={"suchbegriff": query, "typ": "ALL", "limit": 8})
-    resp.raise_for_status()
-    return resp.json()
+    return await _cached(
+        ("locations", query.strip().lower()),
+        LOCATIONS_TTL,
+        lambda: _request("get", "/reiseloesung/orte", params={"suchbegriff": query, "typ": "ALL", "limit": 8}),
+    )
 
 
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None) -> dict:
@@ -47,6 +128,8 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     }
     if paging_ref:
         body["pagingReference"] = paging_ref
-    resp = await client.post(f"{BASE_URL}/angebote/fahrplan", json=body)
-    resp.raise_for_status()
-    return resp.json()
+    return await _cached(
+        ("journeys", from_id, to_id, departure_iso, paging_ref),
+        JOURNEYS_TTL,
+        lambda: _request("post", "/angebote/fahrplan", json=body),
+    )
