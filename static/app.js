@@ -47,6 +47,7 @@ const I18N = {
     sortDeparture: "Abfahrtszeit",
     sortDelay: "Wenigste Verspätung",
     sortPrice: "Günstigster Preis",
+    sortRisk: "Geringstes Anschlussrisiko",
     earlier: "Frühere Verbindungen",
     later: "Spätere Verbindungen",
     heroClaimLate: "Verspätete Züge bleiben verspätet.",
@@ -137,6 +138,7 @@ const I18N = {
     sortDeparture: "Departure time",
     sortDelay: "Least delay",
     sortPrice: "Cheapest price",
+    sortRisk: "Lowest connection risk",
     earlier: "Earlier connections",
     later: "Later connections",
     heroClaimLate: "Late trains stay late.",
@@ -794,6 +796,23 @@ function sortedJourneys() {
       if (aMissing !== bMissing) return aMissing ? 1 : -1;  // no price last
       if (aMissing && bMissing) return 0;
       return a.price - b.price;  // stable sort keeps departure order on ties
+    });
+  } else if (state.sort === "risk") {
+    const past = state.mode === "past";
+    // tiers mirror the header pills: no risk < yellow tight transfer < red connection risk;
+    // past mode ranks by what actually happened - journeys with missed connections last
+    const tier = (j) => {
+      if (past) return (j.missedTransfers || []).length ? 2 : 0;
+      const tts = j.tightTransfers || [];
+      return tts.some((tt) => tt.unlikely) ? 2 : tts.length ? 1 : 0;
+    };
+    const worstExcess = (j) =>
+      Math.max(...(j.tightTransfers || []).map((tt) => tt.medianDelay - tt.transferMinutes));
+    js.sort((a, b) => {
+      const ta = tier(a), tb = tier(b);
+      if (ta !== tb) return ta - tb;
+      if (!past && ta > 0) return worstExcess(a) - worstExcess(b);  // tightest margin last
+      return 0;  // stable sort keeps departure order on ties
     });
   }
   return js;
