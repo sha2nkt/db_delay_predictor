@@ -9,6 +9,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Station autocomplete (Von/Nach) | done | `/api/locations` served from the local delay data (folded-name index built at startup, multi-level Hbf EVAs deduped, ranked prefix > word-start > substring then volume); bahn.de `/reiseloesung/orte` only for stations with no delay history; debounced 250 ms in UI |
 | Typed-station fallback | partial | exact case-insensitive name match resolves un-selected input at search time; implemented 2026-07-19, browser verification pending |
 | Journey search with transfers | done | `/api/journeys` → bahn.de `/angebote/fahrplan` (POST), 1 adult 2nd class, all products |
+| Earlier/later paging | done | bahn.de `verbindungReference` tokens; buttons prepend/append the adjacent result page, deduped by planned times + train names (2026-07-12) |
 | Departure date/time selection | done | defaults to now; Berlin-local naive timestamps end to end |
 | Swap origin/destination | done | ⇅ button |
 | Ticket prices | done | `angebotsPreis` from bahn.de; prominent per-card display, "Preis auf bahn.de" fallback when missing |
@@ -23,12 +24,12 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Feature | Status | Notes |
 |---|---|---|
 | Median arrival delay per train leg | done | matched by train number + arrival EVA + time-of-day ±120 min, closest match per day; median since 2026-07-19 (was avg) |
-| Journey-level delay score | done | median arrival delay of the final train leg (= delay at the passenger's destination); headline badge overridden by a red "Connection likely missed" pill when any transfer is unlikely (2026-07-22, browser-verified) |
+| Journey-level delay score | done | median arrival delay of the final train leg (= delay at the passenger's destination); headline badge overridden by a red "⛔ Anschlussrisiko / Connection risk" pill when any transfer is unlikely (2026-07-22, browser-verified) |
 | Worst-leg indicator (`maxLegMedianDelay`) | done | transfer-risk signal, used as sort tiebreaker |
 | Per-day delay chart | done | per-day breakdown behind the delay badges (added 2026-07-15) |
-| Delay reason on hover | done | IRIS delay-cause codes (`<m t="d" c="…"/>`) extracted into `reason_code` by the DE pipeline, mapped to the official German texts (EN translated) client-side; shown in the per-day chart tooltips (hover) and in a bubble over the bar on tap/click (touch-friendly) and past-mode badge tooltips (added 2026-07-25, browser-verified 2026-07-26); DE legs only — CH istdaten and FR GTFS-RT carry no cause data |
-| Tight-transfer warning | done | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted); shown as an inline red strip under the affected leg row with transfer time and the previous train's median delay; escalates to "⛔ Unwahrscheinlicher Umstieg / Unlikely transfer" when the median delay exceeds the transfer time by > 30 min (2026-07-22); any tight transfer also surfaces as a yellow "⚠ Knapper Umstieg / Tight transfer" pill in the journey header next to the median delay badge, red risk pill taking precedence (2026-07-26); implemented 2026-07-19 (inline since 2026-07-20), browser-verified 2026-07-26 (Playwright: strip + header pill render, pill height matches the delay badge, header actions wrap as one right-aligned block) |
-| Cancellation tracking | done | cancelled days excluded from avg, surfaced as "N× (teil-)ausgefallen" note |
+| Delay reason on hover | done | IRIS delay-cause codes extracted into `reason_code` by the DE pipeline, mapped client-side to the official cause texts (DE/EN); shown in per-day chart tooltips, in a tap/click bubble over the bar (touch), and in past-mode badge tooltips incl. live legs; DE legs only — CH istdaten and FR GTFS-RT carry no cause data (added + browser-verified 2026-07-26) |
+| Tight-transfer warning | done | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted): inline red strip under the leg row with transfer time and the previous train's median delay; escalates to "⛔ Unwahrscheinlicher Umstieg / Unlikely transfer" when the median delay exceeds the transfer time by > 30 min (2026-07-22); any tight transfer also adds a yellow "⚠ Knapper Umstieg / Tight transfer" pill in the journey header, red risk pill taking precedence (2026-07-26); browser-verified 2026-07-26 |
+| Cancellation tracking | done | cancelled days excluded from the median, surfaced as "N× (teil-)ausgefallen" note |
 | Honest partial coverage | done | badge shows "n/7 Tage"; no data → gray "keine Daten", never a fake 0 |
 | Color-coded badges | done | green < 3 min, yellow 3–9, red ≥ 10, gray no data |
 | Sort by least delay | done | missing-data journeys last; journeys with a likely-missed connection after normal ones (2026-07-22); ties broken by worst leg |
@@ -62,7 +63,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 
 | Feature | Status | Notes |
 |---|---|---|
-| Past-journey mode | done | home-page-only CTA (hidden after future-mode results) flips the search card into `mode=past`; CTA and past-mode banner spell out that the journey is reconstructed as it actually ran, not just the refund (2026-07-25); "Entschädigung prüfen / Find my compensation" button; date picker clamped to `/api/coverage`, too-recent dates get a check-back-when message; shareable via `&mode=past`; header pill button "Entschädigung beantragen / Apply delay compensation" as an always-visible second entry point (2026-07-25) |
+| Past-journey mode | done | home-page-only CTA (below the hero chart since 2026-07-26, hidden after future-mode results) or the permanent header pill "Entschädigung beantragen / Apply delay compensation" (2026-07-25) flips the search card into `mode=past`; CTA and banner spell out that the journey is reconstructed as it actually ran (2026-07-25); date picker clamped to `/api/coverage`, too-recent dates get a check-back-when message; shareable via `&mode=past` |
 | Exact per-day leg delays | done | `leg_delay_on_date`: same matching as the median query, restricted to the searched calendar day; cancellations shown |
 | Missed-connection simulation | done | journey walked with actual delays; transfer made only if the connecting train's actual departure (own delay included) leaves > 2 min; miss/cancellation → re-plan via bahn.de to the destination, ≤ 3 chained re-plans, earliest-actual-arrival candidate (delayed earlier trains considered) |
 | Struck-out legs + actual continuation | done | missed legs struck out with "verpasst"/"ausgefallen" badges; "↳ Tatsächliche Weiterfahrt" section shows the replacement legs; header shows planned arrival struck + simulated actual |
@@ -74,13 +75,15 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 
 | Feature | Status | Notes |
 |---|---|---|
+| Site-wide DE/EN toggle | done | header pills; static text via `data-i18n`, dynamic strings via the `I18N` dict; choice persists in localStorage (2026-07-13) |
+| Hero chart | done | two-line claim in-page ("Verspätete Züge bleiben verspätet…"), plot behind a "Daten ansehen" toggle (2026-07-25) |
 | SEO basics | done | meta description, canonical, Open Graph/Twitter tags, JSON-LD WebApplication (de/en) in index.html; robots.txt disallows /api/ and /stats/; single-URL sitemap.xml (added 2026-07-26) |
 
 ## Known limitations
 
 - Delay stats are per-train-number history; a rescheduled or renumbered train shows "keine Daten".
 - Walking legs and vehicles without a train number (some buses) get no badge.
-- Journey search covers what bahn.de returns (6 results per query, no pagination yet).
+- Journey search covers what bahn.de returns (~6 connections per page; earlier/later buttons fetch adjacent pages).
 - bahn.de web API is unofficial and could change without notice; it is bot-protected by Akamai, which blocks one TLS fingerprint at a time (the app rotates through firefox/safari/chrome profiles on a 403, but a simultaneous block of all three would take the search down).
 - France: Trenitalia France and other non-SNCF operators are absent from the feed; "actual" times are the last realtime projection, not measured; poller downtime creates permanent holes for those hours.
 - Switzerland: GESCHAETZT (estimated) actuals are accepted alongside REAL; foreign stops of international trains carry no Swiss actuals (each country's own source covers its own stations).
