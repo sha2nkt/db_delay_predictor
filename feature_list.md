@@ -68,6 +68,12 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Same-day journeys (checkable on arrival) | done | date picker reaches today via `liveMaxDay` in `/api/coverage`; delays come from IRIS live (2026-07-25, verified minutes after the trains ran), re-planning after a missed connection resolves live too |
 | Not-yet-reported legs | done | a leg IRIS hasn't reported shows "noch offen / pending" instead of "keine Daten", and the card says "Ankunft noch nicht bestätigt – morgen früh prüfen"; stops still in the future are never reported as on time |
 
+## Site & SEO
+
+| Feature | Status | Notes |
+|---|---|---|
+| SEO basics | done | meta description, canonical, Open Graph/Twitter tags, JSON-LD WebApplication (de/en) in index.html; robots.txt disallows /api/ and /stats/; single-URL sitemap.xml (added 2026-07-26) |
+
 ## Known limitations
 
 - Delay stats are per-train-number history; a rescheduled or renumbered train shows "keine Daten".

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /stats/
+
+Sitemap: https://delaybahn.com/sitemap.xml
