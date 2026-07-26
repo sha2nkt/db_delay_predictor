@@ -204,3 +204,7 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 
 - On macOS the future-mode header still wrapped the `.journey-cta` block (badges + price + booking button) to a second line even at the full 900 px layout: San Francisco renders a few percent wider than the Linux fonts the layout was tuned against, and the row's content sat within ~10–30 px of the 828 px column. Reproduced headlessly by stress-testing with `letter-spacing: 0.6px` — German wrapped at 900 px, English just below. Tightened instead of restructured: `.journey-head` gap 10→8, `.journey-cta` gap 8→6, `.price` 17→16 px, `.book-btn` 14→13 px with padding 7/12→6/10 and `white-space: nowrap`. One line now holds at 900 px in DE and EN under the wide-font stress test; below ~860 px the block still wraps as one right-aligned unit (mobile fallback unchanged).
 - Cache-buster style.css v=28.
+
+## 2026-07-26 — Revert of the header tightening
+
+- The one-line squeeze (previous entry) traded too much CTA presence for density — smaller booking button and price, tighter gaps — and was reverted wholesale: `.journey-head`/`.journey-cta` gaps back to 10/8 px, `.price` back to 17 px, `.book-btn` back to 14 px with 7/12 padding, cache-buster back to v=27 (v=28 was never deployed). The macOS wrap it fixed is back on the table; candidate next step is keeping these sizes and dropping the yellow tight-transfer pill from the header row instead (it duplicates the always-visible red callout under the leg and is the ~115 px that overflows the row).
