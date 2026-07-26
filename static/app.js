@@ -47,6 +47,7 @@ const I18N = {
     sortDeparture: "Abfahrtszeit",
     sortDelay: "Wenigste Verspätung",
     sortPrice: "Günstigster Preis",
+    sortTransfers: "Wenigste Umstiege",
     earlier: "Frühere Verbindungen",
     later: "Spätere Verbindungen",
     heroClaimLate: "Verspätete Züge bleiben verspätet.",
@@ -137,6 +138,7 @@ const I18N = {
     sortDeparture: "Departure time",
     sortDelay: "Least delay",
     sortPrice: "Cheapest price",
+    sortTransfers: "Fewest transfers",
     earlier: "Earlier connections",
     later: "Later connections",
     heroClaimLate: "Late trains stay late.",
@@ -795,6 +797,10 @@ function sortedJourneys() {
       if (aMissing && bMissing) return 0;
       return a.price - b.price;  // stable sort keeps departure order on ties
     });
+  } else if (state.sort === "transfers") {
+    const transferCount = (j) =>
+      j.transfers ?? Math.max(0, (j.legs || []).filter((l) => !l.walking).length - 1);
+    js.sort((a, b) => transferCount(a) - transferCount(b));  // stable sort keeps departure order on ties
   }
   return js;
 }
