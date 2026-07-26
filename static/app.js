@@ -812,12 +812,20 @@ function sortedJourneys() {
       const tts = j.tightTransfers || [];
       return tts.some((tt) => tt.unlikely) ? 2 : tts.length ? 1 : 0;
     };
-    const worstExcess = (j) =>
-      Math.max(...(j.tightTransfers || []).map((tt) => tt.medianDelay - tt.transferMinutes));
+    // within a tier, rank by the riskiest transfer's slack (transfer time minus the
+    // arriving leg's median delay): direct journeys first, unknown delay data last
+    const margin = (j) => {
+      const trainLegs = (j.legs || []).filter((l) => !l.walking);
+      if ((j.transfers ?? trainLegs.length - 1) <= 0) return Infinity;
+      return j.minTransferMargin ?? -Infinity;
+    };
     js.sort((a, b) => {
       const ta = tier(a), tb = tier(b);
       if (ta !== tb) return ta - tb;
-      if (!past && ta > 0) return worstExcess(a) - worstExcess(b);  // tightest margin last
+      if (!past) {
+        const ma = margin(a), mb = margin(b);
+        if (ma !== mb) return mb - ma;  // biggest slack first
+      }
       return 0;  // stable sort keeps departure order on ties
     });
   }

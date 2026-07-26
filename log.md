@@ -219,3 +219,8 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 ## 2026-07-26 — Refund CTA moved below the hero chart
 
 - The home-page refund CTA sat between the search card and the hero chart, pushing the site's headline claim below it. Reordered in static/index.html only: the `#refund-cta` button now renders after `#hero-chart`, directly above the (hidden) results controls. No content, style, or JS changes; the show/hide logic keys off the element id and is unaffected.
+
+## 2026-07-26 — Risk sort ranks within tiers by the riskiest transfer's margin
+
+- The "Geringstes Anschlussrisiko" sort kept departure order inside the no-risk tier and ordered the yellow/red tiers by worst excess over tight transfers only. Future-mode journeys now carry `minTransferMargin` — min(transfer time − arriving leg's median delay) across *all* train-to-train transfers (walking time subtracted, same `_transfer_pairs` helper the tight-transfer detection uses; null for direct journeys or when no arriving leg has delay stats) — and the risk sort orders within each tier by that margin descending: direct journeys first (no connection to miss), biggest slack next, journeys without delay data last, remaining ties keep departure order (stable sort). Past mode unchanged: it ranks by actual outcomes and keeps departure order within its made/missed tiers. Comparator unit-tested in node with synthetic journeys covering all three tiers plus direct/null-margin edge cases; not browser-verified.
+- Cache-buster app.js v=48.

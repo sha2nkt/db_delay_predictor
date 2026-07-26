@@ -418,11 +418,20 @@ async def journeys(
                 for leg in train_legs
                 if (s := leg.get("delayStats")) and s["medianDelay"] is not None
             ]
+            # slack of each transfer after the arriving leg's median delay; the
+            # riskiest one ranks the journey in the risk sort - covers all
+            # transfers, not just tight ones, so no-risk journeys rank too
+            transfer_margins = [
+                transfer_min - stats["medianDelay"]
+                for a, _b, transfer_min in _transfer_pairs(legs)
+                if (stats := legs[a].get("delayStats")) and stats["medianDelay"] is not None
+            ]
             journey.update({
                 # headline: median arrival delay at the passenger's destination (final leg)
                 "delayScore": final_stats["medianDelay"] if final_stats and final_stats["medianDelay"] is not None else None,
                 "maxLegMedianDelay": max(leg_medians) if leg_medians else None,
                 "tightTransfers": tight_transfers(legs),
+                "minTransferMargin": round(min(transfer_margins), 1) if transfer_margins else None,
             })
         journeys_out.append(journey)
 
