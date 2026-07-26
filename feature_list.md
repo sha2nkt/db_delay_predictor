@@ -13,6 +13,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Swap origin/destination | done | ⇅ button |
 | Ticket prices | done | `angebotsPreis` from bahn.de; prominent per-card display, "Preis auf bahn.de" fallback when missing |
 | Sort by cheapest price | done | "Günstigster Preis" toggle; journeys without price last |
+| Sort by transfer risk | done | "Geringstes Anschlussrisiko / Lowest connection risk" toggle; ranks by the header-pill tier (no risk < tight transfer < connection risk), within a tier by worst margin (median delay − transfer time), ties keep departure order; past mode ranks journeys with missed connections last; implemented and Playwright-verified 2026-07-26 |
 | Shareable search URLs | done | search params synced to the query string, restored (and re-searched) on load; implemented 2026-07-19, browser-verified 2026-07-26 (Playwright loaded a query-string URL, search restored and results rendered) |
 | Recent-station suggestions | partial | focusing an empty Von/Nach input suggests the last 6 searched stations (localStorage, deduped); implemented 2026-07-19, browser verification pending |
 
