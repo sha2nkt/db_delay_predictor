@@ -176,3 +176,8 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 
 - `static/index.html` head now carries the on-page SEO set: meta description (DE, mirrors the hero claim + compensation check), canonical `https://delaybahn.com/`, Open Graph tags (type/url/site_name/title/description, `og:image` = logo.png, locale `de_DE` with `en_US` alternate), `twitter:card summary`, and a JSON-LD `WebApplication` block (category `TravelApplication`, `inLanguage` de/en, free offer). Head-only additions — no cache-buster bumps needed.
 - New `static/robots.txt`: allow all, `Disallow: /api/` and `/stats/` (the Umami proxy), sitemap pointer. New `static/sitemap.xml`: single URL (the app is one page), `changefreq daily`. Both served at the site root via the existing `StaticFiles` mount in app/main.py.
+
+## 2026-07-26 — Tight-transfer badge in the journey header
+
+- Merely-tight transfers (slack ≤ 2 min after the median delay) were visible only in the inline strip under the affected leg row — nothing in the header summary. Future-mode cards with a non-empty `tightTransfers` now show a yellow "⚠ Knapper Umstieg / Tight transfer" pill directly left of the median delay badge; the tooltip lists the affected station(s). The red "⛔ Anschlussrisiko / Connection risk" pill keeps precedence — unlikely transfers are a subset of tight ones and replace the median badge entirely, so the yellow pill renders only when no transfer is unlikely. Past mode unchanged.
+- Cache-buster app.js v=44.

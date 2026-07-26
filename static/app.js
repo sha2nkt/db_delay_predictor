@@ -81,6 +81,8 @@ const I18N = {
     unlikelyTitle: "Unwahrscheinlicher Umstieg:",
     unlikelyBadge: "⛔ Anschlussrisiko",
     unlikelyBadgeTooltip: (stations) => `Die typische Verspätung übersteigt die Umstiegszeit deutlich (${stations})`,
+    tightBadge: "⚠ Knapper Umstieg",
+    tightBadgeTooltip: (stations) => `Die typische Verspätung lässt wenig Umstiegszeit (${stations})`,
     tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
     footerData: "Verspätungsdaten:",
@@ -169,6 +171,8 @@ const I18N = {
     unlikelyTitle: "Unlikely transfer:",
     unlikelyBadge: "⛔ Connection risk",
     unlikelyBadgeTooltip: (stations) => `Typical delay far exceeds the transfer time (${stations})`,
+    tightBadge: "⚠ Tight transfer",
+    tightBadgeTooltip: (stations) => `Typical delay leaves little time to change trains (${stations})`,
     tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
     footerOpenSource: "Open source – view the code on GitHub",
     footerData: "Delay data:",
@@ -1138,6 +1142,7 @@ function render() {
     const finalLeg = trainLegs.length ? trainLegs[trainLegs.length - 1] : null;
     const missed = past && (journey.missedTransfers || []).length > 0;
     let badge;
+    let tightBadge = null;
     if (past) {
       if (sim && journey.arrivalDelay != null) {
         // simulated delay at the destination, replacement connections included
@@ -1163,6 +1168,13 @@ function render() {
       } else {
         badge = delayBadge(finalStats, true);
         if (finalStats) wireDayChart(badge, finalStats, head, finalLeg.line?.name);
+        const tts = journey.tightTransfers || [];
+        if (tts.length) {
+          tightBadge = document.createElement("span");
+          tightBadge.className = "badge yellow";
+          tightBadge.textContent = t("tightBadge");
+          tightBadge.title = t("tightBadgeTooltip", tts.map((tt) => tt.station).join(", "));
+        }
       }
     }
 
@@ -1227,7 +1239,7 @@ function render() {
         })
       );
 
-      head.append(times, meta, spacer, badge, price, book);
+      head.append(times, meta, spacer, ...(tightBadge ? [tightBadge] : []), badge, price, book);
     }
     card.appendChild(head);
 
