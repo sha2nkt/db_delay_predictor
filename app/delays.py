@@ -25,6 +25,8 @@ def init():
         )
     _conn = duckdb.connect()
     _conn.execute(f"CREATE TABLE delays AS SELECT * FROM read_parquet('{DELAYS_PARQUET}')")
+    # parquets built before the reason feature lack the column
+    _conn.execute("ALTER TABLE delays ADD COLUMN IF NOT EXISTS reason_code INTEGER")
     _min_day, _max_day = _conn.execute(
         "SELECT min(CAST(arrival_planned_time AS DATE)), max(CAST(arrival_planned_time AS DATE))"
         " FROM delays WHERE arrival_planned_time IS NOT NULL"
@@ -137,6 +139,7 @@ def leg_delay_stats(
             SELECT CAST(arrival_planned_time AS DATE) AS day,
                    date_diff('minute', arrival_planned_time, arrival_change_time) AS arr_delay,
                    is_canceled,
+                   reason_code,
                    least(
                        abs(date_diff('minute', CAST(arrival_planned_time AS TIME), CAST(? AS TIME))),
                        1440 - abs(date_diff('minute', CAST(arrival_planned_time AS TIME), CAST(? AS TIME)))
@@ -148,7 +151,7 @@ def leg_delay_stats(
         )
         -- one stop per calendar day: closest in time-of-day; reject same-numbered
         -- trains running at a very different hour
-        SELECT DISTINCT ON (day) day, arr_delay, is_canceled
+        SELECT DISTINCT ON (day) day, arr_delay, is_canceled, reason_code
         FROM candidates WHERE tod_diff <= 120
         ORDER BY day, tod_diff
         """,
@@ -158,12 +161,12 @@ def leg_delay_stats(
     if not rows:
         stats = None
     else:
-        ok_delays = [d for _, d, canceled in rows if not canceled and d is not None]
+        ok_delays = [d for _, d, canceled, _ in rows if not canceled and d is not None]
         stats = {
             "medianDelay": round(median(ok_delays), 1) if ok_delays else None,
             "maxDelay": max(ok_delays) if ok_delays else None,
             "daysMatched": len(rows),
-            "canceledDays": sum(1 for _, _, canceled in rows if canceled),
+            "canceledDays": sum(1 for _, _, canceled, _ in rows if canceled),
             "windowStart": cutoff.isoformat(),
             "windowEnd": _max_day.isoformat(),
             "days": [
@@ -171,8 +174,9 @@ def leg_delay_stats(
                     "day": day.isoformat(),
                     "delay": None if canceled else delay,
                     "canceled": bool(canceled),
+                    "reason": reason,
                 }
-                for day, delay, canceled in rows
+                for day, delay, canceled, reason in rows
             ],
         }
     _cache[cache_key] = stats
@@ -197,7 +201,7 @@ def leg_delay_on_date(
     row = _conn.execute(
         """
         SELECT date_diff('minute', arrival_planned_time, arrival_change_time) AS arr_delay,
-               is_canceled
+               is_canceled, reason_code
         FROM delays
         WHERE ltrim(train_number, '0') = ? AND eva = ?
           AND arrival_planned_time IS NOT NULL
@@ -215,11 +219,12 @@ def leg_delay_on_date(
     if row is None:
         result = None
     else:
-        arr_delay, canceled = row
+        arr_delay, canceled, reason = row
         result = {
             # no change message recorded means no delay was reported: on time
             "delayMin": None if canceled else int(arr_delay or 0),
             "canceled": bool(canceled),
+            "reason": reason,
         }
     _date_cache[cache_key] = result
     return result

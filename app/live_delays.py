@@ -137,10 +137,18 @@ async def _fetch_fchg(eva: str) -> dict[str, dict]:
         ar, dp = s.find("ar"), s.find("dp")
         ar_clt = ar.get("clt") if ar is not None else None
         dp_clt = dp.get("clt") if dp is not None else None
+        # latest delay-cause message (<m t="d" c="43"/>) anywhere on the stop;
+        # ts is yymmddhhmm, so string comparison orders chronologically
+        reason, reason_ts = None, ""
+        for m in s.iter("m"):
+            code = m.get("c")
+            if m.get("t") == "d" and code and code.isdigit() and (m.get("ts") or "") >= reason_ts:
+                reason, reason_ts = int(code), m.get("ts") or ""
         changes[s.get("id")] = {
             "ar_ct": _iris_dt(ar.get("ct") if ar is not None else None),
             "dp_ct": _iris_dt(dp.get("ct") if dp is not None else None),
             "canceled": bool(ar_clt or dp_clt),
+            "reason": reason,
         }
     return changes
 
@@ -246,17 +254,18 @@ def _lookup(train_number: str, eva_padded: str, planned: datetime, kind: str) ->
     if changes is None:
         return None
     change = changes.get(stop_id)
+    reason = change["reason"] if change else None
     if change and change["canceled"]:
-        return {"delayMin": None, "canceled": True}  # known ahead of time, and a fact
+        return {"delayMin": None, "canceled": True, "reason": reason}  # known ahead of time, and a fact
     ct = (change["ar_ct"] if kind == "ar" else change["dp_ct"]) if change else None
     # "no change reported" means on time only once the stop is behind us; for one
     # still ahead it is a prognosis, and claiming punctuality would be wrong
     if (ct or stop_pt) > datetime.now(BERLIN).replace(tzinfo=None):
         return None
     if ct is None:
-        return {"delayMin": 0, "canceled": False}
+        return {"delayMin": 0, "canceled": False, "reason": reason}
     # measure against IRIS's own planned time, exactly as the parquet build does
-    return {"delayMin": round((ct - stop_pt).total_seconds() / 60), "canceled": False}
+    return {"delayMin": round((ct - stop_pt).total_seconds() / 60), "canceled": False, "reason": reason}
 
 
 def leg_delay_on_date(train_number: str, eva_padded: str, planned_arrival_local: datetime) -> dict | None:

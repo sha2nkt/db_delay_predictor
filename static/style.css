@@ -189,13 +189,25 @@ button.badge { border: none; font-family: inherit; cursor: pointer; }
 button.badge:hover { filter: brightness(1.12); }
 button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
-.day-chart { width: 100%; margin: 10px 0 2px; }
+.day-chart { width: 100%; margin: 10px 0 2px; position: relative; }
 .day-chart-caption {
   display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
   font-size: 12px; color: var(--text-muted); margin-bottom: 4px;
 }
 .day-chart-cancel { color: var(--red); font-weight: 600; white-space: nowrap; }
 .day-chart svg { display: block; width: 100%; height: auto; }
+.day-chart-bubble {
+  position: absolute; z-index: 5; max-width: 260px; padding: 5px 9px;
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14); font-size: 12px; line-height: 1.35;
+  pointer-events: none;
+}
+.day-chart-bubble::after {
+  content: ""; position: absolute; bottom: -4.5px; left: var(--arrow-x, 50%);
+  width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg);
+  background: #fff;
+  border-right: 1px solid var(--gray-border); border-bottom: 1px solid var(--gray-border);
+}
 
 .legs { margin-top: 10px; border-top: 1px solid var(--gray-border); padding-top: 10px; }
 .leg {

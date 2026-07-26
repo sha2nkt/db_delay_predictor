@@ -16,6 +16,9 @@ COLUMNS = (
     " arrival_change_time, departure_planned_time, departure_change_time, id"
 )
 
+# only the DE (IRIS) build carries it; CH istdaten and FR GTFS-RT have no cause data
+OPTIONAL_COLUMNS = {"reason_code": "INTEGER"}
+
 # country partition on the padded eva prefix keeps sources from ever colliding
 # (e.g. IRIS carries foreign border stops like Basel SBB that CH data also has)
 SOURCES = [
@@ -41,8 +44,13 @@ def main():
         if not list(args.data_dir.glob(pattern)):
             print(f"{name}: no data at {args.data_dir / pattern}, skipping", file=sys.stderr)
             continue
+        present = duckdb.sql(f"SELECT * FROM read_parquet('{args.data_dir / pattern}') LIMIT 0").columns
+        optional = ", ".join(
+            col if col in present else f"CAST(NULL AS {typ}) AS {col}"
+            for col, typ in OPTIONAL_COLUMNS.items()
+        )
         selects.append(
-            f"SELECT {COLUMNS} FROM read_parquet('{args.data_dir / pattern}')"
+            f"SELECT {COLUMNS}, {optional} FROM read_parquet('{args.data_dir / pattern}')"
             f" WHERE eva LIKE '{prefix}' AND time < TIMESTAMP '{window_end}'"
             # arrival_planned_time drives the app's window anchor (_max_day); an early
             # arrival before midnight of a stop planned after it must not shift it

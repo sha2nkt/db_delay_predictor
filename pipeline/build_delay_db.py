@@ -11,9 +11,9 @@ from huggingface_hub import snapshot_download
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SUBMODULE_ROOT = PROJECT_ROOT / "deutsche-bahn-data"
-sys.path.insert(0, str(SUBMODULE_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.create_monthly_data_release import process_files_to_temp  # noqa: E402
+from pipeline.fchg_parse import process_files_to_temp  # noqa: E402
 
 HF_REPO = "piebro/deutsche-bahn-data"
 
@@ -107,14 +107,24 @@ def main():
                 FROM '{fchg_pattern}'
                 ORDER BY id, xml_timestamp DESC
             ),
+            -- latest delay-cause message per stop, independent of the newest
+            -- fchg response (which may no longer carry the message)
+            reasons AS (
+                SELECT id, arg_max(reason_code, reason_ts) AS reason_code
+                FROM '{fchg_pattern}'
+                WHERE reason_code IS NOT NULL
+                GROUP BY id
+            ),
             merged AS (
                 SELECT
                     p.*,
                     COALESCE(f.arrival_change_time, p.arrival_planned_time) AS arrival_change_time,
                     COALESCE(f.departure_change_time, p.departure_planned_time) AS departure_change_time,
-                    COALESCE(f.is_canceled, false) AS is_canceled
+                    COALESCE(f.is_canceled, false) AS is_canceled,
+                    r.reason_code
                 FROM plan_deduped p
                 LEFT JOIN fchg_deduped f ON p.id = f.id
+                LEFT JOIN reasons r ON p.id = r.id
             ),
             transformed AS (
                 SELECT
@@ -129,7 +139,8 @@ def main():
                     regexp_extract(id, '^(.*)-\\d{{10}}-\\d+$', 1) AS train_line_ride_id,
                     CAST(split_part(id, '-', -1) AS INTEGER) AS train_line_station_num,
                     arrival_planned_time, arrival_change_time,
-                    departure_planned_time, departure_change_time, id
+                    departure_planned_time, departure_change_time, id,
+                    CAST(reason_code AS INTEGER) AS reason_code
                 FROM merged
                 ORDER BY time
             )

@@ -209,6 +209,159 @@ function t(key, ...args) {
   return typeof entry === "function" ? entry(...args) : entry;
 }
 
+// IRIS delay-cause codes (<m t="d" c="…"/>), official German texts; codes 70-98
+// are quality messages that never appear as delay causes and are omitted
+const DELAY_REASONS = {
+  de: {
+    1: "Nähere Informationen in Kürze",
+    2: "Polizeieinsatz",
+    3: "Feuerwehreinsatz auf der Strecke",
+    4: "Kurzfristiger Personalausfall",
+    5: "Ärztliche Versorgung eines Fahrgastes",
+    6: "Betätigen der Notbremse",
+    7: "Unbefugte Personen auf der Strecke",
+    8: "Notarzteinsatz auf der Strecke",
+    9: "Streikauswirkungen",
+    10: "Tiere auf der Strecke",
+    11: "Unwetter",
+    12: "Warten auf ein verspätetes Schiff",
+    13: "Pass- und Zollkontrolle",
+    14: "Defekt am Bahnhof",
+    15: "Beeinträchtigung durch Vandalismus",
+    16: "Entschärfung einer Fliegerbombe",
+    17: "Beschädigung einer Brücke",
+    18: "Umgestürzter Baum auf der Strecke",
+    19: "Unfall an einem Bahnübergang",
+    20: "Tiere im Gleis",
+    21: "Warten auf Anschlussreisende",
+    22: "Witterungsbedingte Beeinträchtigungen",
+    23: "Betriebsstabilisierung",
+    24: "Verspätung im Ausland",
+    25: "Bereitstellung weiterer Wagen",
+    26: "Abhängen von Wagen",
+    27: "Technische Störung am Bus",
+    28: "Gegenstände auf der Strecke",
+    29: "Ersatzverkehr mit Bus ist eingerichtet",
+    30: "Personalausfall im Stellwerk",
+    31: "Bauarbeiten",
+    32: "Längere Haltezeit am Bahnhof",
+    33: "Defekt an der Oberleitung",
+    34: "Defekt an einem Signal",
+    35: "Streckensperrung",
+    36: "Technische Störung am Zug",
+    37: "Kurzfristiger Fahrzeugausfall",
+    38: "Defekt an der Strecke",
+    39: "Stau / Hohes Verkehrsaufkommen",
+    40: "Defektes Stellwerk",
+    41: "Defekt an einem Bahnübergang",
+    42: "Außerplanmäßige Geschwindigkeitsbeschränkung",
+    43: "Verspätung eines vorausfahrenden Zuges",
+    44: "Warten auf einen entgegenkommenden Zug",
+    45: "Vorfahrt eines anderen Zuges",
+    46: "Vorfahrt eines anderen Zuges",
+    47: "Verspätete Bereitstellung",
+    48: "Verspätung aus vorheriger Fahrt",
+    49: "Kurzfristiger Personalausfall",
+    50: "Kurzfristige Erkrankung von Personal",
+    51: "Verspätetes Personal aus vorheriger Fahrt",
+    52: "Streik",
+    53: "Unwetterauswirkungen",
+    54: "Verfügbarkeit der Gleise derzeit eingeschränkt",
+    55: "Technischer Defekt an einem anderen Zug",
+    56: "Laden der Antriebsbatterie",
+    57: "Zusätzlicher Halt",
+    58: "Umleitung",
+    59: "Schnee und Eis",
+    60: "Witterungsbedingt verminderte Geschwindigkeit",
+    61: "Defekte Tür",
+    62: "Behobener Defekt am Zug",
+    63: "Technische Untersuchung am Zug",
+    64: "Defekt an einer Weiche",
+    65: "Erdrutsch",
+    66: "Hochwasser",
+    67: "Behördliche Maßnahme",
+    68: "Hohes Fahrgastaufkommen",
+    69: "Zug verkehrt mit verminderter Geschwindigkeit",
+    99: "Verzögerungen im Betriebsablauf",
+  },
+  en: {
+    1: "More information shortly",
+    2: "Police operation",
+    3: "Fire brigade operation on the line",
+    4: "Short-notice staff shortage",
+    5: "Medical assistance for a passenger",
+    6: "Emergency brake activated",
+    7: "Unauthorised people on the line",
+    8: "Emergency medical services on the line",
+    9: "Strike impact",
+    10: "Animals on the line",
+    11: "Severe weather",
+    12: "Waiting for a delayed ship",
+    13: "Passport and customs checks",
+    14: "Fault at the station",
+    15: "Vandalism",
+    16: "Defusing of an unexploded bomb",
+    17: "Damage to a bridge",
+    18: "Fallen tree on the line",
+    19: "Accident at a level crossing",
+    20: "Animals on the track",
+    21: "Waiting for connecting passengers",
+    22: "Weather-related disruption",
+    23: "Operational stabilisation",
+    24: "Delay abroad",
+    25: "Attaching additional carriages",
+    26: "Detaching carriages",
+    27: "Technical fault on the bus",
+    28: "Objects on the line",
+    29: "Replacement bus service in place",
+    30: "Staff shortage at the signal box",
+    31: "Construction work",
+    32: "Extended stop at the station",
+    33: "Overhead wire fault",
+    34: "Signal fault",
+    35: "Line closure",
+    36: "Technical fault on the train",
+    37: "Short-notice vehicle failure",
+    38: "Fault on the line",
+    39: "Congestion / high traffic volume",
+    40: "Signal box failure",
+    41: "Fault at a level crossing",
+    42: "Unscheduled speed restriction",
+    43: "Delay of a preceding train",
+    44: "Waiting for an oncoming train",
+    45: "Another train given priority",
+    46: "Another train given priority",
+    47: "Delayed provision of the train",
+    48: "Delay from previous journey",
+    49: "Short-notice staff shortage",
+    50: "Short-notice staff illness",
+    51: "Delayed staff from previous journey",
+    52: "Strike",
+    53: "Effects of severe weather",
+    54: "Track availability currently restricted",
+    55: "Technical fault on another train",
+    56: "Charging the traction battery",
+    57: "Additional stop",
+    58: "Diversion",
+    59: "Snow and ice",
+    60: "Weather-related speed reduction",
+    61: "Door fault",
+    62: "Technical fault on the train resolved",
+    63: "Technical inspection of the train",
+    64: "Points failure",
+    65: "Landslide",
+    66: "Flooding",
+    67: "Measure by authorities",
+    68: "High passenger volume",
+    69: "Train running at reduced speed",
+    99: "Delays in operations",
+  },
+};
+
+function reasonText(code) {
+  return code != null ? DELAY_REASONS[state.lang][code] || null : null;
+}
+
 const chartSrcs = {
   scatter: { de: "delay-correlation.svg?v=3", en: "delay-correlation-en.svg?v=3", alt: "chartAlt" },
   violin: { de: "delay-violin.svg?v=2", en: "delay-violin-en.svg?v=2", alt: "violinAlt" },
@@ -685,7 +838,10 @@ function delayValueBadge(v, title) {
 
 // past mode: the actual delay of one leg on the searched day
 function exactDelayBadge(d) {
-  if (d && !d.canceled) return delayValueBadge(d.delayMin, t("thatDayTooltip"));
+  const reason = reasonText(d?.reason);
+  if (d && !d.canceled) {
+    return delayValueBadge(d.delayMin, t("thatDayTooltip") + (reason ? ` – ${reason}` : ""));
+  }
   const el = document.createElement("span");
   el.className = "badge";
   if (!d) {
@@ -697,6 +853,7 @@ function exactDelayBadge(d) {
   } else {
     el.classList.add("red");
     el.textContent = t("chartCanceled");
+    if (reason) el.title = reason;
   }
   return el;
 }
@@ -841,21 +998,55 @@ function buildDayChart(stats, refEl) {
   const labelEvery = slots.length <= 10 ? 1 : slots.length <= 16 ? 2 : 5;
   const colors = { green: "#2a7230", yellow: "#b8860b", red: "#c50014" };
 
+  // clicking/tapping a day shows its details (incl. delay reason) in a bubble
+  // above the bar — hover tooltips don't exist on touch screens
+  const bubble = document.createElement("div");
+  bubble.className = "day-chart-bubble";
+  bubble.hidden = true;
+  let selected = null;
+  const closeBubble = () => {
+    if (selected) selected.setAttribute("fill", "transparent");
+    selected = null;
+    bubble.hidden = true;
+    document.removeEventListener("click", closeBubble);
+  };
+  const selectDay = (hit, title, tipY) => {
+    if (selected === hit) return closeBubble();
+    if (selected) selected.setAttribute("fill", "transparent");
+    else document.addEventListener("click", closeBubble);  // click-away closes
+    selected = hit;
+    hit.setAttribute("fill", "rgba(21, 25, 30, 0.07)");
+    bubble.textContent = title;
+    bubble.hidden = false;
+    // above the bar tip, centered on the column, clamped into the panel; the
+    // svg scales with the panel width, so measure in CSS pixels at click time
+    const panelR = panel.getBoundingClientRect();
+    const svgR = svg.getBoundingClientRect();
+    const hitR = hit.getBoundingClientRect();
+    const cx = hitR.left + hitR.width / 2 - panelR.left;
+    const left = Math.max(4, Math.min(cx - bubble.offsetWidth / 2, panelR.width - bubble.offsetWidth - 4));
+    const tip = svgR.top - panelR.top + (tipY * svgR.height) / H;
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${Math.max(0, tip - bubble.offsetHeight - 8)}px`;
+    bubble.style.setProperty("--arrow-x", `${Math.max(10, Math.min(cx - left, bubble.offsetWidth - 10))}px`);
+  };
+
   slots.forEach((slot, i) => {
     const x0 = m.left + i * band;
     const cx = x0 + band / 2;
     const rec = slot.rec;
 
+    const reason = reasonText(rec?.reason);
     let title = `${fmtDay(slot.iso)} ${t("noData")}`;
     if (rec?.canceled) {
-      title = `${fmtDay(slot.iso)} ${t("chartCanceled")}`;
+      title = `${fmtDay(slot.iso)} ${t("chartCanceled")}${reason ? ` – ${reason}` : ""}`;
       svg.appendChild(svgEl("text", {
         x: cx, y: y(0) - 5, "text-anchor": "middle",
         "font-size": 13, "font-weight": 700, fill: colors.red,
       }, "✕"));
     } else if (rec) {
       const v = rec.delay;
-      title = `${fmtDay(slot.iso)} ${v >= 0 ? "+" : ""}${v} min`;
+      title = `${fmtDay(slot.iso)} ${v >= 0 ? "+" : ""}${v} min${reason ? ` – ${reason}` : ""}`;
       const fill = v < 3 ? colors.green : v < 10 ? colors.yellow : colors.red;
       if (v !== 0) {
         svg.appendChild(svgEl("path", { d: barPath(cx - barW / 2, barW, y(0), y(v)), fill }));
@@ -874,13 +1065,23 @@ function buildDayChart(stats, refEl) {
       }, fmtDay(slot.iso)));
     }
 
-    // full-height hover target with a native tooltip
-    const hit = svgEl("rect", { x: x0, y: m.top, width: band, height: plotH, fill: "transparent" });
+    // bubble anchor: top of the bar, clearing the ✕ glyph / the value label
+    let tipY = y(0);
+    if (rec?.canceled) tipY = y(0) - 18;
+    else if (rec) tipY = y(Math.max(rec.delay, 0)) - (slots.length <= 10 && rec.delay >= 0 ? 14 : 0);
+
+    // full-height hover/click target with a native tooltip
+    const hit = svgEl("rect", { x: x0, y: m.top, width: band, height: plotH, fill: "transparent", cursor: "pointer" });
     hit.appendChild(svgEl("title", {}, title));
+    hit.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selectDay(hit, title, tipY);
+    });
     svg.appendChild(hit);
   });
 
   panel.appendChild(svg);
+  panel.appendChild(bubble);
   return panel;
 }
 
