@@ -12,6 +12,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"Feature workflow (project hook): if this prompt starts implementation of a new feature (new functionality - not a question, bug fix, doc/config tweak, or ops/deploy task), develop it in a dedicated git worktree: (1) before editing any file, create one - prefer the EnterWorktree tool if available, otherwise run: git worktree add ../db_delay_predictor-<slug> -b feature/<slug> ; (2) make every change inside that worktree only; (3) when the feature is complete, STOP and report - do NOT commit, push, or remove the worktree on your own; wait for the user to review and explicitly ask for the commit/push; (4) only after the user gives the go-ahead: commit in the worktree, push the branch to origin, merge the branch into main from the main checkout (stash any unrelated local changes around the merge), push main, and remove the worktree (ExitWorktree, or: git worktree remove ../db_delay_predictor-<slug>) - the pushed branch survives. For prompts that are not new-feature work, ignore this note.\"}}'",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

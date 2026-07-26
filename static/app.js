@@ -820,7 +820,7 @@ function delayBadge(stats, big) {
   } else {
     const v = stats.medianDelay;
     el.classList.add(v < 3 ? "green" : v < 10 ? "yellow" : "red");
-    el.innerHTML = `+${v} min${big ? ` <small>${t("badgeDays", stats.daysMatched, state.windowUsed)}</small>` : ""}`;
+    el.innerHTML = `${v >= 0 ? "+" : ""}${v} min${big ? ` <small>${t("badgeDays", stats.daysMatched, state.windowUsed)}</small>` : ""}`;
     el.title = t("badgeTooltip", state.windowUsed, stats.maxDelay);
   }
   if (clickable) el.title = (el.title ? `${el.title} – ` : "") + t("badgeClickHint");
