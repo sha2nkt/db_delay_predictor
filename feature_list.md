@@ -13,7 +13,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Swap origin/destination | done | ⇅ button |
 | Ticket prices | done | `angebotsPreis` from bahn.de; prominent per-card display, "Preis auf bahn.de" fallback when missing |
 | Sort by cheapest price | done | "Günstigster Preis" toggle; journeys without price last |
-| Shareable search URLs | partial | search params synced to the query string, restored (and re-searched) on load; implemented 2026-07-19, browser verification pending |
+| Shareable search URLs | done | search params synced to the query string, restored (and re-searched) on load; implemented 2026-07-19, browser-verified 2026-07-26 (Playwright loaded a query-string URL, search restored and results rendered) |
 | Recent-station suggestions | partial | focusing an empty Von/Nach input suggests the last 6 searched stations (localStorage, deduped); implemented 2026-07-19, browser verification pending |
 
 ## Delay statistics
@@ -25,7 +25,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Worst-leg indicator (`maxLegMedianDelay`) | done | transfer-risk signal, used as sort tiebreaker |
 | Per-day delay chart | done | per-day breakdown behind the delay badges (added 2026-07-15) |
 | Delay reason on hover | done | IRIS delay-cause codes (`<m t="d" c="…"/>`) extracted into `reason_code` by the DE pipeline, mapped to the official German texts (EN translated) client-side; shown in the per-day chart tooltips (hover) and in a bubble over the bar on tap/click (touch-friendly) and past-mode badge tooltips (added 2026-07-25, browser-verified 2026-07-26); DE legs only — CH istdaten and FR GTFS-RT carry no cause data |
-| Tight-transfer warning | partial | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted); shown as an inline red strip under the affected leg row with transfer time and the previous train's median delay; escalates to "⛔ Unwahrscheinlicher Umstieg / Unlikely transfer" when the median delay exceeds the transfer time by > 30 min (2026-07-22); any tight transfer also surfaces as a yellow "⚠ Knapper Umstieg / Tight transfer" pill in the journey header next to the median delay badge, red risk pill taking precedence (2026-07-26); implemented 2026-07-19 (inline since 2026-07-20), browser verification pending |
+| Tight-transfer warning | done | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted); shown as an inline red strip under the affected leg row with transfer time and the previous train's median delay; escalates to "⛔ Unwahrscheinlicher Umstieg / Unlikely transfer" when the median delay exceeds the transfer time by > 30 min (2026-07-22); any tight transfer also surfaces as a yellow "⚠ Knapper Umstieg / Tight transfer" pill in the journey header next to the median delay badge, red risk pill taking precedence (2026-07-26); implemented 2026-07-19 (inline since 2026-07-20), browser-verified 2026-07-26 (Playwright: strip + header pill render, pill height matches the delay badge, header actions wrap as one right-aligned block) |
 | Cancellation tracking | done | cancelled days excluded from avg, surfaced as "N× (teil-)ausgefallen" note |
 | Honest partial coverage | done | badge shows "n/7 Tage"; no data → gray "keine Daten", never a fake 0 |
 | Color-coded badges | done | green < 3 min, yellow 3–9, red ≥ 10, gray no data |

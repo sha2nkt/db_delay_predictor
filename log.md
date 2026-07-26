@@ -181,3 +181,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 
 - Merely-tight transfers (slack ≤ 2 min after the median delay) were visible only in the inline strip under the affected leg row — nothing in the header summary. Future-mode cards with a non-empty `tightTransfers` now show a yellow "⚠ Knapper Umstieg / Tight transfer" pill directly left of the median delay badge; the tooltip lists the affected station(s). The red "⛔ Anschlussrisiko / Connection risk" pill keeps precedence — unlikely transfers are a subset of tight ones and replace the median badge entirely, so the yellow pill renders only when no transfer is unlikely. Past mode unchanged.
 - Cache-buster app.js v=44.
+
+## 2026-07-26 — Tight-transfer badge layout fix
+
+- The new header pill rendered taller than the median delay badge and pushed "Auf bahn.de buchen" onto its own left-aligned line. Two causes: `.badge` had no `line-height`, so the ⚠ glyph's font metrics inflated the span's line box (the median badge is a plain-text `<button>`); and the extra pill overflowed the head row, flex-wrap orphaning only the last item. `.badge` now sets `line-height: 1.2`, and the future-mode header groups badges + price + booking button into a `.journey-cta` flex block (`margin-left: auto`, right-justified, own wrap) that drops to a second line as one unit.
+- Playwright-verified on a real Tübingen→Zürich search (data via shareable URL, which restored and re-searched — that feature is hereby browser-verified too): both pills measure 23.6 px on the same row, tight-badge cards show a clean right-aligned action row, cards without the badge keep their one-line header (34 px), no console errors.
+- Cache-busters app.js v=45, style.css v=27.

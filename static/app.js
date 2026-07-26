@@ -1239,7 +1239,11 @@ function render() {
         })
       );
 
-      head.append(times, meta, spacer, ...(tightBadge ? [tightBadge] : []), badge, price, book);
+      // badges, price and booking button wrap together as one right-aligned block
+      const cta = document.createElement("div");
+      cta.className = "journey-cta";
+      cta.append(...(tightBadge ? [tightBadge] : []), badge, price, book);
+      head.append(times, meta, spacer, cta);
     }
     card.appendChild(head);
 

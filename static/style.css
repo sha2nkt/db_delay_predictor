@@ -174,10 +174,15 @@ body.past-mode .refund-nav {
 .journey-times { font-size: 20px; font-weight: 700; }
 .journey-meta { font-size: 13px; color: var(--text-muted); }
 .journey-head .spacer { flex: 1; }
+.journey-cta {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  justify-content: flex-end; margin-left: auto;
+}
 
 .badge {
   display: inline-block; padding: 4px 10px; border-radius: 12px;
   font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap;
+  line-height: 1.2;
 }
 .badge.green { background: var(--green); }
 .badge.yellow { background: var(--yellow); }
