@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -32,13 +32,19 @@ def main():
     parser = argparse.ArgumentParser(description="Merge per-country delay parquets into the single table the app reads")
     parser.add_argument("--data-dir", type=Path, default=PROJECT_ROOT / "data", help="base data directory")
     parser.add_argument("--out", type=Path, default=None, help="output parquet (default: <data-dir>/delays.parquet)")
+    parser.add_argument("--window-days", type=int, default=30, help="days of data to keep, matching the app's max stats window (default: 30)")
     args = parser.parse_args()
 
     out = args.out or args.data_dir / "delays.parquet"
     # cut at last midnight, like the DE build's own window end: interior days keep
     # their cross-midnight tails, but no source may push the stats window anchor
     # (max arrival_planned_time) past what all countries have data for
-    window_end = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d 00:00:00")
+    now = datetime.now(ZoneInfo("Europe/Berlin"))
+    window_end = now.strftime("%Y-%m-%d 00:00:00")
+    # symmetric lower cut: CH/FR retain more days on disk than the app's stats
+    # window can ever serve; without this the merged table carries dead rows and
+    # /api/coverage advertises days that are empty for DE journeys
+    window_start = (now - timedelta(days=args.window_days)).strftime("%Y-%m-%d 00:00:00")
     selects = []
     for name, pattern, prefix in SOURCES:
         if not list(args.data_dir.glob(pattern)):
@@ -51,10 +57,12 @@ def main():
         )
         selects.append(
             f"SELECT {COLUMNS}, {optional} FROM read_parquet('{args.data_dir / pattern}')"
-            f" WHERE eva LIKE '{prefix}' AND time < TIMESTAMP '{window_end}'"
-            # arrival_planned_time drives the app's window anchor (_max_day); an early
-            # arrival before midnight of a stop planned after it must not shift it
-            f" AND (arrival_planned_time IS NULL OR arrival_planned_time < TIMESTAMP '{window_end}')"
+            f" WHERE eva LIKE '{prefix}'"
+            f" AND time >= TIMESTAMP '{window_start}' AND time < TIMESTAMP '{window_end}'"
+            # arrival_planned_time drives the app's window anchors (_min_day/_max_day);
+            # bound it on both sides so coverage is exactly the servable window
+            f" AND (arrival_planned_time IS NULL OR (arrival_planned_time >= TIMESTAMP '{window_start}'"
+            f" AND arrival_planned_time < TIMESTAMP '{window_end}'))"
         )
     if not selects:
         sys.exit("No source data found - nothing to merge")

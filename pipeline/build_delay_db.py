@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import shutil
 import sys
 from datetime import date, datetime, timedelta
@@ -41,13 +42,52 @@ def prune_old_raw_days(raw_dir: Path, keep: set[date]):
             print(f"Pruned old raw day {d}")
 
 
+def prune_old_parsed_days(parsed_root: Path, keep: set[date]):
+    """Delete parsed-day caches outside the window, plus .tmp leftovers of crashed runs."""
+    if not parsed_root.exists():
+        return
+    for day_dir in sorted(parsed_root.iterdir()):
+        if not day_dir.is_dir():
+            continue
+        if day_dir.name.startswith("."):
+            shutil.rmtree(day_dir)
+            continue
+        try:
+            d = date.fromisoformat(day_dir.name)
+        except ValueError:
+            continue
+        if d not in keep:
+            shutil.rmtree(day_dir)
+            print(f"Pruned old parsed day {d}")
+
+
+def parse_day(d: date, day_files: list[Path], eva_to_station: dict, parsed_root: Path):
+    """Parse one raw day into parsed_root/<day>/{plan,fchg}/batch_*.parquet, atomically."""
+    tmp_dir = parsed_root / f".{d.isoformat()}.tmp"
+    if tmp_dir.exists():
+        shutil.rmtree(tmp_dir)
+    counts = process_files_to_temp(day_files, eva_to_station, tmp_dir)
+    day_dir = parsed_root / d.isoformat()
+    if day_dir.exists():
+        shutil.rmtree(day_dir)
+    tmp_dir.rename(day_dir)
+    # completion stamp: the staleness check compares this against raw file mtimes,
+    # so a raw file downloaded later (late upstream upload) triggers a re-parse
+    os.utime(day_dir)
+    return counts
+
+
+def sql_file_list(files: list[Path]) -> str:
+    return "[" + ", ".join(f"'{f}'" for f in files) + "]"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Download raw DB delay data from HuggingFace and build data/delays.parquet")
     parser.add_argument("--days", type=int, default=31, help="days of raw data to use; the oldest only catches cross-midnight trains (default: 31 = 30 full days)")
     parser.add_argument("--end-date", type=lambda s: date.fromisoformat(s), default=None, help="last day of the window, YYYY-MM-DD (default: yesterday in Europe/Berlin)")
     parser.add_argument("--data-dir", type=Path, default=PROJECT_ROOT / "data", help="directory for raw data mirror and output parquet")
     parser.add_argument("--output", type=Path, default=None, help="output parquet path (default: <data-dir>/de/delays.parquet)")
-    parser.add_argument("--force", action="store_true", help="reprocess even if delays.parquet is newer than the newest raw file")
+    parser.add_argument("--force", action="store_true", help="re-parse all days and rebuild even if the parsed cache and output are fresh")
     args = parser.parse_args()
 
     end_date = args.end_date or (datetime.now(ZoneInfo("Europe/Berlin")).date() - timedelta(days=1))
@@ -74,44 +114,68 @@ def main():
     total_bytes = sum(f.stat().st_size for f in parquet_files)
     print(f"{len(parquet_files)} raw files, {total_bytes / 1e9:.2f} GB")
 
-    newest_raw = max(f.stat().st_mtime for f in parquet_files)
-    if not args.force and output_file.exists() and output_file.stat().st_mtime > newest_raw:
-        print(f"{output_file} is up to date, skipping (use --force to reprocess)")
+    eva_to_station = json.load(open(SUBMODULE_ROOT / "config" / "eva_to_station_name.json"))
+    parsed_root = args.data_dir / "de" / "parsed"
+    parsed_root.mkdir(parents=True, exist_ok=True)
+
+    # parse only days whose cache is missing or older than their newest raw file
+    # (snapshot_download gives late-arriving files a fresh mtime, so a late upstream
+    # upload for an already-parsed day still triggers a re-parse)
+    day_dirs = []
+    parsed_days = 0
+    for d in dates:
+        day_files = get_window_parquet_files(args.data_dir / "raw_data", [d])
+        if not day_files:
+            print(f"{d}: no raw data")
+            continue
+        day_dir = parsed_root / d.isoformat()
+        newest_raw = max(f.stat().st_mtime for f in day_files)
+        if not args.force and day_dir.exists() and day_dir.stat().st_mtime > newest_raw:
+            day_dirs.append(day_dir)
+            continue
+        xml_count, plan_count, fchg_count = parse_day(d, day_files, eva_to_station, parsed_root)
+        print(f"{d}: parsed {xml_count:_} xml responses -> {plan_count:_} plan, {fchg_count:_} fchg rows")
+        parsed_days += 1
+        day_dirs.append(day_dir)
+    print(f"{parsed_days} day(s) parsed, {len(day_dirs) - parsed_days} from cache")
+
+    rebuild = args.force or parsed_days > 0 or not output_file.exists()
+    if not rebuild:
+        # no new data, but the window still moves once per calendar day
+        built = datetime.fromtimestamp(output_file.stat().st_mtime, ZoneInfo("Europe/Berlin")).date()
+        rebuild = built < datetime.now(ZoneInfo("Europe/Berlin")).date()
+    if not rebuild:
+        print(f"{output_file} is up to date, skipping (use --force to rebuild)")
         return
 
-    eva_to_station = json.load(open(SUBMODULE_ROOT / "config" / "eva_to_station_name.json"))
-    temp_dir = args.data_dir / "temp_processing"
-    if temp_dir.exists():
-        shutil.rmtree(temp_dir)
-
-    xml_count, plan_count, fchg_count = process_files_to_temp(parquet_files, eva_to_station, temp_dir)
-    print(f"Parsed {xml_count:_} xml responses -> {plan_count:_} plan rows, {fchg_count:_} fchg rows")
-
-    plan_pattern = str(temp_dir / "plan" / "*.parquet")
-    fchg_pattern = str(temp_dir / "fchg" / "*.parquet")
+    plan_files = [p for day_dir in day_dirs for p in sorted((day_dir / "plan").glob("*.parquet"))]
+    fchg_files = [p for day_dir in day_dirs for p in sorted((day_dir / "fchg").glob("*.parquet"))]
+    if not plan_files or not fchg_files:
+        sys.exit("No parsed plan/fchg data for the requested window.")
 
     # merge/dedup SQL adapted from deutsche-bahn-data/scripts/create_monthly_data_release.py main()
     # (rolling window bounds instead of hardcoded month)
+    tmp_output = output_file.with_suffix(".parquet.tmp")
     duckdb.sql(f"""
         COPY (
             WITH plan_deduped AS (
                 SELECT DISTINCT ON (id)
                     id, station_name, xml_station_name, eva, train_number, line_number,
                     final_destination_station, train_type, arrival_planned_time, departure_planned_time
-                FROM '{plan_pattern}'
+                FROM read_parquet({sql_file_list(plan_files)})
                 ORDER BY id, xml_timestamp DESC
             ),
             fchg_deduped AS (
                 SELECT DISTINCT ON (id)
                     id, arrival_change_time, departure_change_time, is_canceled
-                FROM '{fchg_pattern}'
+                FROM read_parquet({sql_file_list(fchg_files)})
                 ORDER BY id, xml_timestamp DESC
             ),
             -- latest delay-cause message per stop, independent of the newest
             -- fchg response (which may no longer carry the message)
             reasons AS (
                 SELECT id, arg_max(reason_code, reason_ts) AS reason_code
-                FROM '{fchg_pattern}'
+                FROM read_parquet({sql_file_list(fchg_files)})
                 WHERE reason_code IS NOT NULL
                 GROUP BY id
             ),
@@ -147,10 +211,11 @@ def main():
             SELECT * FROM transformed
             WHERE time >= TIMESTAMP '{window_start} 00:00:00'
                 AND time < TIMESTAMP '{window_end} 00:00:00'
-        ) TO '{output_file}' (FORMAT PARQUET)
+        ) TO '{tmp_output}' (FORMAT PARQUET)
     """)
-    shutil.rmtree(temp_dir)
+    os.replace(tmp_output, output_file)
     prune_old_raw_days(args.data_dir / "raw_data", set(dates))
+    prune_old_parsed_days(parsed_root, set(dates))
 
     print(f"Saved {output_file}")
     duckdb.sql(f"""

@@ -43,12 +43,12 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Download raw data from HuggingFace | done | `piebro/deutsche-bahn-data` dataset, rolling ~31-day window, no API key; skips existing files |
 | Reprocess into per-stop delay table | done | reuses submodule parser; now writes `data/de/delays.parquet` (`--output`) |
 | Swiss daily ingest | done | `build_ch_days.py`: scrapes the CKAN page for the rotating download URL, filters trains, per-day parquets, catch-up + prune |
-| French 24/7 poller + consolidation | partial | `fr_poller.py` (running from session; systemd unit pending deploy) → `consolidate_fr.py` rewrites last 2 start_dates daily |
+| French 24/7 poller + consolidation | done | `fr_poller.py` under `delaybahn-fr-poller.service` (enabled 2026-07-25) → `consolidate_fr.py` rewrites last 2 start_dates daily |
 | French history backfill | done | `backfill_fr.py` from mirror.traines.eu tarballs (resumable, skip-if-exists); seam days 07-19..22 plugged 2026-07-25 |
 | SNCF-UIC → DB-EVA crosswalk | done | `build_fr_crosswalk.py` → committed `config/fr_uic_to_eva.json` (3472/3534 stations; trainline seed + bahn.de `i=U×` token match) |
 | Country merge | done | `merge_delays.py`: eva-prefix partition (080/085/087) + global last-midnight cut; tolerant of missing sources |
-| Skip-if-fresh | done | reprocess only when raw data newer than output (`--force` overrides) |
-| Scheduled daily refresh | partial | timer unchanged (05:30); pipeline unit still runs only `build_delay_db.py`, so the served `data/delays.parquet` went unwritten 07-20..07-25 until a manual catch-up — must be updated to the 4-step DE→CH→FR→merge flow (deploy pending, needs sudo) |
+| Skip-if-fresh | done | per-day parsed cache (`data/de/parsed/`); only days with new raw files are re-parsed, final merge skipped when nothing changed (`--force` overrides) |
+| Scheduled daily refresh | done | 05:30 timer runs the 4-step DE→CH→FR→merge flow then restarts the app (units deployed 2026-07-25/26) |
 | Live same-day delay lookup | done | `app/live_delays.py`: IRIS `plan` + `fchg` at request time for days the parquet hasn't reached, same `ar/@ct` field the nightly build stores; measured 14–17 h lookback; DE only; inert without `DB_API_KEY`/`DB_CLIENT_ID` |
 
 ## Booking

@@ -6,7 +6,7 @@ A bahn.com-style train connection search that shows the **average arrival delay 
 
 - **Journey search**: the bahn.de web API (`www.bahn.de/web/api`) provides journey options including transfers and prices — the same API the bahn.de website uses. Station autocomplete is answered from the local delay data, falling back to that API for stations without delay history.
 - **Today's delays**: for a journey the nightly pipeline has not ingested yet, delays are read at request time from the [DB Timetables API](https://developers.deutschebahn.com/db-api-marketplace/apis/product/timetables) (IRIS `plan` + `fchg`) — the same field the pipeline stores, so the answer does not change later. Optional: set `DB_API_KEY`/`DB_CLIENT_ID` (e.g. in a `.env`); without them the site simply stops at the last ingested day.
-- **Historical delays**: the public HuggingFace dataset [piebro/deutsche-bahn-data](https://huggingface.co/datasets/piebro/deutsche-bahn-data) publishes raw Deutsche Bahn IRIS timetable responses every 6 hours. The pipeline downloads the last 8 days, reuses the parser from the [deutsche-bahn-data](deutsche-bahn-data/) submodule, and builds a per-stop delay table (`data/delays.parquet`, ~3M rows/week, all German stations).
+- **Historical delays**: the public HuggingFace dataset [piebro/deutsche-bahn-data](https://huggingface.co/datasets/piebro/deutsche-bahn-data) publishes raw Deutsche Bahn IRIS timetable responses every 6 hours. The pipeline downloads the last 31 days, reuses the parser from the [deutsche-bahn-data](deutsche-bahn-data/) submodule, and builds a per-stop delay table (`data/delays.parquet`, ~3M rows/week, all German stations).
 - **Matching**: each train leg of a journey is matched against history by train number + arrival-station EVA + time-of-day proximity (±120 min), one closest match per calendar day. Arrival delay at the leg destination is averaged over the matched days; cancelled days are excluded from the average but counted.
 
 ## Setup
@@ -47,9 +47,10 @@ The app needs `data/delays.parquet` before it can show delay stats:
 ```bash
 uv run python pipeline/build_delay_db.py            # full window (default: 31 days)
 uv run python pipeline/build_delay_db.py --days 3   # quick smoke run
+uv run python pipeline/merge_delays.py              # write the data/delays.parquet the app reads
 ```
 
-This downloads raw parquet files from the HuggingFace dataset into `data/raw_data/` (~8 GB for the full window; `delays.parquet` adds another ~600 MB) and reprocesses them into `data/delays.parquet`. Re-run it daily to stay fresh — already-downloaded days are skipped. No HuggingFace account or token is needed; the dataset is public.
+This downloads raw parquet files from the HuggingFace dataset into `data/raw_data/` (~4.5 GB for the full window; `data/de/delays.parquet` adds another ~600 MB), parses each day once into the `data/de/parsed/` cache, and merges them into `data/de/delays.parquet`. Re-run it daily to stay fresh — already-downloaded days are skipped and only days with new raw files are re-parsed. No HuggingFace account or token is needed; the dataset is public. `merge_delays.py` then combines the per-country tables (DE alone is fine) into `data/delays.parquet`.
 
 ### 4. Run the app
 
