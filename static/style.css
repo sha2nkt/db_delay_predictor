@@ -169,19 +169,19 @@ body.past-mode .refund-nav {
   box-shadow: 0 1px 3px rgba(0,0,0,.1);
 }
 .journey-head {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
 .journey-times { font-size: 20px; font-weight: 700; }
 .journey-meta { font-size: 13px; color: var(--text-muted); }
 .journey-head .spacer { flex: 1; }
 .journey-cta {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   justify-content: flex-end; margin-left: auto;
 }
 
 .badge {
-  display: inline-block; padding: 4px 10px; border-radius: 12px;
-  font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap;
+  display: inline-block; padding: 3px 8px; border-radius: 12px;
+  font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap;
   line-height: 1.2;
 }
 .badge.green { background: var(--green); }
@@ -226,12 +226,12 @@ button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px
 .leg .badge { font-size: 11px; padding: 2px 8px; }
 .leg .walk { color: var(--text-muted); font-style: italic; }
 
-.price { font-size: 18px; font-weight: 700; white-space: nowrap; }
+.price { font-size: 17px; font-weight: 700; white-space: nowrap; }
 .price-na { font-size: 13px; font-weight: 400; color: var(--text-muted); }
 
 .book-btn {
   background: #fff; color: var(--db-red); border: 2px solid var(--db-red);
-  border-radius: 4px; padding: 7px 16px; font-size: 14px; font-weight: 700;
+  border-radius: 4px; padding: 7px 12px; font-size: 14px; font-weight: 700;
   cursor: pointer; text-decoration: none; display: inline-block;
 }
 .book-btn:hover { background: var(--db-red); color: #fff; }
