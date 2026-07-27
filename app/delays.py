@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from statistics import median
 from pathlib import Path
@@ -8,13 +9,25 @@ import duckdb
 DELAYS_PARQUET = Path(__file__).resolve().parent.parent / "data" / "delays.parquet"
 BERLIN = ZoneInfo("Europe/Berlin")
 
+# Traffic spread across many routes grows these without bound, on top of a ~6GB process.
+# Same LRU eviction as bahn_api._cached.
+CACHE_MAX = 50_000
+
 _conn: duckdb.DuckDBPyConnection | None = None
 _max_day: date | None = None
 _min_day: date | None = None
-_cache: dict[tuple[str, str, int], dict | None] = {}
-_date_cache: dict[tuple[str, str, date], dict | None] = {}
-_dep_date_cache: dict[tuple[str, str, date], dict | None] = {}
+_cache: "OrderedDict[tuple[str, str, int], dict | None]" = OrderedDict()
+_date_cache: "OrderedDict[tuple[str, str, date], dict | None]" = OrderedDict()
+_dep_date_cache: "OrderedDict[tuple[str, str, date], dict | None]" = OrderedDict()
 _stations: list[dict] = []
+
+
+def _remember(cache: OrderedDict, key: tuple, value):
+    cache[key] = value
+    cache.move_to_end(key)
+    while len(cache) > CACHE_MAX:
+        cache.popitem(last=False)
+    return value
 
 
 def init():
@@ -24,7 +37,18 @@ def init():
             f"{DELAYS_PARQUET} not found - run: uv run python pipeline/build_delay_db.py"
         )
     _conn = duckdb.connect()
-    _conn.execute(f"CREATE TABLE delays AS SELECT * FROM read_parquet('{DELAYS_PARQUET}')")
+    # train_no is materialized (not ltrim'd per query) and the table is sorted on it so
+    # DuckDB's zone maps can skip row groups. Without this every lookup scans all 19.7M
+    # rows: measured 110ms of CPU per leg against 1.2ms with it, and a journey search
+    # does ~30 lookups. Costs ~12s of startup.
+    _conn.execute(
+        "CREATE TABLE delays AS"
+        f" SELECT *, ltrim(train_number, '0') AS train_no FROM read_parquet('{DELAYS_PARQUET}')"
+        " ORDER BY train_no, eva"
+    )
+    # a sorted lookup no longer needs 32 threads, and capping them keeps concurrent
+    # queries from oversubscribing the box
+    _conn.execute("SET threads=4")
     # parquets built before the reason feature lack the column
     _conn.execute("ALTER TABLE delays ADD COLUMN IF NOT EXISTS reason_code INTEGER")
     _min_day, _max_day = _conn.execute(
@@ -36,6 +60,10 @@ def init():
 
 def coverage() -> tuple[date | None, date | None]:
     return _min_day, _max_day
+
+
+def row_count() -> int:
+    return _conn.execute("SELECT count(*) FROM delays").fetchone()[0] if _conn else 0
 
 
 def _fold(s: str) -> str:
@@ -137,6 +165,8 @@ def leg_delay_stats(
         """
         WITH candidates AS (
             SELECT CAST(arrival_planned_time AS DATE) AS day,
+                   arrival_planned_time,
+                   arrival_change_time,
                    date_diff('minute', arrival_planned_time, arrival_change_time) AS arr_delay,
                    is_canceled,
                    reason_code,
@@ -145,7 +175,7 @@ def leg_delay_stats(
                        1440 - abs(date_diff('minute', CAST(arrival_planned_time AS TIME), CAST(? AS TIME)))
                    ) AS tod_diff
             FROM delays
-            WHERE ltrim(train_number, '0') = ? AND eva = ?
+            WHERE train_no = ? AND eva = ?
               AND arrival_planned_time IS NOT NULL
               AND CAST(arrival_planned_time AS DATE) >= ?
         )
@@ -153,7 +183,7 @@ def leg_delay_stats(
         -- trains running at a very different hour
         SELECT DISTINCT ON (day) day, arr_delay, is_canceled, reason_code
         FROM candidates WHERE tod_diff <= 120
-        ORDER BY day, tod_diff
+        ORDER BY day, tod_diff, arrival_planned_time, arrival_change_time
         """,
         [tod, tod, train_number, eva_padded, cutoff],
     ).fetchall()
@@ -179,8 +209,7 @@ def leg_delay_stats(
                 for day, delay, canceled, reason in rows
             ],
         }
-    _cache[cache_key] = stats
-    return stats
+    return _remember(_cache, cache_key, stats)
 
 
 def leg_delay_on_date(
@@ -203,14 +232,15 @@ def leg_delay_on_date(
         SELECT date_diff('minute', arrival_planned_time, arrival_change_time) AS arr_delay,
                is_canceled, reason_code
         FROM delays
-        WHERE ltrim(train_number, '0') = ? AND eva = ?
+        WHERE train_no = ? AND eva = ?
           AND arrival_planned_time IS NOT NULL
           AND CAST(arrival_planned_time AS DATE) = ?
           AND least(
                   abs(date_diff('minute', CAST(arrival_planned_time AS TIME), CAST(? AS TIME))),
                   1440 - abs(date_diff('minute', CAST(arrival_planned_time AS TIME), CAST(? AS TIME)))
               ) <= 120
-        ORDER BY abs(date_diff('minute', arrival_planned_time, ?))
+        ORDER BY abs(date_diff('minute', arrival_planned_time, ?)),
+                 arrival_planned_time, arrival_change_time
         LIMIT 1
         """,
         [train_number, eva_padded, day, tod, tod, planned_arrival_local],
@@ -226,8 +256,7 @@ def leg_delay_on_date(
             "canceled": bool(canceled),
             "reason": reason,
         }
-    _date_cache[cache_key] = result
-    return result
+    return _remember(_date_cache, cache_key, result)
 
 
 def leg_departure_on_date(
@@ -249,14 +278,15 @@ def leg_departure_on_date(
         SELECT date_diff('minute', departure_planned_time, departure_change_time) AS dep_delay,
                is_canceled
         FROM delays
-        WHERE ltrim(train_number, '0') = ? AND eva = ?
+        WHERE train_no = ? AND eva = ?
           AND departure_planned_time IS NOT NULL
           AND CAST(departure_planned_time AS DATE) = ?
           AND least(
                   abs(date_diff('minute', CAST(departure_planned_time AS TIME), CAST(? AS TIME))),
                   1440 - abs(date_diff('minute', CAST(departure_planned_time AS TIME), CAST(? AS TIME)))
               ) <= 120
-        ORDER BY abs(date_diff('minute', departure_planned_time, ?))
+        ORDER BY abs(date_diff('minute', departure_planned_time, ?)),
+                 departure_planned_time, departure_change_time
         LIMIT 1
         """,
         [train_number, eva_padded, day, tod, tod, planned_departure_local],
@@ -270,5 +300,4 @@ def leg_departure_on_date(
             "delayMin": None if canceled else int(dep_delay or 0),
             "canceled": bool(canceled),
         }
-    _dep_date_cache[cache_key] = result
-    return result
+    return _remember(_dep_date_cache, cache_key, result)

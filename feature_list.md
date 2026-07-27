@@ -82,6 +82,8 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 ## Known limitations
 
 - Delay stats are per-train-number history; a rescheduled or renumbered train shows "keine Daten".
+- `delays._cache` keys on `(train, eva, window)` while the SQL also filters on time-of-day, so two same-numbered trains calling at one station at different hours can return each other's stats; `_date_cache`/`_dep_date_cache` have the same gap within a day. Deterministic tie-breaking (2026-07-27) fixed result *stability* across rebuilds, not this.
+- Load testing runs against recorded fixtures (`pipeline/loadtest_stub.py`); real bahn.de and IRIS behaviour under load is unmeasured by design, and the origin's own capacity is only as good as the upstream latency the stub simulates (250 ms default).
 - Walking legs and vehicles without a train number (some buses) get no badge.
 - On cards with the tight-transfer pill, a non-red median badge is hidden, and with it that card's badge-click day chart.
 - Journey search covers what bahn.de returns (~6 connections per page; earlier/later buttons fetch adjacent pages).

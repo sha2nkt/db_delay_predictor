@@ -2,7 +2,7 @@
 
 Snapshot of the current state. Update this file in place when the state changes; history lives in `log.md`.
 
-## Current state (2026-07-26)
+## Current state (2026-07-27)
 
 Live at delaybahn.com: FastAPI + DuckDB serve the bahn.de journey search enriched with delay history from `data/delays.parquet` (30 full days, DE+CH+FR); vanilla-JS frontend. Fully deployed on ps083 since 2026-07-26: `delaybahn-pipeline.timer` (05:30 Europe/Berlin) runs the day-incremental DE→CH→FR→merge flow and restarts the app; the FR GTFS-RT poller runs 24/7 under systemd.
 
@@ -12,9 +12,12 @@ Live at delaybahn.com: FastAPI + DuckDB serve the bahn.de journey search enriche
 - **Compensation checker** (`mode=past`, 2026-07-23, browser-verified) — home CTA (below the hero chart since 2026-07-26) or the permanent header pill flips the search card. A searched past journey shows each leg's exact delay that day, is simulated leg by leg (missed/cancelled connections re-planned via bahn.de, missed legs struck out, the actual continuation shown), and gets DB Fahrgastrechte compensation (25 %/50 % vs the booked arrival) with a deep link into the bahn.de claim flow. Too-recent dates say when to check back.
 - **Live same-day** (2026-07-25, verified on live data) — a journey taken today is checkable minutes after arrival: for days past the parquet, `app/live_delays.py` reads IRIS `plan` + `fchg` at request time (measured 14–17 h lookback meets the next morning's build); unreported legs show "noch offen / pending" with the claim withheld. DE-only; inert without credentials.
 - **Frontend/site** — site-wide DE/EN toggle, shareable search URLs, earlier/later paging, autocomplete answered from the local delay data, hero chart leads with the in-page claim (plot behind a toggle), SEO meta/robots/sitemap (2026-07-26).
-- **Upstream resilience** (2026-07-25) — bahn.de fingerprint rotation on Akamai 403s, short shared-task caches for journeys/locations, `Cache-Control` on both API endpoints.
+- **Upstream resilience** (2026-07-25) — bahn.de fingerprint rotation on Akamai 403s, short shared-task caches for journeys/locations, `Cache-Control` on both API endpoints. Since 2026-07-27 a 403 circuit breaker (30 s) stops the three-profile retry from tripling outbound rate during a wholesale block.
+- **Capacity** (2026-07-27) — load-tested via `pipeline/loadtest.py` against a fully stubbed upstream. Sustains 10 sessions/s (~36k sessions/h) at 10.4 % of one core with the event loop effectively unblocked (canary p99 3.9 ms); 30-min soak clean at +11.8 MB RSS. `/health` exposes row count and cache sizes.
 
 ## Verified
+
+- Load test (2026-07-27, `pipeline/loadtest.py` vs the stubbed app on :8001): cold-cache ladder at 2/5/10 sessions/s went from 156-199 % CPU and 100-152 ms event-loop block time to 4.9/9.1/13.6 % and 5.6/5.2/16.1 ms after the sargable-lookup fix; 30-min soak at 10 sessions/s = 185 899 requests, 0 errors, RSS +11.8 MB (0.32 MB/min). Sorted-schema equivalence checked over 400 sampled real (train, eva, time-of-day) triples: 0/754 mismatches once tie-breaks were made deterministic. Cache eviction bounds asserted directly. Not exercised: real bahn.de/IRIS upstreams (deliberately stubbed) and the browser.
 
 - Pipeline: 31-day rebuild (2026-07-26) parsed ~4.1M XML responses → 21.5M merged rows (DE+CH+FR); per-day avg delay 2.3–4.1 min in the original 8-day check (2026-07-12), plausible network-wide.
 - API: `curl /api/journeys` Berlin Hbf → München Hbf returns journeys with `delayStats` at 7/7 days matched on all ICE legs.

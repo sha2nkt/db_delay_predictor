@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -17,9 +18,19 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 umami = httpx.AsyncClient(base_url="http://127.0.0.1:3001", timeout=5)
 
 
+_rows = 0
+
+
+def _row_count() -> int:
+    return _rows
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _rows
     delays.init()
+    # counted once here: COUNT(*) over 19.7M rows must not run per /health call
+    _rows = delays.row_count()
     yield
     await bahn_api.close()
     await live_delays.close()
@@ -156,7 +167,11 @@ def tight_transfers(legs: list[dict]) -> list[dict]:
 # how often a past journey may be re-planned after missed connections
 MAX_REPLANS = 3
 
-_replan_cache: dict[tuple, dict] = {}
+# Holds raw bahn.de journey payloads (100-500KB each). The previous wholesale clear at
+# 5000 entries allowed ~1-2GB of transient growth on top of a ~6GB process, so evict LRU.
+REPLAN_CACHE_MAX = 500
+
+_replan_cache: "OrderedDict[tuple, dict]" = OrderedDict()
 
 
 def _planned_dt(leg: dict, key: str):
@@ -187,6 +202,7 @@ async def _replan(origin: dict, dest: dict, ready) -> dict | None:
     """Next connections origin -> dest from `ready` on, cached per request minute."""
     key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"))
     if key in _replan_cache:
+        _replan_cache.move_to_end(key)
         return _replan_cache[key]
     try:
         data = await bahn_api.journeys(
@@ -196,9 +212,10 @@ async def _replan(origin: dict, dest: dict, ready) -> dict | None:
         )
     except (HTTPError, RequestException):
         return None  # transient: don't cache failures
-    if len(_replan_cache) > 5000:
-        _replan_cache.clear()
     _replan_cache[key] = data
+    _replan_cache.move_to_end(key)
+    while len(_replan_cache) > REPLAN_CACHE_MAX:
+        _replan_cache.popitem(last=False)
     return data
 
 
@@ -442,6 +459,23 @@ async def journeys(
 def live_max_day() -> date | None:
     """Last day answerable live from IRIS, or None when no credentials are configured."""
     return datetime.now(ZoneInfo("Europe/Berlin")).date() if live_delays.configured() else None
+
+
+@app.get("/health")
+async def health():
+    """Liveness probe and event-loop canary: pure in-memory, no I/O, so a slow response
+    means the loop is blocked rather than that this endpoint is expensive."""
+    return {
+        "ok": True,
+        "rows": _row_count(),
+        "caches": {
+            "bahn": len(bahn_api._cache),
+            "replan": len(_replan_cache),
+            "delayStats": len(delays._cache),
+            "delayOnDate": len(delays._date_cache),
+            "departureOnDate": len(delays._dep_date_cache),
+        },
+    }
 
 
 @app.get("/api/coverage")

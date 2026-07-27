@@ -5,6 +5,7 @@ from collections import OrderedDict
 from typing import Awaitable, Callable
 
 from curl_cffi import requests
+from curl_cffi.requests.exceptions import HTTPError
 
 log = logging.getLogger(__name__)
 
@@ -24,9 +25,19 @@ JOURNEYS_TTL = 120
 LOCATIONS_TTL = 600
 CACHE_MAX = 512
 
+# how long to stop calling bahn.de after every profile has been blocked
+BLOCK_COOLDOWN = 30
+
 _sessions: dict[str, requests.AsyncSession] = {}
 _profile_idx = 0
 _rotate_lock = asyncio.Lock()
+_blocked_until = 0.0
+
+
+def _trip_breaker() -> None:
+    global _blocked_until
+    _blocked_until = time.monotonic() + BLOCK_COOLDOWN
+    log.warning("bahn.de blocked every profile; pausing upstream calls for %ss", BLOCK_COOLDOWN)
 
 # key -> (expires_at, task). The task is shared, so concurrent callers asking
 # for the same thing during a traffic spike ride one upstream request.
@@ -55,12 +66,20 @@ async def _rotate(blocked: str) -> None:
 
 
 async def _request(method: str, path: str, **kwargs):
+    # Every profile 403'd recently: Akamai is blocking us wholesale, and retrying all
+    # three profiles per request would triple our outbound rate at exactly the moment
+    # that risks a lasting IP ban. Fail fast until the cooldown expires.
+    if time.monotonic() < _blocked_until:
+        raise HTTPError("bahn.de blocked all profiles; backing off")
+
     for attempt in range(len(PROFILES)):
         profile = PROFILES[_profile_idx]
         resp = await getattr(_session(profile), method)(f"{BASE_URL}{path}", **kwargs)
         if resp.status_code == 403 and attempt < len(PROFILES) - 1:
             await _rotate(profile)
             continue
+        if resp.status_code == 403:
+            _trip_breaker()
         resp.raise_for_status()
         return resp.json()
 
