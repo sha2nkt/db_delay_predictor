@@ -258,3 +258,10 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - Page is `noindex, follow` (reachability requirement is the footer link, not search indexing); mailto is entity-encoded against naive harvesters. Styling reuses the site header plus a new `.legal-card` block in style.css. Cache busters: style.css v=28, app.js v=50.
 - Playwright-verified: footer link in DE/EN, page loads with all required identifiers, mailto decodes, noindex present, back link works.
 - Known residual risk, deliberately out of scope: the site logo imitates the DB mark — trademark exposure an Impressum cannot fix.
+
+## 2026-07-27 — Ko-fi donate link and post-result nudge
+
+- Two plain `https://ko-fi.com/delaybahn` links, no Ko-fi widget/script — a third-party embed would be ad-block-bait, add page weight, and be the kind of thing that annoys users; plain anchors also keep the page zero-CDN and the click stats reliable.
+- Footer: "☕ Spendier mir einen Kaffee / ☕ Buy me a coffee" next to the GitHub link, inheriting the muted `.site-footer a` style. Results: a one-line muted nudge (`#donate-nudge`, "Hat dir das geholfen? / Found this useful?") between the later-button and the past-disclaimer, shown only when a search returns journeys — i.e. after the site has demonstrated value — and hidden again on search start, mode switch, and empty results (same pattern as `past-disclaimer`). No frequency capping; one 12px line doesn't warrant it.
+- Umami events: `track("donate", {placement: "footer"|"nudge"})` on click, following the existing `track()` convention.
+- Gotcha encountered: the stylesheet has no generic `.hidden` rule — every component defines its own `.x.hidden`. The nudge started out visible on page load until `.donate-nudge.hidden { display: none; }` was added; caught by the Playwright pass, which also verified show/hide across search/mode/empty-result flows, DE/EN strings, and both tracking payloads.
