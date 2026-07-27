@@ -29,7 +29,7 @@
 }
 </script>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=27">
+<link rel="stylesheet" href="style.css?v=28">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -121,10 +121,16 @@
   <button id="earlier" class="page-btn hidden" type="button"><span data-i18n="earlier">Frühere Verbindungen</span> <span class="arrow">↑</span></button>
   <section id="results"></section>
   <button id="later" class="page-btn hidden" type="button"><span data-i18n="later">Spätere Verbindungen</span> <span class="arrow">↓</span></button>
+  <p id="donate-nudge" class="donate-nudge hidden">
+    <span data-i18n="donateNudgeLead">Hat dir das geholfen?</span>
+    <a href="https://ko-fi.com/delaybahn" target="_blank" rel="noopener" data-i18n="donateNudgeLink">☕ Spendier mir einen Kaffee</a>
+  </p>
   <p id="past-disclaimer" class="past-disclaimer hidden" data-i18n="pastDisclaimer">Entschädigung nach EU-Fahrgastrechten: 25 % des Ticketpreises ab 60 min, 50 % ab 120 min Verspätung am Ziel. Auszahlung ab 4 €. Angezeigte Verspätungen basieren auf unseren aufgezeichneten Daten – maßgeblich ist die tatsächliche Ankunft.</p>
 </main>
 <footer class="site-footer">
-  <a href="https://github.com/sha2nkt/db_delay_predictor" target="_blank" rel="noopener" data-i18n="footerOpenSource">Open Source – Quellcode auf GitHub</a>
+  <a href="https://github.com/sha2nkt/db_delay_predictor" target="_blank" rel="noopener" data-i18n="footerOpenSource">Open Source – Quellcode auf GitHub</a> ·
+  <a href="https://ko-fi.com/delaybahn" target="_blank" rel="noopener" id="donate-footer" data-i18n="footerDonate">☕ Spendier mir einen Kaffee</a> ·
+  <a href="impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a>
   <p class="footer-data">
     <span data-i18n="footerData">Verspätungsdaten:</span>
     <a href="https://github.com/piebro/deutsche-bahn-data" target="_blank" rel="noopener">Deutsche Bahn (IRIS)</a> ·
@@ -132,6 +138,6 @@
     <a href="https://transport.data.gouv.fr/datasets/horaires-sncf" target="_blank" rel="noopener">SNCF via transport.data.gouv.fr (ODbL)</a>
   </p>
 </footer>
-<script src="app.js?v=49"></script>
+<script src="app.js?v=50"></script>
 </body>
 </html>

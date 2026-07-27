@@ -88,6 +88,10 @@ const I18N = {
     tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
     footerOpenSource: "Open Source – Quellcode auf GitHub",
     footerData: "Verspätungsdaten:",
+    footerDonate: "☕ Spendier mir einen Kaffee",
+    donateNudgeLead: "Hat dir das geholfen?",
+    donateNudgeLink: "☕ Spendier mir einen Kaffee",
+    footerLegal: "Impressum & Datenschutz",
     navRefund: "Entschädigung beantragen",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
     refundCtaLead: "Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.",
@@ -180,6 +184,10 @@ const I18N = {
     tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
     footerOpenSource: "Open source – view the code on GitHub",
     footerData: "Delay data:",
+    footerDonate: "☕ Buy me a coffee",
+    donateNudgeLead: "Found this useful?",
+    donateNudgeLink: "☕ Buy me a coffee",
+    footerLegal: "Legal notice & privacy",
     navRefund: "Apply delay compensation",
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
@@ -548,6 +556,7 @@ async function setMode(mode) {
   earlierBtn.classList.add("hidden");
   laterBtn.classList.add("hidden");
   document.getElementById("past-disclaimer").classList.add("hidden");
+  document.getElementById("donate-nudge").classList.add("hidden");
   statusEl.classList.remove("error");
   setStatus(null);
   searchBtn.dataset.i18n = mode === "past" ? "searchPast" : "search";
@@ -585,6 +594,10 @@ document.getElementById("refund-nav").addEventListener("click", () => {
   document.getElementById("from").focus();
 });
 document.getElementById("past-exit").addEventListener("click", () => setMode("future"));
+document.getElementById("donate-footer").addEventListener("click", () =>
+  track("donate", { placement: "footer" }));
+document.querySelector("#donate-nudge a").addEventListener("click", () =>
+  track("donate", { placement: "nudge" }));
 
 async function fetchJourneys(pagingRef) {
   const win = document.getElementById("window").value;
@@ -687,6 +700,7 @@ async function search() {
   laterBtn.classList.add("hidden");
   document.getElementById("hero-chart").classList.add("hidden");
   document.getElementById("refund-cta").classList.add("hidden");
+  document.getElementById("donate-nudge").classList.add("hidden");
   searchBtn.disabled = true;
 
   try {
@@ -699,6 +713,8 @@ async function search() {
     controlsEl.classList.toggle("hidden", state.journeys.length === 0);
     document.getElementById("past-disclaimer").classList.toggle(
       "hidden", !(state.mode === "past" && state.journeys.length));
+    document.getElementById("donate-nudge").classList.toggle(
+      "hidden", state.journeys.length === 0);
     updatePageButtons();
     render();
   } catch (e) {
