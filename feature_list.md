@@ -78,6 +78,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Site-wide DE/EN toggle | done | header pills; static text via `data-i18n`, dynamic strings via the `I18N` dict; choice persists in localStorage (2026-07-13) |
 | Hero chart | done | two-line claim in-page ("Verspätete Züge bleiben verspätet…"), plot behind a "Daten ansehen" toggle (2026-07-25) |
 | SEO basics | done | meta description, canonical, Open Graph/Twitter tags, JSON-LD WebApplication (de/en) in index.html; robots.txt disallows /api/ and /stats/; single-URL sitemap.xml (added 2026-07-26) |
+| Impressum & Datenschutz page | done | static impressum.html (§ 5 DDG identification, § 18 MStV, DB-independence note, liability disclaimer, DSGVO privacy policy: Cloudflare, server logs, self-hosted Umami, server-side bahn.de proxying, localStorage); footer-linked DE/EN, noindex; contact kontakt@delaybahn.com via Cloudflare Email Routing (2026-07-27) |
 
 ## Known limitations
 

@@ -303,6 +303,19 @@ body.past-mode .field-window { display: none; }
 .site-footer a:hover { text-decoration: underline; }
 .site-footer .footer-data { margin-top: 6px; font-size: 12px; color: var(--text-muted); }
 
+.legal-card {
+  background: #fff; border-radius: 8px; padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  font-size: 14px; line-height: 1.55;
+}
+.legal-card h1 { font-size: 22px; margin: 28px 0 10px; }
+.legal-card h1:first-child { margin-top: 0; }
+.legal-card h2 { font-size: 16px; margin: 20px 0 6px; }
+.legal-card p { margin: 8px 0; }
+.legal-card a { color: var(--db-red); }
+.legal-card address { font-style: normal; margin: 8px 0; }
+.legal-stand { color: var(--text-muted); font-size: 12px; margin-top: 20px; }
+
 @media (max-width: 700px) {
   .header-inner { flex-wrap: wrap; row-gap: 8px; }
   .hero-chart { padding: 24px 16px 20px; }
