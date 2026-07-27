@@ -1275,7 +1275,9 @@ function render() {
       // badges, price and booking button wrap together as one right-aligned block
       const cta = document.createElement("div");
       cta.className = "journey-cta";
-      cta.append(...(tightBadge ? [tightBadge] : []), badge, price, book);
+      // next to a tight-transfer warning the delay badge is only worth the space when red
+      const showDelayBadge = !tightBadge || badge.classList.contains("red");
+      cta.append(...(tightBadge ? [tightBadge] : []), ...(showDelayBadge ? [badge] : []), price, book);
       head.append(times, meta, spacer, cta);
     }
     card.appendChild(head);

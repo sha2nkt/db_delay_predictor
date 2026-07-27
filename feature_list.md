@@ -28,7 +28,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Worst-leg indicator (`maxLegMedianDelay`) | done | transfer-risk signal, used as sort tiebreaker |
 | Per-day delay chart | done | per-day breakdown behind the delay badges (added 2026-07-15) |
 | Delay reason on hover | done | IRIS delay-cause codes extracted into `reason_code` by the DE pipeline, mapped client-side to the official cause texts (DE/EN); shown in per-day chart tooltips, in a tap/click bubble over the bar (touch), and in past-mode badge tooltips incl. live legs; DE legs only — CH istdaten and FR GTFS-RT carry no cause data (added + browser-verified 2026-07-26) |
-| Tight-transfer warning | done | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted): inline red strip under the leg row with transfer time and the previous train's median delay; escalates to "⛔ Unwahrscheinlicher Umstieg / Unlikely transfer" when the median delay exceeds the transfer time by > 30 min (2026-07-22); any tight transfer also adds a yellow "⚠ Knapper Umstieg / Tight transfer" pill in the journey header, red risk pill taking precedence (2026-07-26); browser-verified 2026-07-26 |
+| Tight-transfer warning | done | flags transfers where the arriving leg's median delay leaves ≤ 2 min buffer (walking legs subtracted): inline red strip under the leg row with transfer time and the previous train's median delay; escalates to "⛔ Unwahrscheinlicher Umstieg / Unlikely transfer" when the median delay exceeds the transfer time by > 30 min (2026-07-22); any tight transfer also adds a yellow "⚠ Knapper Umstieg / Tight transfer" pill in the journey header, red risk pill taking precedence (2026-07-26), and suppresses the median delay badge unless it is red (2026-07-27, not browser-verified); browser-verified 2026-07-26 |
 | Cancellation tracking | done | cancelled days excluded from the median, surfaced as "N× (teil-)ausgefallen" note |
 | Honest partial coverage | done | badge shows "n/7 Tage"; no data → gray "keine Daten", never a fake 0 |
 | Color-coded badges | done | green < 3 min, yellow 3–9, red ≥ 10, gray no data |
@@ -83,6 +83,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 
 - Delay stats are per-train-number history; a rescheduled or renumbered train shows "keine Daten".
 - Walking legs and vehicles without a train number (some buses) get no badge.
+- On cards with the tight-transfer pill, a non-red median badge is hidden, and with it that card's badge-click day chart.
 - Journey search covers what bahn.de returns (~6 connections per page; earlier/later buttons fetch adjacent pages).
 - bahn.de web API is unofficial and could change without notice; it is bot-protected by Akamai, which blocks one TLS fingerprint at a time (the app rotates through firefox/safari/chrome profiles on a 403, but a simultaneous block of all three would take the search down).
 - France: Trenitalia France and other non-SNCF operators are absent from the feed; "actual" times are the last realtime projection, not measured; poller downtime creates permanent holes for those hours.
