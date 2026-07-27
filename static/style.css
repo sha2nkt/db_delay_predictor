@@ -306,6 +306,7 @@ body.past-mode .field-window { display: none; }
 .donate-nudge { text-align: center; margin: 4px 0 0; font-size: 12px; color: var(--text-muted); }
 .donate-nudge.hidden { display: none; }
 .donate-nudge a { color: var(--text-muted); text-decoration: underline; }
+body.nudge-on #donate-footer-item { display: none; }
 
 .legal-card {
   background: #fff; border-radius: 8px; padding: 24px 28px;

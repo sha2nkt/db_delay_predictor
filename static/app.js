@@ -545,6 +545,12 @@ async function ensureCoverage() {
   } catch { /* no coverage info: skip client-side date bounds */ }
 }
 
+// one donate ask per view: the post-result nudge and the footer link never show together
+function setDonateNudge(show) {
+  document.getElementById("donate-nudge").classList.toggle("hidden", !show);
+  document.body.classList.toggle("nudge-on", show);
+}
+
 async function setMode(mode) {
   if (state.mode === mode) return;
   state.mode = mode;
@@ -556,7 +562,7 @@ async function setMode(mode) {
   earlierBtn.classList.add("hidden");
   laterBtn.classList.add("hidden");
   document.getElementById("past-disclaimer").classList.add("hidden");
-  document.getElementById("donate-nudge").classList.add("hidden");
+  setDonateNudge(false);
   statusEl.classList.remove("error");
   setStatus(null);
   searchBtn.dataset.i18n = mode === "past" ? "searchPast" : "search";
@@ -700,7 +706,7 @@ async function search() {
   laterBtn.classList.add("hidden");
   document.getElementById("hero-chart").classList.add("hidden");
   document.getElementById("refund-cta").classList.add("hidden");
-  document.getElementById("donate-nudge").classList.add("hidden");
+  setDonateNudge(false);
   searchBtn.disabled = true;
 
   try {
@@ -713,8 +719,7 @@ async function search() {
     controlsEl.classList.toggle("hidden", state.journeys.length === 0);
     document.getElementById("past-disclaimer").classList.toggle(
       "hidden", !(state.mode === "past" && state.journeys.length));
-    document.getElementById("donate-nudge").classList.toggle(
-      "hidden", state.journeys.length === 0);
+    setDonateNudge(state.journeys.length > 0);
     updatePageButtons();
     render();
   } catch (e) {
