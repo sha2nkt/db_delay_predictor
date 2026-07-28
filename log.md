@@ -276,3 +276,8 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 
 - Both Ko-fi asks (footer link + post-result nudge) are turned off for now via a single flag: `DONATE_ENABLED = false` near the top of app.js. `setDonateNudge` forces `show` to false when disabled (so `body.nudge-on` never fires either), and the footer `#donate-footer-item` gets the `hidden` attribute at startup — no CSS rule needed since nothing overrides the span's display.
 - Markup, i18n strings, CSS, and the `track("donate")` listeners are all left intact; re-enabling is flipping the flag to `true` plus a cache-buster bump. app.js v=51 → v=52. The Ko-fi mention in the impressum.html external-links passage stays, deliberately.
+
+## 2026-07-28 — Trademark disclaimer in the footer
+
+- One muted line at the very bottom of the index footer, both languages via a new `footerDisclaimer` i18n key: DelayBahn is an independent project, not affiliated with Deutsche Bahn AG; "DB" and "Deutsche Bahn" are trademarks of Deutsche Bahn AG. Follows up the impressum's not-affiliated note (2026-07-27) by putting the statement on the page every visitor actually sees; the logo-imitation risk noted then remains open.
+- impressum.html untouched — German-only static page whose body already states non-affiliation. New `.footer-disclaimer` rule (11px, muted, centered, max-width 640px). Cache busters: style.css v=30, app.js v=53.
