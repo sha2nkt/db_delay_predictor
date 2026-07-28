@@ -281,3 +281,7 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 
 - One muted line at the very bottom of the index footer, both languages via a new `footerDisclaimer` i18n key: DelayBahn is an independent project, not affiliated with Deutsche Bahn AG; "DB" and "Deutsche Bahn" are trademarks of Deutsche Bahn AG. Follows up the impressum's not-affiliated note (2026-07-27) by putting the statement on the page every visitor actually sees; the logo-imitation risk noted then remains open.
 - impressum.html untouched — German-only static page whose body already states non-affiliation. New `.footer-disclaimer` rule (11px, muted, centered, max-width 640px). Cache busters: style.css v=30, app.js v=53.
+
+## 2026-07-28 — Repo rename followed up in links
+
+- GitHub repo renamed `sha2nkt/db_delay_predictor` → `sha2nkt/delay_bahn` (noticed via the push redirect notice). Updated the footer "Open Source" link in index.html and the README clone instructions (URL + `cd` directory) to the new name; the local `origin` remote was already repointed. Old URLs keep working via GitHub's redirect.

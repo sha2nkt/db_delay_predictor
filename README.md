@@ -38,8 +38,8 @@ Prerequisites:
 The delay pipeline imports the parser from the `deutsche-bahn-data` submodule, so it must be checked out:
 
 ```bash
-git clone --recurse-submodules https://github.com/sha2nkt/db_delay_predictor.git
-cd db_delay_predictor
+git clone --recurse-submodules https://github.com/sha2nkt/delay_bahn.git
+cd delay_bahn
 ```
 
 If you already cloned without `--recurse-submodules`:
