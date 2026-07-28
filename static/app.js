@@ -23,6 +23,9 @@ const CLAIM_FORM_URL = "https://www.bahn.de/fahrgastrechte";
 // no-op when the Umami script is blocked or unavailable
 const track = (name, data) => window.umami?.track(name, data);
 
+// kill switch for all donate/Ko-fi asks (footer link + post-result nudge); set true to bring them back
+const DONATE_ENABLED = false;
+
 // --- i18n ---
 
 const I18N = {
@@ -547,6 +550,7 @@ async function ensureCoverage() {
 
 // one donate ask per view: the post-result nudge and the footer link never show together
 function setDonateNudge(show) {
+  show = show && DONATE_ENABLED;
   document.getElementById("donate-nudge").classList.toggle("hidden", !show);
   document.body.classList.toggle("nudge-on", show);
 }
@@ -600,6 +604,7 @@ document.getElementById("refund-nav").addEventListener("click", () => {
   document.getElementById("from").focus();
 });
 document.getElementById("past-exit").addEventListener("click", () => setMode("future"));
+document.getElementById("donate-footer-item").hidden = !DONATE_ENABLED;
 document.getElementById("donate-footer").addEventListener("click", () =>
   track("donate", { placement: "footer" }));
 document.querySelector("#donate-nudge a").addEventListener("click", () =>

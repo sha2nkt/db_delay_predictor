@@ -271,3 +271,8 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - On short result pages the post-result nudge and the static footer Ko-fi link landed in the same viewport a few lines apart — a duplicate coffee ask. New invariant: whenever the nudge is visible, the footer donate link is hidden; the footer link is the only ask everywhere else (home, empty results, past-mode reset).
 - Implementation: `setDonateNudge(show)` in app.js replaces the three scattered nudge class toggles and additionally flips `body.nudge-on`; `body.nudge-on #donate-footer-item { display: none; }` in style.css; the footer link plus its `·` separator wrapped in `<span id="donate-footer-item">` so no stray separator remains. Cache busters style.css v=29, app.js v=51.
 - Playwright-verified on the live service (with `/stats/*` blocked so the test doesn't pollute Umami): load → footer link only; results → nudge only, no `· ·` in the footer; past-mode switch → footer link back.
+
+## 2026-07-28 — Donate asks disabled behind a kill switch
+
+- Both Ko-fi asks (footer link + post-result nudge) are turned off for now via a single flag: `DONATE_ENABLED = false` near the top of app.js. `setDonateNudge` forces `show` to false when disabled (so `body.nudge-on` never fires either), and the footer `#donate-footer-item` gets the `hidden` attribute at startup — no CSS rule needed since nothing overrides the span's display.
+- Markup, i18n strings, CSS, and the `track("donate")` listeners are all left intact; re-enabling is flipping the flag to `true` plus a cache-buster bump. app.js v=51 → v=52. The Ko-fi mention in the impressum.html external-links passage stays, deliberately.
