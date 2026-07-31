@@ -13,6 +13,7 @@ const state = {
   mode: "future",  // "future" = delay forecast, "past" = compensation check for a past journey
   coverage: null,  // {minDay, maxDay, liveMaxDay} for the date picker, fetched on demand
   liveDay: false,  // searched day is past the local data and answered live from IRIS
+  claimJourney: null,  // journey shown in the claim-steps modal
 };
 
 // DB digital compensation flow lives in the customer account's past-trips list
@@ -116,9 +117,20 @@ const I18N = {
     claimNone: "Keine Entschädigung (unter 60 min)",
     claimCanceled: "Ausgefallen – Anspruch prüfen →",
     claimMissed: "Anschluss verpasst – Anspruch prüfen →",
-    claimSteps: "Auf bahn.de: einloggen → Reise auswählen → Reisedetails anzeigen → Entschädigung beantragen.",
     claimAltPre: "Ticket nicht im DB-Konto?",
     claimAltLink: "Zum Fahrgastrechte-Formular",
+    claimModalTitle: "So holst du dir dein Geld zurück",
+    claimModalTitlePct: (pct) => `So holst du dir ${pct} % zurück`,
+    claimModalLead: "Gleich öffnet sich deine Reiseübersicht auf bahn.de. Melde dich dort an – dann sind es nur diese Schritte:",
+    claimModalStepFind: "Finde diese Reise unter „Vergangene Reisen“:",
+    claimModalStepDetails: "Öffne die Reisedetails:",
+    claimModalStepRequest: "Starte den Entschädigungsantrag:",
+    claimModalStepSubmit: "Prüfe die Angaben und sende den Antrag ab:",
+    bahnBtnDetails: "Reisedetails",
+    bahnBtnRequest: "Entschädigung beantragen",
+    bahnBtnSubmit: "Antrag jetzt senden",
+    claimModalGo: "Weiter zu bahn.de →",
+    claimModalClose: "Schließen",
     missedBadge: "⛔ Anschluss verpasst",
     missedLegBadge: "verpasst",
     simContinuation: "↳ Tatsächliche Weiterfahrt mit der nächsten möglichen Verbindung:",
@@ -213,9 +225,20 @@ const I18N = {
     claimNone: "No compensation (under 60 min)",
     claimCanceled: "Cancelled – check your claim →",
     claimMissed: "Missed connection – check your claim →",
-    claimSteps: "On bahn.de: log in → select your trip → click Trip Details → request compensation.",
     claimAltPre: "Ticket not in your DB account?",
     claimAltLink: "Use the passenger rights form",
+    claimModalTitle: "How to get your money back",
+    claimModalTitlePct: (pct) => `How to get your ${pct}% back`,
+    claimModalLead: "You're about to open your trip overview on bahn.de. Log in there – then it's just these steps:",
+    claimModalStepFind: "Find this journey under “Past trips”:",
+    claimModalStepDetails: "Open the trip details:",
+    claimModalStepRequest: "Start the compensation request:",
+    claimModalStepSubmit: "Check the details and submit:",
+    bahnBtnDetails: "Trip details",
+    bahnBtnRequest: "Submit compensation request",
+    bahnBtnSubmit: "Submit request now",
+    claimModalGo: "Continue to bahn.de →",
+    claimModalClose: "Close",
     missedBadge: "⛔ Missed connection",
     missedLegBadge: "missed",
     simContinuation: "↳ Actual onward journey with the next possible connection:",
@@ -419,6 +442,7 @@ function applyLang(lang) {
   updateChartImg();
 
   if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
+  if (claimModal.open) populateClaimModal();
   render();
 }
 
@@ -1162,6 +1186,105 @@ function bahnDeUrl(journey) {
     `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}&kl=2`;
 }
 
+// --- claim modal: walks through the steps on bahn.de instead of a bare redirect ---
+
+const claimModal = document.getElementById("claim-modal");
+
+function fmtBahnDate(iso) {
+  // mimic the date format of the bahn.de trip list, e.g. "Di., 7. Jul. 2026"
+  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(
+    state.lang === "de" ? "de-DE" : "en-GB",
+    { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+
+// non-interactive replica of a bahn.de button, so users know what to look for
+function bahnBtn(label, outline) {
+  const el = document.createElement("span");
+  el.className = `bahn-btn${outline ? " bahn-btn-outline" : ""}`;
+  el.textContent = label;
+  return el;
+}
+
+function populateClaimModal() {
+  const j = state.claimJourney;
+  if (!j) return;
+  const legs = j.legs || [];
+  const first = legs[0], last = legs[legs.length - 1];
+  const pct = j.compensationPct;
+
+  document.getElementById("claim-modal-title").textContent =
+    pct != null && pct >= 25 ? t("claimModalTitlePct", pct) : t("claimModalTitle");
+  document.getElementById("claim-modal-lead").textContent = t("claimModalLead");
+  document.getElementById("claim-modal-close").setAttribute("aria-label", t("claimModalClose"));
+
+  // replica of the journey's row in the bahn.de past-trips list
+  const journeyEl = document.createElement("div");
+  journeyEl.className = "bahn-journey";
+  const jHead = document.createElement("div");
+  jHead.className = "bahn-journey-head";
+  jHead.append(
+    Object.assign(document.createElement("span"), {
+      className: "bahn-journey-date",
+      textContent: fmtBahnDate(first.plannedDeparture || first.departure || ""),
+    }),
+    Object.assign(document.createElement("strong"), { textContent: last.destination?.name || "" }),
+  );
+  const jSub = document.createElement("div");
+  jSub.className = "bahn-journey-sub";
+  jSub.textContent = `${fmtTime(first.plannedDeparture || first.departure)} – ` +
+    `${fmtTime(last.plannedArrival || last.arrival)} · ${first.origin?.name || ""} → ${last.destination?.name || ""}`;
+  journeyEl.append(jHead, jSub);
+
+  const steps = [
+    [t("claimModalStepFind"), journeyEl],
+    [t("claimModalStepDetails"), bahnBtn(t("bahnBtnDetails"), false)],
+    [t("claimModalStepRequest"), bahnBtn(t("bahnBtnRequest"), true)],
+    [t("claimModalStepSubmit"), bahnBtn(t("bahnBtnSubmit"), false)],
+  ];
+  const list = document.getElementById("claim-modal-steps");
+  list.innerHTML = "";
+  for (const [text, body] of steps) {
+    const li = document.createElement("li");
+    li.append(
+      Object.assign(document.createElement("p"), { className: "claim-step-text", textContent: text }),
+      body);
+    list.appendChild(li);
+  }
+
+  document.getElementById("claim-modal-go").textContent = t("claimModalGo");
+  document.getElementById("claim-modal-alt-pre").textContent = t("claimAltPre");
+  document.getElementById("claim-modal-alt").textContent = t("claimAltLink");
+}
+
+function openClaimModal(journey) {
+  state.claimJourney = journey;
+  populateClaimModal();
+  claimModal.showModal();
+  track("claim-modal", {
+    from: state.from?.name,
+    to: state.to?.name,
+    pct: journey.compensationPct ?? "na",
+  });
+}
+
+document.getElementById("claim-modal-go").href = CLAIM_URL;
+document.getElementById("claim-modal-alt").href = CLAIM_FORM_URL;
+document.getElementById("claim-modal-close").addEventListener("click", () => claimModal.close());
+// a click on the backdrop lands on the dialog element itself (the inner wrapper covers the rest)
+claimModal.addEventListener("click", (e) => { if (e.target === claimModal) claimModal.close(); });
+claimModal.addEventListener("close", () => { state.claimJourney = null; });
+// the modal stays open so the steps remain visible next to the bahn.de tab
+document.getElementById("claim-modal-go").addEventListener("click", () => {
+  const j = state.claimJourney;
+  track("claim-db", {
+    from: state.from?.name,
+    to: state.to?.name,
+    pct: j?.compensationPct ?? "na",
+    canceled: j?.arrivalCanceled,
+    missed: (j?.missedTransfers || []).length > 0,
+  });
+});
+
 function render() {
   resultsEl.innerHTML = "";
   for (const journey of sortedJourneys()) {
@@ -1249,23 +1372,13 @@ function render() {
       claimable = (pct != null && pct >= 25) || (pct == null && (canceledish || missed));
       let action;
       if (claimable) {
-        action = document.createElement("a");
+        action = document.createElement("button");
+        action.type = "button";
         action.className = "claim-btn";
         action.textContent = pct != null && pct >= 25 ? t("claimPct", pct)
           : canceledish ? t("claimCanceled")
           : t("claimMissed");
-        action.href = CLAIM_URL;
-        action.target = "_blank";
-        action.rel = "noopener";
-        action.addEventListener("click", () =>
-          track("claim-db", {
-            from: state.from?.name,
-            to: state.to?.name,
-            pct: pct ?? "na",
-            canceled: journey.arrivalCanceled,
-            missed,
-          })
-        );
+        action.addEventListener("click", () => openClaimModal(journey));
       } else {
         action = document.createElement("span");
         action.className = "claim-none";
@@ -1309,19 +1422,6 @@ function render() {
       head.append(times, meta, spacer, cta);
     }
     card.appendChild(head);
-
-    if (claimable) {
-      const hint = document.createElement("div");
-      hint.className = "claim-row";
-      const alt = document.createElement("a");
-      alt.href = CLAIM_FORM_URL;
-      alt.target = "_blank";
-      alt.rel = "noopener";
-      alt.textContent = t("claimAltLink");
-      hint.append(
-        document.createTextNode(`${t("claimSteps")} ${t("claimAltPre")} `), alt);
-      card.appendChild(hint);
-    }
 
     const legsEl = document.createElement("div");
     legsEl.className = "legs";
