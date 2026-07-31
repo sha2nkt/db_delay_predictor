@@ -471,23 +471,23 @@ body.nudge-on #donate-footer-item { display: none; }
 
 /* the train rolls in, pauses briefly at the station, and heads off */
 /* negative delay: on page load the train has just pulled in from the left edge */
-.ts-train { position: absolute; bottom: 8px; left: 0; animation: ts-drive 36s -4s infinite; }
+.ts-train { position: absolute; bottom: 8px; left: 0; animation: ts-drive 44s -4s infinite; }
 @keyframes ts-drive {
-  0%   { transform: translateX(-370px); animation-timing-function: cubic-bezier(.33, 0, .3, 1); }
-  42%  { transform: translateX(var(--ts-stop)); animation-timing-function: linear; }
-  46.2% { transform: translateX(calc(var(--ts-stop) + 2px)); animation-timing-function: cubic-bezier(.55, 0, .6, .55); }
+  0%   { transform: translateX(-370px); animation-timing-function: cubic-bezier(.3, .25, .25, 1); }
+  46%  { transform: translateX(var(--ts-stop)); animation-timing-function: linear; }
+  49.4% { transform: translateX(calc(var(--ts-stop) + 2px)); animation-timing-function: cubic-bezier(.55, 0, .6, .55); }
   100% { transform: translateX(102vw); }
 }
 
 /* wheel spin mirrors the drive keyframes so the wheels rest while the train stands */
 .ts-wheel {
   transform-box: fill-box; transform-origin: 50% 50%;
-  animation: ts-roll 36s -4s infinite;  /* delay must match ts-drive to stay in sync */
+  animation: ts-roll 44s -4s infinite;  /* delay must match ts-drive to stay in sync */
 }
 @keyframes ts-roll {
-  0%   { transform: rotate(0turn); animation-timing-function: cubic-bezier(.33, 0, .3, 1); }
-  42%  { transform: rotate(12turn); animation-timing-function: linear; }
-  46.2% { transform: rotate(12.02turn); animation-timing-function: cubic-bezier(.55, 0, .6, .55); }
+  0%   { transform: rotate(0turn); animation-timing-function: cubic-bezier(.3, .25, .25, 1); }
+  46%  { transform: rotate(12turn); animation-timing-function: linear; }
+  49.4% { transform: rotate(12.02turn); animation-timing-function: cubic-bezier(.55, 0, .6, .55); }
   100% { transform: rotate(28turn); }
 }
 
