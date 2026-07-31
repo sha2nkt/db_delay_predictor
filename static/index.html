@@ -29,7 +29,7 @@
 }
 </script>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=30">
+<link rel="stylesheet" href="style.css?v=31">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -127,6 +127,16 @@
   </p>
   <p id="past-disclaimer" class="past-disclaimer hidden" data-i18n="pastDisclaimer">Entschädigung nach EU-Fahrgastrechten: 25 % des Ticketpreises ab 60 min, 50 % ab 120 min Verspätung am Ziel. Auszahlung ab 4 €. Angezeigte Verspätungen basieren auf unseren aufgezeichneten Daten – maßgeblich ist die tatsächliche Ankunft.</p>
 </main>
+<dialog id="claim-modal" class="claim-modal">
+  <div class="claim-modal-inner">
+    <button id="claim-modal-close" class="claim-modal-close" type="button" aria-label="Schließen">✕</button>
+    <h2 id="claim-modal-title" class="claim-modal-title"></h2>
+    <p id="claim-modal-lead" class="claim-modal-lead"></p>
+    <ol id="claim-modal-steps" class="claim-steps"></ol>
+    <a id="claim-modal-go" class="claim-modal-go" target="_blank" rel="noopener"></a>
+    <p class="claim-modal-alt"><span id="claim-modal-alt-pre"></span> <a id="claim-modal-alt" target="_blank" rel="noopener"></a></p>
+  </div>
+</dialog>
 <footer class="site-footer">
   <a href="https://github.com/sha2nkt/delay_bahn" target="_blank" rel="noopener" data-i18n="footerOpenSource">Open Source – Quellcode auf GitHub</a> ·
   <span id="donate-footer-item"><a href="https://ko-fi.com/delaybahn" target="_blank" rel="noopener" id="donate-footer" data-i18n="footerDonate">☕ Spendier mir einen Kaffee</a> ·</span>
@@ -139,6 +149,6 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=53"></script>
+<script src="app.js?v=54"></script>
 </body>
 </html>

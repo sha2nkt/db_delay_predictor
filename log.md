@@ -285,3 +285,10 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 ## 2026-07-28 — Repo rename followed up in links
 
 - GitHub repo renamed `sha2nkt/db_delay_predictor` → `sha2nkt/delay_bahn` (noticed via the push redirect notice). Updated the footer "Open Source" link in index.html and the README clone instructions (URL + `cd` directory) to the new name; the local `origin` remote was already repointed. Old URLs keep working via GitHub's redirect.
+
+## 2026-07-31 — Claim modal replaces the bare bahn.de redirect
+
+- The past-mode claim buttons ("x % zurückholen", cancelled/missed variants) no longer jump straight to bahn.de: they open a native `<dialog>` that walks through the claim flow — step 1 is a replica of the journey's row as it appears in the bahn.de past-trips list (bahn.de-formatted date, destination bold, times + route) so the user can find their trip, steps 2–4 are CSS replicas of the bahn.de buttons to click. A green "Weiter zu bahn.de →" opens the trip overview in a new tab while the modal stays open for reference; the Fahrgastrechte-form fallback moved into the modal footer. The now-redundant inline steps hint under claimable cards (`claimSteps` i18n key) was removed.
+- The intended button screenshots never landed in static/ — the DE/EN button labels are best-effort recreations in the `I18N` dict (`bahnBtnDetails`/`bahnBtnRequest`/`bahnBtnSubmit`); if bahn.de words them differently, each is a one-line fix.
+- Gotcha: the global `* { margin: 0 }` reset kills the UA `margin: auto` that centers a top-layer `<dialog>` — the modal rendered top-left until `.claim-modal` set `margin: auto` explicitly.
+- Verified with headless Chrome: DE/EN desktop, plus mobile via a 390 px iframe — direct `--window-size=390` screenshots mislead because headless enforces a minimum window width (~500 px layout viewport), making the dialog appear to overflow. The results-list claim button re-checked as a `<button>` (was an `<a>`). Analytics: new `claim-modal` event on open; `claim-db` now fires on the modal's continue click instead of the card button. Cache busters: style.css v=31, app.js v=54.
