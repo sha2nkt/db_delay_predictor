@@ -384,6 +384,147 @@ body.nudge-on #donate-footer-item { display: none; }
 .legal-card address { font-style: normal; margin: 8px 0; }
 .legal-stand { color: var(--text-muted); font-size: 12px; margin-top: 20px; }
 
+/* --- toy-train scene above the footer --- */
+
+.train-scene {
+  position: relative; overflow: hidden;
+  height: 120px; margin-top: 28px;
+  background: linear-gradient(180deg, #dff0fa 0%, #f3f9fd 55%, #fdf4e3 100%);
+  --ts-stop: calc(50vw - 98px);  /* train position that centers the coaches on the station */
+}
+
+.ts-sun {
+  position: absolute; top: 10px; right: 5%;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #ffd766; box-shadow: 0 0 24px 10px rgba(255, 215, 102, .45);
+}
+
+.ts-cloud {
+  position: absolute; width: 64px; height: 16px;
+  background: #fff; border-radius: 999px; opacity: .85;
+  animation: ts-cloud-drift linear infinite;
+}
+.ts-cloud::before, .ts-cloud::after {
+  content: ""; position: absolute; background: #fff; border-radius: 50%;
+}
+.ts-cloud::before { left: 12px; top: -9px; width: 22px; height: 22px; }
+.ts-cloud::after { left: 32px; top: -6px; width: 16px; height: 16px; }
+.ts-cloud-1 { top: 14px; animation-duration: 75s; animation-delay: -20s; }
+.ts-cloud-2 { top: 32px; transform: scale(.7); animation-duration: 95s; animation-delay: -55s; }
+.ts-cloud-3 { top: 6px; transform: scale(.85); animation-duration: 62s; animation-delay: -10s; }
+@keyframes ts-cloud-drift {
+  from { translate: 100vw 0; }
+  to { translate: -120px 0; }
+}
+
+.ts-birds {
+  position: absolute; top: 20px; left: 56%;
+  animation: ts-birds-float 4.5s ease-in-out infinite alternate;
+}
+@keyframes ts-birds-float {
+  from { transform: translateY(0); }
+  to { transform: translateY(4px); }
+}
+
+.ts-hills { position: absolute; bottom: 16px; left: 0; width: 100%; height: 52px; }
+.ts-ground { position: absolute; bottom: 0; left: 0; right: 0; height: 16px; background: #a9cd97; }
+.ts-ties {
+  position: absolute; bottom: 10px; left: 0; right: 0; height: 6px;
+  background: repeating-linear-gradient(90deg, #8d8577 0 4px, transparent 4px 16px);
+}
+.ts-rail { position: absolute; bottom: 14px; left: 0; right: 0; height: 2.5px; background: #646973; }
+
+.ts-station { position: absolute; bottom: 16px; left: calc(50% - 48px); }
+.ts-board {
+  position: absolute; top: 30px; left: calc(50% + 6px);
+  background: var(--red); color: #fff;
+  font-size: 10px; font-weight: 700; letter-spacing: .02em;
+  padding: 2px 7px; border-radius: 8px;
+}
+.ts-board::after {
+  content: ""; position: absolute; top: 100%; left: 14px;
+  border: 4px solid transparent; border-top-color: var(--red);
+}
+
+.ts-tree { position: absolute; bottom: 16px; width: 26px; height: 34px; transform-origin: bottom center; }
+.ts-tree::before {
+  content: ""; position: absolute; top: 0; left: 1px;
+  width: 24px; height: 24px; border-radius: 50%; background: #79b06a;
+}
+.ts-tree::after {
+  content: ""; position: absolute; bottom: 0; left: 50%; margin-left: -2px;
+  width: 4px; height: 12px; border-radius: 2px; background: #8a6b4d;
+}
+.ts-tree-1 { left: 6%; }
+.ts-tree-2 { left: 33%; transform: scale(.75); }
+.ts-tree-2::before { background: #8fbf7a; }
+.ts-tree-3 { left: 64%; transform: scale(.9); }
+.ts-tree-4 { left: 90%; transform: scale(.7); }
+.ts-tree-4::before { background: #8fbf7a; }
+
+.ts-signal { position: absolute; bottom: 16px; left: 76%; }
+.ts-signal-light { animation: ts-signal-glow 1.6s ease-in-out infinite alternate; }
+@keyframes ts-signal-glow {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
+
+/* the train rolls in, pauses briefly at the station, and heads off */
+/* negative delay: on page load the train has just pulled in from the left edge */
+.ts-train { position: absolute; bottom: 8px; left: 0; animation: ts-drive 36s -4s infinite; }
+@keyframes ts-drive {
+  0%   { transform: translateX(-370px); animation-timing-function: cubic-bezier(.33, 0, .3, 1); }
+  42%  { transform: translateX(var(--ts-stop)); animation-timing-function: linear; }
+  46.2% { transform: translateX(calc(var(--ts-stop) + 2px)); animation-timing-function: cubic-bezier(.55, 0, .6, .55); }
+  100% { transform: translateX(102vw); }
+}
+
+/* wheel spin mirrors the drive keyframes so the wheels rest while the train stands */
+.ts-wheel {
+  transform-box: fill-box; transform-origin: 50% 50%;
+  animation: ts-roll 36s -4s infinite;  /* delay must match ts-drive to stay in sync */
+}
+@keyframes ts-roll {
+  0%   { transform: rotate(0turn); animation-timing-function: cubic-bezier(.33, 0, .3, 1); }
+  42%  { transform: rotate(12turn); animation-timing-function: linear; }
+  46.2% { transform: rotate(12.02turn); animation-timing-function: cubic-bezier(.55, 0, .6, .55); }
+  100% { transform: rotate(28turn); }
+}
+
+.ts-body { animation: ts-bob .7s ease-in-out infinite alternate; }
+.ts-body-2 { animation-delay: -.25s; }
+.ts-body-loco { animation-delay: -.45s; }
+@keyframes ts-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(-1.3px); }
+}
+
+.ts-smoke {
+  transform-box: fill-box; transform-origin: 50% 50%;
+  opacity: 0; animation: ts-puff 2.6s ease-out infinite;
+}
+.ts-smoke-2 { animation-delay: .9s; }
+.ts-smoke-3 { animation-delay: 1.8s; }
+@keyframes ts-puff {
+  0% { opacity: 0; transform: translate(0, 0) scale(.5); }
+  15% { opacity: .75; }
+  100% { opacity: 0; transform: translate(-26px, -22px) scale(1.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .train-scene *, .train-scene *::before, .train-scene *::after { animation: none !important; }
+  .ts-train { transform: translateX(var(--ts-stop)); }
+  .ts-smoke { opacity: 0; }
+}
+
+@media (max-width: 700px) {
+  .train-scene { height: 104px; --ts-stop: calc(50vw - 78px); }
+  .ts-train { width: 272px; height: 67px; bottom: 10px; }
+  .ts-station { transform: scale(.85); transform-origin: bottom center; }
+  .ts-board { top: 26px; }
+  .ts-tree-3 { display: none; }
+}
+
 @media (max-width: 700px) {
   .header-inner { flex-wrap: wrap; row-gap: 8px; }
   .hero-chart { padding: 24px 16px 20px; }
