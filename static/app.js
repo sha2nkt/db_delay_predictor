@@ -72,7 +72,7 @@ const I18N = {
     noData: "keine Daten",
     badgeDays: (matched, total) => `(${matched}/${total} Tage)`,
     badgeTooltip: (win, max) => `Mittlere Ankunftsverspätung (Median) der letzten ${win} Tage (max. +${max} min)`,
-    badgeClickHint: "Klicken für Verspätung pro Tag",
+    badgeClickHint: "Verspätung pro Tag anzeigen",
     chartDayCaption: (win) => `Ankunftsverspätung pro Tag – letzte ${win} Tage`,
     chartCanceled: "ausgefallen",
     direct: "direkt",
@@ -180,7 +180,7 @@ const I18N = {
     noData: "no data",
     badgeDays: (matched, total) => `(${matched}/${total} days)`,
     badgeTooltip: (win, max) => `Median arrival delay over the last ${win} days (max. +${max} min)`,
-    badgeClickHint: "Click for per-day delays",
+    badgeClickHint: "Show per-day delays",
     chartDayCaption: (win) => `Arrival delay per day – last ${win} days`,
     chartCanceled: "cancelled",
     direct: "direct",
@@ -912,7 +912,14 @@ function delayBadge(stats, big) {
     el.innerHTML = `${v >= 0 ? "+" : ""}${v} min${big ? ` <small>${t("badgeDays", stats.daysMatched, state.windowUsed)}</small>` : ""}`;
     el.title = t("badgeTooltip", state.windowUsed, stats.maxDelay);
   }
-  if (clickable) el.title = (el.title ? `${el.title} – ` : "") + t("badgeClickHint");
+  if (clickable) {
+    el.title = (el.title ? `${el.title} – ` : "") + t("badgeClickHint");
+    const caret = document.createElement("span");
+    caret.className = "badge-caret";
+    caret.setAttribute("aria-hidden", "true");
+    caret.textContent = "▾";
+    el.append(caret);
+  }
   return el;
 }
 

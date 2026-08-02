@@ -192,7 +192,13 @@ body.past-mode .refund-nav {
 
 button.badge { border: none; font-family: inherit; cursor: pointer; }
 button.badge:hover { filter: brightness(1.12); }
+button.badge:active { filter: brightness(.88); }
 button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.badge-caret {
+  display: inline-block; margin-left: 3px; font-size: .8em;
+  opacity: .85; transition: transform .15s ease;
+}
+button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 
 .day-chart { width: 100%; margin: 10px 0 2px; position: relative; }
 .day-chart-caption {
@@ -537,6 +543,7 @@ body.nudge-on #donate-footer-item { display: none; }
   .train-scene *, .train-scene *::before, .train-scene *::after { animation: none !important; }
   .ts-train { transform: translateX(var(--ts-stop)); }
   .ts-smoke { opacity: 0; }
+  .badge-caret { transition: none; }
 }
 
 @media (max-width: 700px) {
@@ -573,6 +580,7 @@ body.nudge-on #donate-footer-item { display: none; }
   .journey-head .price { grid-row: 1; grid-column: 2; justify-self: end; }
   .journey-meta { grid-row: 2; grid-column: 1; }
   .journey-head .badge { grid-column: 2; justify-self: end; }
+  button.badge { padding: 6px 10px; border-radius: 14px; }
   .book-btn, .claim-btn {
     grid-column: 1 / -1;
     text-align: center;
