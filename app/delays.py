@@ -43,7 +43,18 @@ def init():
     # does ~30 lookups. Costs ~12s of startup.
     _conn.execute(
         "CREATE TABLE delays AS"
-        f" SELECT *, ltrim(train_number, '0') AS train_no FROM read_parquet('{DELAYS_PARQUET}')"
+        " SELECT *,"
+        "  CASE"
+        # German S-Bahn: bahn.de sends the line label ("S5") as fahrtNr, so key those
+        # rows by line. CH S-Bahn (eva 085%) is already re-keyed to bare digits by
+        # build_ch_days.py and must keep the run-number key.
+        "   WHEN train_type = 'S' AND eva LIKE '080%' AND line_number LIKE 'S%'"
+        "    THEN replace(line_number, ' ', '')"
+        "   WHEN train_type = 'S' AND eva LIKE '080%' AND regexp_matches(line_number, '^[0-9]+$')"
+        "    THEN 'S' || line_number"  # a few networks report bare digits in IRIS l
+        "   ELSE ltrim(train_number, '0')"
+        "  END AS train_no"
+        f" FROM read_parquet('{DELAYS_PARQUET}')"
         " ORDER BY train_no, eva"
     )
     # a sorted lookup no longer needs 32 threads, and capping them keeps concurrent

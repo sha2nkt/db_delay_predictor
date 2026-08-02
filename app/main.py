@@ -13,6 +13,13 @@ from app import bahn_api, delays, live_delays
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
+# bahn.de products IRIS never covers; a delay lookup could only ever false-match
+# (e.g. tram line "1" hitting train number 1). Unknown/None products fail open so
+# a new bahn.de label can't silently kill CH/FR stats. BUS includes SEV replacement
+# buses, which do exist in the parquet — but their legs never matched anyway
+# (6-digit municipal stop ids), so gating them is status quo with an honest label.
+UNTRACKED_PRODUCTS = {"BUS", "TRAM", "UBAHN", "SCHIFF", "ANRUFPFLICHTIG"}
+
 # Self-hosted Umami; proxied first-party under /stats/* so adblock list rules
 # for analytics hosts/paths don't match.
 umami = httpx.AsyncClient(base_url="http://127.0.0.1:3001", timeout=5)
@@ -75,8 +82,9 @@ def normalize_leg(abschnitt: dict, window: int, past: bool = False, live: bool =
     }
 
     fahrt_nr = leg["line"]["fahrtNr"]
-    if not leg["walking"] and fahrt_nr and leg["plannedArrival"] and leg["destination"]["id"]:
-        train = str(fahrt_nr)
+    tracked = leg["line"]["product"] not in UNTRACKED_PRODUCTS
+    if not leg["walking"] and tracked and fahrt_nr and leg["plannedArrival"] and leg["destination"]["id"]:
+        train = str(fahrt_nr).replace(" ", "")
         eva = delays.pad_eva(str(leg["destination"]["id"]))
         arrival = delays.to_berlin_naive(leg["plannedArrival"])
         if past:
@@ -94,7 +102,8 @@ def _live_stops(abschnitte: list[dict]) -> set[tuple[str, datetime]]:
     stops = set()
     for a in abschnitte:
         vm = a.get("verkehrsmittel") or {}
-        if vm.get("typ") != "PUBLICTRANSPORT" or not vm.get("nummer"):
+        if (vm.get("typ") != "PUBLICTRANSPORT" or not vm.get("nummer")
+                or vm.get("produktGattung") in UNTRACKED_PRODUCTS):
             continue
         for ext_id, event in (
             (a.get("abfahrtsOrtExtId"), (a.get("abfahrt") or {}).get("sollzeit")),
@@ -191,9 +200,10 @@ def _departure_info(leg: dict, live: bool = False) -> dict | None:
     """That day's actual departure delay/cancellation of a train leg at its origin."""
     nr = leg["line"]["fahrtNr"]
     dep = _planned_dt(leg, "plannedDeparture")
-    if leg["walking"] or not nr or dep is None or not leg["origin"]["id"]:
+    if (leg["walking"] or not nr or dep is None or not leg["origin"]["id"]
+            or leg["line"]["product"] in UNTRACKED_PRODUCTS):
         return None
-    train, eva = str(nr), delays.pad_eva(str(leg["origin"]["id"]))
+    train, eva = str(nr).replace(" ", ""), delays.pad_eva(str(leg["origin"]["id"]))
     hit = live_delays.leg_departure_on_date(train, eva, dep) if live else None
     return hit if hit is not None else delays.leg_departure_on_date(train, eva, dep)
 
@@ -397,8 +407,14 @@ async def journeys(
             sim = await _simulate_walk(legs, window, MAX_REPLANS, live)
             if live:
                 # on a live day a missing observation means "not reported yet",
-                # which is a different message than "we have no data for this train"
-                journey["pending"] = any(leg.get("delayOnDate") is None for leg in train_legs)
+                # which is a different message than "we have no data for this train";
+                # untracked products (tram, bus, ...) never report, so they must not
+                # hold the journey pending forever
+                journey["pending"] = any(
+                    leg.get("delayOnDate") is None
+                    for leg in train_legs
+                    if leg["line"]["product"] not in UNTRACKED_PRODUCTS
+                )
             if sim["missedAtLegIndex"] is not None:
                 # a connection was missed: the realistic arrival comes from the
                 # simulated continuation, not the booked itinerary's final leg

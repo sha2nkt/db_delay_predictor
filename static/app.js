@@ -70,6 +70,8 @@ const I18N = {
     noResults: "Keine Verbindungen gefunden.",
     error: (msg) => `Fehler: ${msg}`,
     noData: "keine Daten",
+    notTracked: "nicht erfasst",
+    notTrackedTooltip: "Für U-Bahn, Tram, Bus und Fähre werden keine Verspätungsdaten erhoben",
     badgeDays: (matched, total) => `(${matched}/${total} Tage)`,
     badgeTooltip: (win, max) => `Mittlere Ankunftsverspätung (Median) der letzten ${win} Tage (max. +${max} min)`,
     badgeClickHint: "Verspätung pro Tag anzeigen",
@@ -178,6 +180,8 @@ const I18N = {
     noResults: "No connections found.",
     error: (msg) => `Error: ${msg}`,
     noData: "no data",
+    notTracked: "not tracked",
+    notTrackedTooltip: "Delay data isn't collected for metro, tram, bus and ferry services",
     badgeDays: (matched, total) => `(${matched}/${total} days)`,
     badgeTooltip: (win, max) => `Median arrival delay over the last ${win} days (max. +${max} min)`,
     badgeClickHint: "Show per-day delays",
@@ -897,6 +901,17 @@ function fmtDuration(seconds) {
   return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}min`;
 }
 
+// products the backend collects no delay data for (matches UNTRACKED_PRODUCTS in app/main.py)
+const UNTRACKED_PRODUCTS = new Set(["BUS", "TRAM", "UBAHN", "SCHIFF", "ANRUFPFLICHTIG"]);
+
+function notTrackedBadge() {
+  const el = document.createElement("span");
+  el.className = "badge gray";
+  el.textContent = t("notTracked");
+  el.title = t("notTrackedTooltip");
+  return el;
+}
+
 function delayBadge(stats, big) {
   // badges with per-day data become buttons that toggle the day chart
   const clickable = !!stats?.days?.length;
@@ -983,6 +998,8 @@ function buildLegRow(leg, past, struck) {
       badge.className = "badge gray";
       badge.textContent = t("missedLegBadge");
     }
+  } else if (UNTRACKED_PRODUCTS.has(leg.line?.product)) {
+    badge = notTrackedBadge();
   } else {
     badge = past ? exactDelayBadge(leg.delayOnDate) : delayBadge(leg.delayStats, false);
   }
@@ -1345,6 +1362,8 @@ function render() {
         badge.className = "badge red";
         badge.textContent = t("missedBadge");
         badge.title = (journey.missedTransfers || []).map((mt) => mt.station).join(", ");
+      } else if (UNTRACKED_PRODUCTS.has(finalLeg?.line?.product)) {
+        badge = notTrackedBadge();
       } else {
         badge = exactDelayBadge(finalLeg?.delayOnDate);
       }
@@ -1357,6 +1376,8 @@ function render() {
         badge.className = "badge red";
         badge.textContent = t("unlikelyBadge");
         badge.title = t("unlikelyBadgeTooltip", unlikelyTts.map((tt) => tt.station).join(", "));
+      } else if (UNTRACKED_PRODUCTS.has(finalLeg?.line?.product)) {
+        badge = notTrackedBadge();
       } else {
         badge = delayBadge(finalStats, true);
         if (finalStats) wireDayChart(badge, finalStats, head, finalLeg.line?.name);
