@@ -534,4 +534,27 @@ body.nudge-on #donate-footer-item { display: none; }
   .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
   .header-title { font-size: 15px; }
   .header-title small { display: none; }
+
+  .controls { flex-wrap: wrap; }
+
+  /* journey card header: times/price on top, meta + badges below, full-width CTA */
+  .journey { padding: 14px; }
+  .journey-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    row-gap: 6px;
+  }
+  .journey-head .spacer { display: none; }
+  .journey-cta { display: contents; }
+  .journey-times { grid-row: 1; grid-column: 1; }
+  .journey-head .price { grid-row: 1; grid-column: 2; justify-self: end; }
+  .journey-meta { grid-row: 2; grid-column: 1; }
+  .journey-head .badge { grid-column: 2; justify-self: end; }
+  .book-btn, .claim-btn {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 11px 12px;
+  }
+  .journey-head .claim-none { grid-column: 1 / -1; }
 }
