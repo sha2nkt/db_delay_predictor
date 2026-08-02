@@ -230,8 +230,12 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 .legs { margin-top: 10px; border-top: 1px solid var(--gray-border); padding-top: 10px; }
 .leg {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  font-size: 14px; padding: 4px 0 4px 26px;
+  font-size: 14px; line-height: 20px; padding: 4px 0 4px 26px;
   position: relative;
+  /* center of the row's first line: 4px padding + half the 22px train chip;
+     line-heights are pinned so this stays exact when the row wraps on narrow
+     screens - anchoring at 50% drifts once desc/badge wrap to extra lines */
+  --stop-y: 15px;
 }
 /* vertical rail connecting the legs of a journey; each row draws its own
    segment so the line stays continuous regardless of row height */
@@ -239,17 +243,18 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
   content: ""; position: absolute; left: 7px; top: 0; bottom: 0;
   width: 2px; background: color-mix(in srgb, var(--text-muted) 45%, #fff);
 }
-.leg.rail-first::before { top: 50%; }
-.leg.rail-last::before { bottom: 50%; }
+.leg.rail-first::before { top: var(--stop-y); }
+.leg.rail-last::before { bottom: auto; height: var(--stop-y); }
+.leg.rail-first.rail-last::before { content: none; }
 /* stop marker; walks are a connection, not a stop, so they stay on the bare line */
 .leg:not(.leg-walk)::after {
-  content: ""; position: absolute; left: 2px; top: 50%;
+  content: ""; position: absolute; left: 2px; top: var(--stop-y);
   width: 7px; height: 7px; transform: translateY(-50%);
   border: 2.5px solid var(--text); border-radius: 50%; background: #fff;
 }
 .leg .train {
   background: var(--gray-bg); border-radius: 4px; padding: 2px 8px;
-  font-weight: 700; font-size: 13px; min-width: 70px; text-align: center;
+  font-weight: 700; font-size: 13px; line-height: 18px; min-width: 70px; text-align: center;
 }
 .leg .badge { font-size: 11px; padding: 2px 8px; }
 .leg .walk { color: var(--text-muted); font-style: italic; }
