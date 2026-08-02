@@ -118,9 +118,16 @@ async def _fetch_plan(eva: str, day: str, hour: int) -> list[dict]:
         if tl is None or not s.get("id"):
             continue
         ar, dp = s.find("ar"), s.find("dp")
+        # line label ("S5"), normalized the same way as the delays-table key: bahn.de
+        # sends it as fahrtNr for German S-Bahn legs, so the lookup matches on it
+        raw_line = (ar.get("l") if ar is not None else None) or (dp.get("l") if dp is not None else None)
+        line = raw_line.replace(" ", "") if raw_line else None
+        if line and line.isdigit() and tl.get("c") == "S":
+            line = "S" + line  # a few networks report bare digits in IRIS l
         stops.append({
             "id": s.get("id"),
             "train": (tl.get("n") or "").lstrip("0"),
+            "line": line,
             "ar_pt": _iris_dt(ar.get("pt") if ar is not None else None),
             "dp_pt": _iris_dt(dp.get("pt") if dp is not None else None),
         })
@@ -239,10 +246,16 @@ def _lookup(train_number: str, eva_padded: str, planned: datetime, kind: str) ->
     train_number = train_number.lstrip("0")
     pt_key = "ar_pt" if kind == "ar" else "dp_pt"
 
+    # bahn.de sends a line label ("S5") instead of a run number only for DE S-Bahn;
+    # numeric keys stay on pure run-number matching so an RB with IRIS l="26" can't
+    # false-match a leg whose fahrtNr is "26" (and CH keys, always digits, stay put)
+    by_line = not train_number.isdigit()
+
     stop_id, stop_pt, best = None, None, None
     for day, hour in _plan_hours(planned):
         for stop in _ready(("plan", eva_padded, day, hour)) or ():
-            if stop["train"] != train_number or stop[pt_key] is None:
+            hit = stop["train"] == train_number or (by_line and stop.get("line") == train_number)
+            if not hit or stop[pt_key] is None:
                 continue
             off = abs((stop[pt_key] - planned).total_seconds()) / 60
             if off <= MATCH_TOLERANCE_MIN and (best is None or off < best):
