@@ -202,8 +202,8 @@ button.badge:hover { filter: brightness(1.12); }
 button.badge:active { filter: brightness(.88); }
 button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .badge-caret {
-  display: inline-block; margin-left: 3px; font-size: .8em;
-  opacity: .85; transition: transform .15s ease;
+  display: inline-block; margin-left: 5px;
+  transition: transform .15s ease;
 }
 button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 
