@@ -18,6 +18,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Sort by fewest transfers | done | "Wenigste Umstiege" toggle; ascending by bahn.de `umstiegsAnzahl` (non-walking legs − 1 fallback), ties keep departure order; added + browser-verified 2026-07-26 |
 | Shareable search URLs | done | search params synced to the query string, restored (and re-searched) on load; implemented 2026-07-19, browser-verified 2026-07-26 (Playwright loaded a query-string URL, search restored and results rendered) |
 | Recent-station suggestions | partial | focusing an empty Von/Nach input suggests the last 6 searched stations (localStorage, deduped); implemented 2026-07-19, browser verification pending |
+| Leg timeline rail | done | vertical rail on each journey card: a dark-ringed circle per train leg joined by a gray line so connections read at a glance; walks sit on the bare line, tight-transfer strips draw a pass-through segment, past-mode continuation starts its own rail run, direct journeys show a lone circle; CSS pseudo-elements only; pixel-scan-verified in headless Chrome at desktop + 400 px (2026-08-02) |
 
 ## Delay statistics
 
