@@ -952,6 +952,7 @@ function buildLegRow(leg, past, struck) {
   const row = document.createElement("div");
   row.className = "leg";
   if (leg.walking) {
+    row.classList.add("leg-walk");
     const w = document.createElement("span");
     w.className = "walk";
     w.textContent = `${t("walk")} · ${leg.origin?.name || ""} → ${leg.destination?.name || ""}`;
@@ -1435,6 +1436,8 @@ function render() {
     legs.forEach((leg, i) => {
       const struck = missedAt != null && i >= missedAt;
       const row = buildLegRow(leg, past, struck);
+      if (i === 0) row.classList.add("rail-first");
+      if (i === legs.length - 1) row.classList.add("rail-last");
       if (struck) row.classList.add("leg-missed");
       if (!past && !leg.walking) {
         const legBadge = row.querySelector(".badge");
@@ -1458,7 +1461,12 @@ function render() {
         contHead.className = "leg-continuation";
         contHead.textContent = t("simContinuation");
         legsEl.appendChild(contHead);
-        sim.legs.forEach((leg) => legsEl.appendChild(buildLegRow(leg, true, false)));
+        sim.legs.forEach((leg, i) => {
+          const row = buildLegRow(leg, true, false);
+          if (i === 0) row.classList.add("rail-first");
+          if (i === sim.legs.length - 1) row.classList.add("rail-last");
+          legsEl.appendChild(row);
+        });
       }
       if (sim.incomplete) {
         const note = document.createElement("div");

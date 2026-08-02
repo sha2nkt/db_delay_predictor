@@ -217,7 +217,22 @@ button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px
 .legs { margin-top: 10px; border-top: 1px solid var(--gray-border); padding-top: 10px; }
 .leg {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  font-size: 14px; padding: 4px 0;
+  font-size: 14px; padding: 4px 0 4px 26px;
+  position: relative;
+}
+/* vertical rail connecting the legs of a journey; each row draws its own
+   segment so the line stays continuous regardless of row height */
+.leg::before {
+  content: ""; position: absolute; left: 7px; top: 0; bottom: 0;
+  width: 2px; background: color-mix(in srgb, var(--text-muted) 45%, #fff);
+}
+.leg.rail-first::before { top: 50%; }
+.leg.rail-last::before { bottom: 50%; }
+/* stop marker; walks are a connection, not a stop, so they stay on the bare line */
+.leg:not(.leg-walk)::after {
+  content: ""; position: absolute; left: 2px; top: 50%;
+  width: 7px; height: 7px; transform: translateY(-50%);
+  border: 2.5px solid var(--text); border-radius: 50%; background: #fff;
 }
 .leg .train {
   background: var(--gray-bg); border-radius: 4px; padding: 2px 8px;
@@ -238,11 +253,18 @@ button.badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px
 
 .cancel-note { font-size: 12px; color: var(--red); margin-top: 6px; }
 .leg-tight {
-  margin: 2px 0 4px; padding: 5px 10px;
+  margin: 2px 0 4px 26px; padding: 5px 10px;
   font-size: 12.5px; color: var(--red);
   background: color-mix(in srgb, var(--red) 6%, transparent);
   border-left: 3px solid var(--red);
   border-radius: 0 6px 6px 0;
+  position: relative;
+}
+/* keep the rail unbroken behind the warning strip (incl. its vertical margins);
+   offsets are from the padding box, so the 3px left border adds to the 26px margin */
+.leg-tight::after {
+  content: ""; position: absolute; left: -22px; top: -2px; bottom: -4px;
+  width: 2px; background: color-mix(in srgb, var(--text-muted) 45%, #fff);
 }
 .leg-tight strong { font-weight: 700; }
 
