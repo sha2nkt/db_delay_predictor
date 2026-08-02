@@ -47,7 +47,14 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
   padding: 10px 12px; font-size: 15px; min-width: 200px;
   background: #fff; color: var(--text);
 }
-.field-date input, .field-time input { min-width: 120px; }
+/* iOS Safari gives date/time controls an intrinsic width that overflows width:100%;
+   stripping the native appearance makes them size like regular inputs */
+.field-date input, .field-time input {
+  min-width: 120px; max-width: 100%;
+  -webkit-appearance: none; appearance: none;
+}
+.field-date input::-webkit-date-and-time-value,
+.field-time input::-webkit-date-and-time-value { text-align: left; }
 .field-window select { min-width: 110px; }
 .field input:focus, .field select:focus { outline: 2px solid var(--db-red); outline-offset: -1px; }
 
