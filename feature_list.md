@@ -10,7 +10,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Typed-station fallback | partial | exact case-insensitive name match resolves un-selected input at search time; implemented 2026-07-19, browser verification pending |
 | Journey search with transfers | done | `/api/journeys` → bahn.de `/angebote/fahrplan` (POST), 1 adult 2nd class, all products |
 | Earlier/later paging | done | bahn.de `verbindungReference` tokens; buttons prepend/append the adjacent result page, deduped by planned times + train names (2026-07-12) |
-| Departure date/time selection | done | defaults to now; Berlin-local naive timestamps end to end |
+| Departure date/time selection | done | defaults to now; Berlin-local naive timestamps end to end; iOS Safari overflow of the native date/time controls fixed by stripping `-webkit-appearance` + left-aligning the value (2026-08-02, on-device re-check pending) |
 | Swap origin/destination | done | ⇅ button |
 | Ticket prices | done | `angebotsPreis` from bahn.de; prominent per-card display, "Preis auf bahn.de" fallback when missing |
 | Sort by cheapest price | done | "Günstigster Preis" toggle; journeys without price last |
