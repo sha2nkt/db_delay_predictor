@@ -1,4 +1,5 @@
 import asyncio
+import re
 from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
@@ -8,6 +9,7 @@ from zoneinfo import ZoneInfo
 import httpx
 from curl_cffi.requests.exceptions import HTTPError, RequestException
 from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import bahn_api, delays, live_delays
@@ -568,6 +570,47 @@ async def coverage():
         "maxDay": hi.isoformat() if hi else None,
         "liveMaxDay": live_hi.isoformat() if live_hi else None,
     }
+
+
+# Past mode (compensation check) is indexable under its own URL. The homepage's
+# index.html stays the single source of truth: it is rewritten per request with
+# past-specific head tags and the past-mode body class, so the two pages can
+# never drift apart.
+PAST_URL = "https://delaybahn.com/entschaedigung"
+PAST_TITLE = "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen | delaybahn.com"
+PAST_DESCRIPTION = (
+    "Vergangene DB-Reise eingeben und sehen, wie sie wirklich verlief: Verspätungen, "
+    "verpasste Anschlüsse und Entschädigung nach EU-Fahrgastrechten – "
+    "25 % ab 60 min, 50 % ab 120 min Verspätung am Ziel."
+)
+
+
+def _past_page_html() -> str:
+    html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    for pattern, repl in (
+        (r"<title>[^<]*</title>", f"<title>{PAST_TITLE}</title>"),
+        (r'(<meta name="description" content=")[^"]*', rf"\g<1>{PAST_DESCRIPTION}"),
+        (r'(<link rel="canonical" href=")[^"]*', rf"\g<1>{PAST_URL}"),
+        (r'(<meta property="og:url" content=")[^"]*', rf"\g<1>{PAST_URL}"),
+        (r'(<meta property="og:title" content=")[^"]*', rf"\g<1>{PAST_TITLE}"),
+        (r'(<meta property="og:description" content=")[^"]*', rf"\g<1>{PAST_DESCRIPTION}"),
+        (r"<body>", '<body class="past-mode">'),
+        # the sub-page's heading is the past banner title
+        (r'<strong data-i18n="pastTitle">([^<]*)</strong>', r'<h1 data-i18n="pastTitle">\1</h1>'),
+    ):
+        html = re.sub(pattern, repl, html, count=1)
+    return html
+
+
+@app.get("/entschaedigung")
+async def entschaedigung_page() -> HTMLResponse:
+    return HTMLResponse(_past_page_html())
+
+
+@app.get("/entschaedigung/")
+async def entschaedigung_slash() -> RedirectResponse:
+    # relative asset URLs only resolve from the slashless path
+    return RedirectResponse("/entschaedigung", status_code=301)
 
 
 @app.get("/stats/script.js")

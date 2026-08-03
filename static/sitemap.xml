@@ -4,4 +4,8 @@
     <loc>https://delaybahn.com/</loc>
     <changefreq>daily</changefreq>
   </url>
+  <url>
+    <loc>https://delaybahn.com/entschaedigung</loc>
+    <changefreq>monthly</changefreq>
+  </url>
 </urlset>
