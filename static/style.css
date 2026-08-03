@@ -70,6 +70,25 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .search-btn:hover { background: var(--db-red-dark); }
 .search-btn:disabled { opacity: .6; cursor: wait; }
 
+.dticket-toggle {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+  cursor: pointer; padding: 10px 0; user-select: none;
+}
+.dticket-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.dticket-switch {
+  flex: none; width: 38px; height: 22px; border-radius: 11px;
+  background: var(--gray-border); position: relative; transition: background .15s;
+}
+.dticket-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .15s;
+}
+.dticket-toggle input:checked + .dticket-switch { background: var(--db-red); }
+.dticket-toggle input:checked + .dticket-switch::after { left: 18px; }
+.dticket-toggle input:focus-visible + .dticket-switch { outline: 2px solid var(--db-red); outline-offset: 2px; }
+
 .autocomplete-wrap { position: relative; }
 .dropdown {
   position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
@@ -261,6 +280,7 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 
 .price { font-size: 17px; font-weight: 700; white-space: nowrap; }
 .price-na { font-size: 13px; font-weight: 400; color: var(--text-muted); }
+.price-dticket { font-size: 13px; color: var(--green); }
 
 .book-btn {
   background: #fff; color: var(--db-red); border: 2px solid var(--db-red);
@@ -316,6 +336,9 @@ body.past-mode .past-banner { display: flex; }
 }
 .past-exit:hover { text-decoration: underline; }
 body.past-mode .field-window { display: none; }
+/* D-Ticket journeys carry no Fahrgastrechte compensation, so the filter is
+   meaningless in the compensation check */
+body.past-mode .dticket-toggle { display: none; }
 
 .claim-btn {
   background: var(--green); border: 2px solid var(--green); color: #fff;

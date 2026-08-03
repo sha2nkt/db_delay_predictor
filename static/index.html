@@ -29,7 +29,7 @@
 }
 </script>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=39">
+<link rel="stylesheet" href="style.css?v=40">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -80,6 +80,11 @@
         <option value="30" data-i18n="days30">30 Tage</option>
       </select>
     </div>
+    <label class="dticket-toggle" data-i18n-title="dticketTooltip">
+      <input id="dticket" type="checkbox">
+      <span class="dticket-switch" aria-hidden="true"></span>
+      <span data-i18n="dticket">D-Ticket</span>
+    </label>
     <button id="search" class="search-btn" type="button" data-i18n="search">Suchen</button>
   </section>
 
@@ -227,6 +232,6 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=57"></script>
+<script src="app.js?v=58"></script>
 </body>
 </html>
