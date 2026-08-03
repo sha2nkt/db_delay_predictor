@@ -1,3 +1,6 @@
+// past mode (compensation check) lives on its own sub-page for SEO; the path decides the mode
+const PAST_PAGE = location.pathname.startsWith("/entschaedigung");
+
 const state = {
   from: null,   // {id, name}
   to: null,
@@ -10,7 +13,7 @@ const state = {
   lang: localStorage.getItem("lang") || "de",
   chart: null,  // which hero chart is expanded: null (collapsed) | "scatter" | "violin"
   status: null,  // {key, params} of the current status message, re-rendered on lang switch
-  mode: "future",  // "future" = delay forecast, "past" = compensation check for a past journey
+  mode: PAST_PAGE ? "past" : "future",  // "future" = delay forecast, "past" = compensation check for a past journey
   coverage: null,  // {minDay, maxDay, liveMaxDay} for the date picker, fetched on demand
   liveDay: false,  // searched day is past the local data and answered live from IRIS
   claimJourney: null,  // journey shown in the claim-steps modal
@@ -32,6 +35,7 @@ const DONATE_ENABLED = false;
 const I18N = {
   de: {
     pageTitle: "DB Verbindungssuche mit Verspätungsstatistik",
+    pageTitlePast: "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen",
     headerTitle: "Verbindungssuche",
     headerSubtitle: "mit Verspätungsstatistik",
     tagline: "Den Zug buchen, nicht die Verspätung",
@@ -142,6 +146,7 @@ const I18N = {
   },
   en: {
     pageTitle: "DB Connection Search with Delay Statistics",
+    pageTitlePast: "Check DB delay compensation – delay check for past journeys",
     headerTitle: "Connection Search",
     headerSubtitle: "with delay statistics",
     tagline: "Book the train, not the delay",
@@ -434,7 +439,7 @@ function applyLang(lang) {
   state.lang = lang;
   localStorage.setItem("lang", lang);
   document.documentElement.lang = lang;
-  document.title = t("pageTitle");
+  document.title = t(PAST_PAGE ? "pageTitlePast" : "pageTitle");
 
   document.querySelectorAll(".lang-btn").forEach((b) =>
     b.classList.toggle("active", b.dataset.lang === lang));
@@ -545,6 +550,7 @@ const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 const controlsEl = document.getElementById("controls");
 const searchBtn = document.getElementById("search");
+if (PAST_PAGE) searchBtn.dataset.i18n = "searchPast";
 const earlierBtn = document.getElementById("earlier");
 const laterBtn = document.getElementById("later");
 
@@ -585,55 +591,24 @@ function setDonateNudge(show) {
   document.body.classList.toggle("nudge-on", show);
 }
 
-async function setMode(mode) {
-  if (state.mode === mode) return;
-  state.mode = mode;
-  document.body.classList.toggle("past-mode", mode === "past");
-  state.journeys = [];
-  state.earlierRef = state.laterRef = null;
-  resultsEl.innerHTML = "";
-  controlsEl.classList.add("hidden");
-  earlierBtn.classList.add("hidden");
-  laterBtn.classList.add("hidden");
-  document.getElementById("past-disclaimer").classList.add("hidden");
-  setDonateNudge(false);
-  statusEl.classList.remove("error");
-  setStatus(null);
-  searchBtn.dataset.i18n = mode === "past" ? "searchPast" : "search";
-  searchBtn.textContent = t(searchBtn.dataset.i18n);
-  const dateEl = document.getElementById("date");
-  if (mode === "past") {
-    document.getElementById("hero-chart").classList.add("hidden");
-    await ensureCoverage();
-    if (state.coverage?.minDay) {
-      // live IRIS lookups extend the pickable range to today
-      const maxDay = latestPastDay();
-      dateEl.min = state.coverage.minDay;
-      dateEl.max = maxDay;
-      if (dateEl.value < dateEl.min || dateEl.value > dateEl.max) dateEl.value = maxDay;
-      document.getElementById("past-coverage").textContent =
-        `${fmtDateFull(state.coverage.minDay)} – ${fmtDateFull(maxDay)}`;
-    }
-  } else {
-    document.getElementById("hero-chart").classList.remove("hidden");
-    document.getElementById("refund-cta").classList.remove("hidden");
-    dateEl.min = "";
-    dateEl.max = "";
-    dateEl.value = new Date().toISOString().slice(0, 10);
+// the sub-page's body class, banner and search-button label are baked into the
+// served HTML; only the coverage-dependent date bounds need JS on load
+async function initPastPage() {
+  await ensureCoverage();
+  if (state.coverage?.minDay) {
+    // live IRIS lookups extend the pickable range to today
+    const dateEl = document.getElementById("date");
+    const maxDay = latestPastDay();
+    dateEl.min = state.coverage.minDay;
+    dateEl.max = maxDay;
+    if (dateEl.value < dateEl.min || dateEl.value > dateEl.max) dateEl.value = maxDay;
+    document.getElementById("past-coverage").textContent =
+      `${fmtDateFull(state.coverage.minDay)} – ${fmtDateFull(maxDay)}`;
   }
 }
 
-document.getElementById("refund-cta").addEventListener("click", () => {
-  track("refund-cta");
-  setMode("past");
-  document.getElementById("from").focus();
-});
-document.getElementById("refund-nav").addEventListener("click", () => {
-  track("refund-nav");
-  setMode("past");
-  document.getElementById("from").focus();
-});
-document.getElementById("past-exit").addEventListener("click", () => setMode("future"));
+document.getElementById("refund-cta").addEventListener("click", () => track("refund-cta"));
+document.getElementById("refund-nav").addEventListener("click", () => track("refund-nav"));
 document.getElementById("donate-footer-item").hidden = !DONATE_ENABLED;
 document.getElementById("donate-footer").addEventListener("click", () =>
   track("donate", { placement: "footer" }));
@@ -688,7 +663,6 @@ function syncUrl() {
     time: document.getElementById("time").value,
     window: document.getElementById("window").value,
   });
-  if (state.mode === "past") params.set("mode", "past");
   history.replaceState(null, "", `?${params}`);
 }
 
@@ -1523,13 +1497,19 @@ applyLang(state.lang);
 // restore a search from the URL (refresh, bookmark, shared link)
 const qp = new URLSearchParams(location.search);
 (async () => {
-  if (qp.get("mode") === "past") await setMode("past");
+  if (!PAST_PAGE && qp.get("mode") === "past") {
+    // legacy links from before past mode moved to its own sub-page
+    qp.delete("mode");
+    location.replace(`/entschaedigung${qp.size ? `?${qp}` : ""}`);
+    return;
+  }
+  if (PAST_PAGE) await initPastPage();
   if (qp.get("fromId") && qp.get("toId")) {
     state.from = { id: qp.get("fromId"), name: qp.get("from") || "" };
     state.to = { id: qp.get("toId"), name: qp.get("to") || "" };
     document.getElementById("from").value = state.from.name;
     document.getElementById("to").value = state.to.name;
-    // date after setMode so a restored past date wins over the coverage clamp
+    // date after initPastPage so a restored past date wins over the coverage clamp
     if (qp.get("date")) document.getElementById("date").value = qp.get("date");
     if (qp.get("time")) document.getElementById("time").value = qp.get("time");
     if (["7", "15", "30"].includes(qp.get("window"))) document.getElementById("window").value = qp.get("window");

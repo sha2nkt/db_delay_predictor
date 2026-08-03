@@ -29,7 +29,7 @@
 }
 </script>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=39">
+<link rel="stylesheet" href="style.css?v=40">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -37,7 +37,7 @@
   <div class="header-inner">
     <a class="logo-link" href="/"><img class="logo" src="logo.png?v=2" alt="delaybahn.com"></a>
     <span class="header-title"><span data-i18n="headerTitle">Verbindungssuche</span> <small data-i18n="headerSubtitle">mit Verspätungsstatistik</small><span class="tagline" data-i18n="tagline">Den Zug buchen, nicht die Verspätung</span></span>
-    <button id="refund-nav" class="refund-nav" type="button" data-i18n="navRefund">Entschädigung beantragen</button>
+    <a id="refund-nav" class="refund-nav" href="/entschaedigung" data-i18n="navRefund">Entschädigung beantragen</a>
     <div class="header-lang">
       <button class="lang-btn active" data-lang="de">DE</button>
       <button class="lang-btn" data-lang="en">EN</button>
@@ -50,7 +50,7 @@
     <div id="past-banner" class="past-banner">
       <strong data-i18n="pastTitle">Verspätungs-Check für vergangene Reisen</strong>
       <span class="past-coverage"><span data-i18n="pastCoverageLabel">Daten verfügbar:</span> <span id="past-coverage"></span></span>
-      <button id="past-exit" class="past-exit" type="button" data-i18n="pastExit">← Zur Verbindungssuche</button>
+      <a id="past-exit" class="past-exit" href="/" data-i18n="pastExit">← Zur Verbindungssuche</a>
       <p class="past-lead" data-i18n="pastLead">Gib deine Reise ein, um zu sehen, wie sie tatsächlich verlief – mit Verspätungen, verpassten Anschlüssen und deinem Entschädigungsanspruch.</p>
     </div>
     <div class="field autocomplete-wrap">
@@ -102,11 +102,11 @@
     <img id="chart-img" alt="">
   </section>
 
-  <button id="refund-cta" class="refund-cta" type="button">
+  <a id="refund-cta" class="refund-cta" href="/entschaedigung">
     <strong data-i18n="refundCtaTitle">Über 1 Stunde Verspätung gehabt?</strong>
     <span data-i18n="refundCtaLead">Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.</span>
     <span data-i18n="refundCtaSub">Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks</span>
-  </button>
+  </a>
 
   <section id="controls" class="controls hidden">
     <span data-i18n="sortLabel">Sortieren:</span>
@@ -227,6 +227,6 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=57"></script>
+<script src="app.js?v=58"></script>
 </body>
 </html>
