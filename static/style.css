@@ -306,6 +306,26 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 }
 .leg-tight strong { font-weight: 700; }
 
+.if-missed-btn {
+  display: block; margin-top: 3px; padding: 0;
+  background: none; border: none; font-family: inherit; cursor: pointer;
+  font-size: 12.5px; font-weight: 700; color: var(--red);
+}
+.if-missed-btn:hover { text-decoration: underline; }
+.if-missed-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.if-missed-btn[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
+
+.if-missed-panel { margin: 2px 0 4px 26px; position: relative; }
+/* keep the journey rail unbroken behind the panel (cf. .leg-tight::after);
+   no left border here, so the offset is 3px less */
+.if-missed-panel::after {
+  content: ""; position: absolute; left: -19px; top: -2px; bottom: -4px;
+  width: 2px; background: color-mix(in srgb, var(--text-muted) 45%, #fff);
+}
+.if-missed-lead { font-size: 12.5px; font-weight: 600; color: var(--text-muted); padding: 2px 0; }
+/* a later tight-transfer warning inside the crossed-out part of the journey */
+.leg-tight-dimmed { opacity: .55; }
+
 /* --- past mode (compensation check) --- */
 
 .refund-cta {
