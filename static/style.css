@@ -392,6 +392,8 @@ body.past-mode .field-window { display: none; }
 .past-disclaimer.hidden { display: none; }
 
 .journey-times s { color: var(--text-muted); font-weight: 400; font-size: 16px; }
+.time-live { color: var(--red); }
+.time-planned { color: var(--text-muted); }
 .leg-missed { opacity: .6; }
 .leg-missed .train, .leg-missed .leg-desc { text-decoration: line-through; }
 .leg-continuation {

@@ -72,6 +72,7 @@ const I18N = {
     noData: "keine Daten",
     notTracked: "nicht erfasst",
     notTrackedTooltip: "Für U-Bahn, Tram, Bus und Fähre werden keine Verspätungsdaten erhoben",
+    liveTimeTooltip: "Voraussichtliche Zeit inkl. aktueller Verspätung",
     badgeDays: (matched, total) => `(${matched}/${total} Tage)`,
     badgeTooltip: (win, max) => `Mittlere Ankunftsverspätung (Median) der letzten ${win} Tage (max. +${max} min)`,
     badgeClickHint: "Verspätung pro Tag anzeigen",
@@ -182,6 +183,7 @@ const I18N = {
     noData: "no data",
     notTracked: "not tracked",
     notTrackedTooltip: "Delay data isn't collected for metro, tram, bus and ferry services",
+    liveTimeTooltip: "Expected time including the current delay",
     badgeDays: (matched, total) => `(${matched}/${total} days)`,
     badgeTooltip: (win, max) => `Median arrival delay over the last ${win} days (max. +${max} min)`,
     badgeClickHint: "Show per-day delays",
@@ -901,6 +903,23 @@ function fmtDuration(seconds) {
   return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}min`;
 }
 
+// today's connections carry live (echtzeit) times where they deviate from the
+// schedule; show the struck-out schedule next to the live time, red like on bahn.de
+function timeNode(planned, live) {
+  if (!live) return document.createTextNode(fmtTime(planned));
+  const frag = document.createDocumentFragment();
+  frag.append(
+    Object.assign(document.createElement("s"), {
+      className: "time-planned", textContent: fmtTime(planned),
+    }),
+    document.createTextNode(" "),
+    Object.assign(document.createElement("span"), {
+      className: "time-live", textContent: fmtTime(live), title: t("liveTimeTooltip"),
+    }),
+  );
+  return frag;
+}
+
 // products the backend collects no delay data for (matches UNTRACKED_PRODUCTS in app/main.py)
 const UNTRACKED_PRODUCTS = new Set(["BUS", "TRAM", "UBAHN", "SCHIFF", "ANRUFPFLICHTIG"]);
 
@@ -986,8 +1005,13 @@ function buildLegRow(leg, past, struck) {
   train.textContent = leg.line?.name || t("train");
   const desc = document.createElement("span");
   desc.className = "leg-desc";
-  desc.textContent = `${leg.origin?.name || ""} ${fmtTime(leg.plannedDeparture || leg.departure)} → ` +
-    `${leg.destination?.name || ""} ${fmtTime(leg.plannedArrival || leg.arrival)}`;
+  // past mode shows the schedule; the actual delay is the story of the badge next to it
+  desc.append(
+    document.createTextNode(`${leg.origin?.name || ""} `),
+    timeNode(leg.plannedDeparture, past ? null : leg.departure),
+    document.createTextNode(` → ${leg.destination?.name || ""} `),
+    timeNode(leg.plannedArrival, past ? null : leg.arrival),
+  );
   let badge;
   if (struck) {
     badge = document.createElement("span");
@@ -1335,13 +1359,23 @@ function render() {
         Object.assign(document.createElement("s"), { textContent: fmtTime(last.plannedArrival) }),
         document.createTextNode(` ${fmtTime(sim.actualArrival)}`),
       );
-    } else {
+    } else if (state.mode === "past") {
       times.textContent = `${fmtTime(first.plannedDeparture)} → ${fmtTime(last.plannedArrival)}`;
+    } else {
+      times.append(
+        timeNode(first.plannedDeparture, first.departure),
+        document.createTextNode(" → "),
+        timeNode(last.plannedArrival, last.arrival),
+      );
     }
 
     const meta = document.createElement("span");
     meta.className = "journey-meta";
-    meta.textContent = `${fmtDuration(journey.durationSeconds)} · ` +
+    // ezDurationSeconds: journey duration as bahn.de re-planned it with live delays
+    const duration = state.mode === "past"
+      ? journey.durationSeconds
+      : journey.ezDurationSeconds ?? journey.durationSeconds;
+    meta.textContent = `${fmtDuration(duration)} · ` +
       (transfers === 0 ? t("direct") : t("transfers", transfers));
 
     const spacer = document.createElement("span");

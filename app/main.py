@@ -68,6 +68,8 @@ async def locations(query: str, response: Response):
 
 def normalize_leg(abschnitt: dict, window: int, past: bool = False, live: bool = False) -> dict:
     vm = abschnitt.get("verkehrsmittel") or {}
+    abfahrt = abschnitt.get("abfahrt") or {}
+    ankunft = abschnitt.get("ankunft") or {}
     leg = {
         "walking": vm.get("typ") != "PUBLICTRANSPORT",
         "line": {
@@ -77,9 +79,15 @@ def normalize_leg(abschnitt: dict, window: int, past: bool = False, live: bool =
         },
         "origin": {"id": abschnitt.get("abfahrtsOrtExtId"), "name": abschnitt.get("abfahrtsOrt")},
         "destination": {"id": abschnitt.get("ankunftsOrtExtId"), "name": abschnitt.get("ankunftsOrt")},
-        "plannedDeparture": (abschnitt.get("abfahrt") or {}).get("sollzeit"),
-        "plannedArrival": (abschnitt.get("ankunft") or {}).get("sollzeit"),
+        "plannedDeparture": abfahrt.get("sollzeit"),
+        "plannedArrival": ankunft.get("sollzeit"),
     }
+    # bahn.de plans today's journeys with live (echtzeit) times — a connection can be
+    # feasible only because of a delay. Passed on where they deviate from the schedule.
+    if abfahrt.get("echtzeit") and abfahrt["echtzeit"] != abfahrt.get("sollzeit"):
+        leg["departure"] = abfahrt["echtzeit"]
+    if ankunft.get("echtzeit") and ankunft["echtzeit"] != ankunft.get("sollzeit"):
+        leg["arrival"] = ankunft["echtzeit"]
 
     fahrt_nr = leg["line"]["fahrtNr"]
     tracked = leg["line"]["product"] not in UNTRACKED_PRODUCTS
@@ -141,15 +149,17 @@ def _walk_minutes(legs: list[dict], a: int, b: int) -> float:
 
 def _transfer_pairs(legs: list[dict]):
     """Yield (arriving_leg_idx, departing_leg_idx, transfer_min) for each train-to-train
-    transfer; walking legs in between eat into the buffer."""
+    transfer; walking legs in between eat into the buffer. Live (echtzeit) times win over
+    the schedule: on today's connections bahn.de plans with them, and a transfer that
+    looks impossible on paper can be fine because the next train is itself delayed."""
     train_idx = [i for i, leg in enumerate(legs) if not leg["walking"]]
     for a, b in zip(train_idx, train_idx[1:]):
         prev, nxt = legs[a], legs[b]
         if not prev["plannedArrival"] or not nxt["plannedDeparture"]:
             continue
         gap_min = (
-            delays.to_berlin_naive(nxt["plannedDeparture"])
-            - delays.to_berlin_naive(prev["plannedArrival"])
+            delays.to_berlin_naive(nxt.get("departure") or nxt["plannedDeparture"])
+            - delays.to_berlin_naive(prev.get("arrival") or prev["plannedArrival"])
         ).total_seconds() / 60
         yield a, b, gap_min - _walk_minutes(legs, a, b)
 
@@ -402,6 +412,9 @@ async def journeys(
             "durationSeconds": verbindung.get("verbindungsDauerInSeconds"),
             "price": price,
         }
+        ez_duration = verbindung.get("ezVerbindungsDauerInSeconds")
+        if ez_duration and ez_duration != journey["durationSeconds"]:
+            journey["ezDurationSeconds"] = ez_duration
         if past:
             final_d = train_legs[-1].get("delayOnDate")
             sim = await _simulate_walk(legs, window, MAX_REPLANS, live)
