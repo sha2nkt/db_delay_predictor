@@ -378,6 +378,7 @@ async def journeys(
     window: int = Query(7),
     paging_ref: str | None = Query(None, alias="pagingRef"),
     mode: str = Query("future"),
+    dticket: bool = Query(False),
 ):
     if window not in (7, 15, 30):
         raise HTTPException(422, "window must be 7, 15 or 30")
@@ -385,8 +386,11 @@ async def journeys(
         raise HTTPException(422, "mode must be future or past")
     response.headers["Cache-Control"] = "public, max-age=120"
     past = mode == "past"
+    # the D-Ticket is excluded from Fahrgastrechte compensation, so the filter
+    # has no place in the past-journey compensation check
+    dticket = dticket and not past
     try:
-        data = await bahn_api.journeys(from_id, to_id, departure, paging_ref)
+        data = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket)
     except HTTPError as e:
         raise HTTPException(502, f"bahn.de error {e.response.status_code}: {e.response.text[:300]}")
     except RequestException as e:

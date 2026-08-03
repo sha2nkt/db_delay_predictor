@@ -121,11 +121,15 @@ async def locations(query: str) -> list[dict]:
     )
 
 
-async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None) -> dict:
+async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
+                   dticket: bool = False) -> dict:
     """from_id/to_id are full HAFAS location ids (A=1@O=...@L=...@) from locations().
 
     paging_ref is a verbindungReference.earlier/later token from a previous response;
     when set, the API returns the adjacent result page instead of the requested time.
+
+    dticket=True restricts results to Deutschland-Ticket-valid connections — the same
+    two flags the bahn.de search mask toggle sends.
     """
     body = {
         "abfahrtsHalt": from_id,
@@ -144,11 +148,13 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
         "sitzplatzOnly": False,
         "bikeCarriage": False,
         "reservierungsKontingenteVorhanden": False,
+        "deutschlandTicketVorhanden": dticket,
+        "nurDeutschlandTicketVerbindungen": dticket,
     }
     if paging_ref:
         body["pagingReference"] = paging_ref
     return await _cached(
-        ("journeys", from_id, to_id, departure_iso, paging_ref),
+        ("journeys", from_id, to_id, departure_iso, paging_ref, dticket),
         JOURNEYS_TTL,
         lambda: _request("post", "/angebote/fahrplan", json=body),
     )

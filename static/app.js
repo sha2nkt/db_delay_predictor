@@ -4,6 +4,7 @@ const state = {
   journeys: [],
   sort: "departure",
   windowUsed: 7,  // stats window that produced the current results
+  dticketUsed: false,  // whether the current results are D-Ticket-filtered
   departure: null,  // departure ISO of the current search (reused for paging)
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
@@ -84,6 +85,10 @@ const I18N = {
     train: "Zug",
     priceFrom: (price) => `ab ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Preis auf bahn.de",
+    dticket: "D-Ticket",
+    dticketTooltip: "Nur Verbindungen anzeigen, die mit dem Deutschland-Ticket nutzbar sind",
+    dticketIncluded: "D-Ticket",
+    dticketIncludedTooltip: "Mit dem Deutschland-Ticket nutzbar – kein Ticketkauf nötig",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
     tightTitle: "Knapper Umstieg:",
@@ -195,6 +200,10 @@ const I18N = {
     train: "Train",
     priceFrom: (price) => `from ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Price on bahn.de",
+    dticket: "D-Ticket",
+    dticketTooltip: "Only show connections valid with the Deutschland-Ticket",
+    dticketIncluded: "D-Ticket",
+    dticketIncludedTooltip: "Valid with the Deutschland-Ticket – no extra ticket needed",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
     tightTitle: "Tight transfer:",
@@ -559,6 +568,11 @@ document.getElementById("window").addEventListener("change", () => {
   if (state.journeys.length && state.from && state.to) search();
 });
 
+document.getElementById("dticket").addEventListener("change", () => {
+  // filtered server-side by bahn.de: refetch, but only if results are showing
+  if (state.journeys.length && state.from && state.to) search();
+});
+
 // --- past mode (compensation check) ---
 
 function fmtDateFull(iso) {
@@ -644,10 +658,13 @@ document.querySelector("#donate-nudge a").addEventListener("click", () =>
 
 async function fetchJourneys(pagingRef) {
   const win = document.getElementById("window").value;
+  // the toggle is hidden in past mode: a leftover checked state must not filter
+  const dticket = state.mode !== "past" && document.getElementById("dticket").checked;
   const params = new URLSearchParams({
     from: state.from.id, to: state.to.id, departure: state.departure, window: win,
   });
   if (state.mode === "past") params.set("mode", "past");
+  if (dticket) params.set("dticket", "1");
   if (pagingRef) params.set("pagingRef", pagingRef);
   const resp = await fetch(`/api/journeys?${params}`);
   if (!resp.ok) {
@@ -655,6 +672,7 @@ async function fetchJourneys(pagingRef) {
     throw new Error(body.detail || `HTTP ${resp.status}`);
   }
   state.windowUsed = Number(win);
+  state.dticketUsed = dticket;
   return resp.json();
 }
 
@@ -691,6 +709,7 @@ function syncUrl() {
     window: document.getElementById("window").value,
   });
   if (state.mode === "past") params.set("mode", "past");
+  if (state.mode !== "past" && document.getElementById("dticket").checked) params.set("dticket", "1");
   history.replaceState(null, "", `?${params}`);
 }
 
@@ -734,6 +753,7 @@ async function search() {
     to: state.to.name,
     window: Number(document.getElementById("window").value),
     mode: state.mode,
+    dticket: state.mode !== "past" && document.getElementById("dticket").checked,
   });
   statusEl.classList.remove("error");
   setStatus("searching");
@@ -1231,8 +1251,11 @@ function bahnDeUrl(journey) {
   const hd = (first.plannedDeparture || "").slice(0, 19);
   const soid = encodeURIComponent(`A=1@O=${fromName}@L=${fromEva}@`);
   const zoid = encodeURIComponent(`A=1@O=${toName}@L=${toEva}@`);
+  // dlt/dltv mirror the bahn.de search-mask toggles ("nur Deutschland-Ticket-
+  // Verbindungen" / "Deutschland-Ticket vorhanden") so the filter carries over
+  const dt = state.dticketUsed ? "&dlt=true&dltv=true" : "";
   return `https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=${encodeURIComponent(fromName)}` +
-    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}&kl=2`;
+    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}&kl=2${dt}`;
 }
 
 // --- claim modal: walks through the steps on bahn.de instead of a bare redirect ---
@@ -1457,6 +1480,11 @@ function render() {
       price.className = "price";
       if (journey.price != null) {
         price.textContent = t("priceFrom", journey.price);
+      } else if (state.dticketUsed) {
+        // D-Ticket-filtered results carry no offer price: the ticket is the fare
+        price.classList.add("price-dticket");
+        price.textContent = t("dticketIncluded");
+        price.title = t("dticketIncludedTooltip");
       } else {
         price.classList.add("price-na");
         price.textContent = t("priceNa");
@@ -1567,6 +1595,7 @@ const qp = new URLSearchParams(location.search);
     if (qp.get("date")) document.getElementById("date").value = qp.get("date");
     if (qp.get("time")) document.getElementById("time").value = qp.get("time");
     if (["7", "15", "30"].includes(qp.get("window"))) document.getElementById("window").value = qp.get("window");
+    document.getElementById("dticket").checked = qp.get("dticket") === "1";
     search();
   }
 })();
