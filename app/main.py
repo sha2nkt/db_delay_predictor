@@ -1,3 +1,4 @@
+import asyncio
 from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
@@ -158,7 +159,7 @@ def tight_transfers(legs: list[dict]) -> list[dict]:
     """Transfers where the arriving leg's median delay leaves <= TRANSFER_TOLERANCE_MIN
     minutes to reach the next train."""
     out = []
-    for a, _b, transfer_min in _transfer_pairs(legs):
+    for a, b, transfer_min in _transfer_pairs(legs):
         stats = legs[a].get("delayStats")
         if not stats or stats["medianDelay"] is None:
             continue
@@ -166,6 +167,7 @@ def tight_transfers(legs: list[dict]) -> list[dict]:
             out.append({
                 "station": legs[a]["destination"]["name"],
                 "legIndex": a,  # index of the arriving leg in `legs`
+                "depLegIndex": b,  # index of the departing leg that would be missed
                 "transferMinutes": max(0, round(transfer_min)),
                 "medianDelay": stats["medianDelay"],
                 "unlikely": stats["medianDelay"] - transfer_min > UNLIKELY_EXCESS_MIN,
@@ -262,6 +264,40 @@ async def _next_connection(origin: dict, dest: dict, ready, window: int, live: b
         if best_legs is not None:
             break
     return best_legs
+
+
+async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict | None:
+    """Future mode: the next realistic connection to the journey's destination if the
+    tight transfer `tt` is missed. The passenger is assumed to reach the departure
+    point at planned arrival + the arriving leg's median delay; a connection counts
+    as catchable when its planned departure leaves more than TRANSFER_TOLERANCE_MIN
+    minutes after that."""
+    a, b = tt["legIndex"], tt["depLegIndex"]
+    arr = _planned_dt(legs[a], "plannedArrival")
+    origin = legs[b]["origin"]
+    dest = [l for l in legs if not l["walking"]][-1]["destination"]
+    if arr is None or not origin["id"] or not dest["id"]:
+        return None
+    ready = arr + timedelta(minutes=_walk_minutes(legs, a, b) + tt["medianDelay"])
+    data = await _replan(origin, dest, ready)
+    best_arrival, best_legs = None, None
+    for verbindung in (data or {}).get("verbindungen", []):
+        rlegs = [normalize_leg(x, window) for x in verbindung.get("verbindungsAbschnitte", [])]
+        rtrain = [l for l in rlegs if not l["walking"]]
+        if not rtrain:
+            continue
+        first_dep = _planned_dt(rtrain[0], "plannedDeparture")
+        last_arr = _planned_dt(rtrain[-1], "plannedArrival")
+        if first_dep is None or last_arr is None:
+            continue
+        # excludes the missed train itself: its slack is <= the tolerance by definition
+        if (first_dep - ready).total_seconds() / 60 <= TRANSFER_TOLERANCE_MIN:
+            continue
+        if best_arrival is None or last_arr < best_arrival:
+            best_arrival, best_legs = last_arr, rlegs
+    if best_legs is None:
+        return None
+    return {"legs": best_legs, "arrival": best_arrival.isoformat()}
 
 
 async def _simulate_walk(legs: list[dict], window: int, replans_left: int, live: bool = False) -> dict:
@@ -467,6 +503,16 @@ async def journeys(
                 "minTransferMargin": round(min(transfer_margins), 1) if transfer_margins else None,
             })
         journeys_out.append(journey)
+
+    if not past:
+        # one bahn.de replan per tight transfer; _replan and the bahn_api task
+        # cache dedupe identical (station, destination, minute) lookups
+        async def fill(j: dict, tt: dict) -> None:
+            tt["ifMissed"] = await _if_missed_connection(j["legs"], tt, window)
+
+        await asyncio.gather(*(
+            fill(j, tt) for j in journeys_out for tt in j["tightTransfers"]
+        ))
 
     ref = data.get("verbindungReference") or {}
     return {"journeys": journeys_out, "earlierRef": ref.get("earlier"), "laterRef": ref.get("later")}

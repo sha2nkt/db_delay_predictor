@@ -92,6 +92,8 @@ const I18N = {
     tightBadge: "⚠ Knapper Umstieg",
     tightBadgeTooltip: (stations) => `Die typische Verspätung lässt wenig Umstiegszeit (${stations})`,
     tightDetail: (transfer, delay) => `${transfer} min Umstiegszeit – dieser Zug kommt typischerweise +${delay} min verspätet an`,
+    ifMissedBtn: (time) => `Falls verpasst: Ankunft ${time}`,
+    ifMissedLead: "↳ Nächste realistische Verbindung:",
     footerOpenSource: "Open Source – Quellcode auf GitHub",
     footerData: "Verspätungsdaten:",
     footerDonate: "☕ Spendier mir einen Kaffee",
@@ -202,6 +204,8 @@ const I18N = {
     tightBadge: "⚠ Tight transfer",
     tightBadgeTooltip: (stations) => `Typical delay leaves little time to change trains (${stations})`,
     tightDetail: (transfer, delay) => `${transfer} min to change trains – this train typically arrives +${delay} min late`,
+    ifMissedBtn: (time) => `If missed: arrival ${time}`,
+    ifMissedLead: "↳ Next realistic connection:",
     footerOpenSource: "Open source – view the code on GitHub",
     footerData: "Delay data:",
     footerDonate: "☕ Buy me a coffee",
@@ -1007,6 +1011,28 @@ function buildLegRow(leg, past, struck) {
   return row;
 }
 
+// future mode: the next realistic connection if a tight transfer is missed,
+// expanded on demand under the warning strip
+function buildIfMissedPanel(tt) {
+  const panel = document.createElement("div");
+  panel.className = "if-missed-panel";
+  const lead = document.createElement("div");
+  lead.className = "if-missed-lead";
+  lead.textContent = t("ifMissedLead");
+  panel.appendChild(lead);
+  const altLegs = tt.ifMissed.legs;
+  altLegs.forEach((leg, i) => {
+    const row = buildLegRow(leg, false, false);
+    if (i === 0) row.classList.add("rail-first");
+    if (i === altLegs.length - 1) row.classList.add("rail-last");
+    if (!leg.walking && leg.delayStats) {
+      wireDayChart(row.querySelector(".badge"), leg.delayStats, row, leg.line?.name);
+    }
+    panel.appendChild(row);
+  });
+  return panel;
+}
+
 // --- per-day delay chart ---
 
 function wireDayChart(badge, stats, refEl, trainName) {
@@ -1461,6 +1487,18 @@ function render() {
       : new Map((journey.tightTransfers || []).map((tt) => [tt.legIndex, tt]));
     let canceledTotal = 0;
     const missedAt = sim ? sim.missedAtLegIndex : null;
+    // while an if-missed panel is open, the original legs it replaces are crossed
+    // out; with several panels open the earliest miss wins (everything after it
+    // wouldn't happen)
+    const legRows = [];
+    const tightStrips = [];
+    const openMisses = new Set();
+    const applyMissed = () => {
+      const cut = openMisses.size ? Math.min(...openMisses) : Infinity;
+      legRows.forEach((row, i) => row.classList.toggle("leg-missed", i >= cut));
+      tightStrips.forEach(({ strip, legIndex }) =>
+        strip.classList.toggle("leg-tight-dimmed", legIndex >= cut));
+    };
     legs.forEach((leg, i) => {
       const struck = missedAt != null && i >= missedAt;
       const row = buildLegRow(leg, past, struck);
@@ -1472,14 +1510,45 @@ function render() {
         if (leg.delayStats) wireDayChart(legBadge, leg.delayStats, row, leg.line?.name);
         if (leg.delayStats?.canceledDays) canceledTotal += leg.delayStats.canceledDays;
       }
+      legRows.push(row);
       legsEl.appendChild(row);
       const tt = warnByLeg.get(i);
       if (tt) {
         const warn = document.createElement("div");
         warn.className = "leg-tight";
+        tightStrips.push({ strip: warn, legIndex: i });
         const lead = document.createElement("strong");
         lead.textContent = tt.unlikely ? `⛔ ${t("unlikelyTitle")}` : `⚠ ${t("tightTitle")}`;
         warn.append(lead, document.createTextNode(" " + t("tightDetail", tt.transferMinutes, tt.medianDelay)));
+        if (tt.ifMissed?.legs?.length) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "if-missed-btn";
+          btn.setAttribute("aria-expanded", "false");
+          const caret = document.createElement("span");
+          caret.className = "badge-caret";
+          caret.setAttribute("aria-hidden", "true");
+          caret.textContent = "▾";
+          btn.append(document.createTextNode(t("ifMissedBtn", fmtTime(tt.ifMissed.arrival))), caret);
+          let panel = null;
+          btn.addEventListener("click", () => {
+            if (panel) {
+              panel.remove();
+              panel = null;
+              btn.setAttribute("aria-expanded", "false");
+              openMisses.delete(tt.depLegIndex);
+              applyMissed();
+              return;
+            }
+            panel = buildIfMissedPanel(tt);
+            warn.insertAdjacentElement("afterend", panel);
+            btn.setAttribute("aria-expanded", "true");
+            openMisses.add(tt.depLegIndex);
+            applyMissed();
+            track("if-missed", { station: tt.station });
+          });
+          warn.appendChild(btn);
+        }
         legsEl.appendChild(warn);
       }
     });
