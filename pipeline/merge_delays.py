@@ -8,6 +8,9 @@ from zoneinfo import ZoneInfo
 import duckdb
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from app.delays import build_db_file  # import needs the sys.path insert above
 
 COLUMNS = (
     "station_name, xml_station_name, eva, train_number, line_number,"
@@ -69,8 +72,15 @@ def main():
 
     tmp = out.with_suffix(".parquet.tmp")
     duckdb.sql(f"COPY ({' UNION ALL '.join(selects)}) TO '{tmp}' (FORMAT PARQUET)")
+    # materialize the sorted DuckDB file the app opens directly — from the staged
+    # parquet, before swapping it in: a failed build must leave parquet and db
+    # consistent (both old), or a later app restart silently serves stale data.
+    # The parquet stays the exchange/backup format (and the fallback for checkouts
+    # without a db file).
+    db_out = out.with_suffix(".duckdb")
+    build_db_file(tmp, db_out)
     os.replace(tmp, out)
-    print(f"Saved {out}")
+    print(f"Saved {out} and {db_out}")
     duckdb.sql(f"""
         SELECT CASE substr(eva, 2, 2) WHEN '80' THEN 'DE' WHEN '85' THEN 'CH' WHEN '87' THEN 'FR' ELSE substr(eva, 2, 2) END AS country,
                count(*) AS rows_, count(DISTINCT CAST(arrival_planned_time AS DATE)) AS days_

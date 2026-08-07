@@ -1,15 +1,18 @@
+import os
+import sys
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
-from statistics import median
 from pathlib import Path
+from statistics import median
 from zoneinfo import ZoneInfo
 
 import duckdb
 
 DELAYS_PARQUET = Path(__file__).resolve().parent.parent / "data" / "delays.parquet"
+DELAYS_DB = Path(__file__).resolve().parent.parent / "data" / "delays.duckdb"
 BERLIN = ZoneInfo("Europe/Berlin")
 
-# Traffic spread across many routes grows these without bound, on top of a ~6GB process.
+# Traffic spread across many routes grows these without bound; cap them.
 # Same LRU eviction as bahn_api._cached.
 CACHE_MAX = 50_000
 
@@ -30,38 +33,89 @@ def _remember(cache: OrderedDict, key: tuple, value):
     return value
 
 
+# train_no is materialized (not ltrim'd per query) and the table is sorted on it so
+# DuckDB's zone maps can skip row groups. Without this every lookup scans all 19.7M
+# rows: measured 110ms of CPU per leg against 1.2ms with it.
+TRAIN_NO_SQL = (
+    "CASE"
+    # German S-Bahn: bahn.de sends the line label ("S5") as fahrtNr, so key those
+    # rows by line. CH S-Bahn (eva 085%) is already re-keyed to bare digits by
+    # build_ch_days.py and must keep the run-number key.
+    "   WHEN train_type = 'S' AND eva LIKE '080%' AND line_number LIKE 'S%'"
+    "    THEN replace(line_number, ' ', '')"
+    "   WHEN train_type = 'S' AND eva LIKE '080%' AND regexp_matches(line_number, '^[0-9]+$')"
+    "    THEN 'S' || line_number"  # a few networks report bare digits in IRIS l
+    "   ELSE ltrim(train_number, '0')"
+    "  END"
+)
+
+
+def build_db_file(parquet_path: Path = DELAYS_PARQUET, db_path: Path = DELAYS_DB):
+    """Materialize the sorted delays table into a DuckDB file that init() can open
+    directly, instead of every app start rebuilding it in RAM (a ~6.7G transient that
+    OOMed the 8G production box). Called by pipeline/merge_delays.py after each merge.
+    Staged as .building — not .tmp, which is DuckDB's own default temp_directory for
+    the target db and would become a directory if the app ever spills — and swapped
+    in atomically after a read-back check, so neither a running app nor a failed
+    build can leave a bad db behind."""
+    tmp = db_path.parent / (db_path.name + ".building")
+    tmp.unlink(missing_ok=True)
+    con = duckdb.connect(str(tmp))
+    # bound the build like the serving connection: the ORDER BY spills to disk
+    # instead of ballooning (2.5G peak vs 4G unbounded on a 32-core dev box)
+    con.execute("SET threads=4")
+    con.execute("SET memory_limit='2GB'")
+    con.execute(
+        f"CREATE TABLE delays AS SELECT *, {TRAIN_NO_SQL} AS train_no"
+        f" FROM read_parquet('{parquet_path}') ORDER BY train_no, eva"
+    )
+    con.close()
+    # a bad build must fail the pipeline run here, not the app restart after it
+    check = duckdb.connect(str(tmp), read_only=True)
+    rows = check.execute("SELECT count(*) FROM delays WHERE train_no IS NOT NULL").fetchone()[0]
+    check.execute("SELECT reason_code FROM delays LIMIT 1")
+    check.close()
+    if not rows:
+        raise RuntimeError(f"delays table in {tmp} is empty")
+    os.replace(tmp, db_path)
+
+
 def init():
     global _conn, _max_day, _min_day
-    if not DELAYS_PARQUET.exists():
-        raise RuntimeError(
-            f"{DELAYS_PARQUET} not found - run: uv run python pipeline/build_delay_db.py"
+    conn = None
+    if DELAYS_DB.exists():
+        try:
+            # read_only so the pipeline's atomic replace can never collide with the
+            # app; the app keeps the old inode until its post-pipeline restart
+            conn = duckdb.connect(str(DELAYS_DB), read_only=True)
+            # hot pages stay in the buffer pool, but reads can never balloon the
+            # process the way the in-memory table did
+            conn.execute("SET memory_limit='2GB'")
+        except duckdb.Error as e:
+            # truncated file or a duckdb up/downgrade that can't read the format:
+            # a stale-but-working parquet load beats a restart loop, which the
+            # OnFailure alert cannot see (it only fires on a final failed state)
+            print(f"cannot open {DELAYS_DB} ({e}); falling back to parquet", file=sys.stderr)
+    if conn is None:
+        if not DELAYS_PARQUET.exists():
+            raise RuntimeError(
+                f"neither {DELAYS_DB} nor {DELAYS_PARQUET} usable"
+                " - run: uv run python pipeline/build_delay_db.py"
+            )
+        # no db file (first deploy, or a dev checkout that only synced the parquet):
+        # legacy in-memory build
+        conn = duckdb.connect()
+        conn.execute(
+            f"CREATE TABLE delays AS SELECT *, {TRAIN_NO_SQL} AS train_no"
+            f" FROM read_parquet('{DELAYS_PARQUET}')"
+            " ORDER BY train_no, eva"
         )
-    _conn = duckdb.connect()
-    # train_no is materialized (not ltrim'd per query) and the table is sorted on it so
-    # DuckDB's zone maps can skip row groups. Without this every lookup scans all 19.7M
-    # rows: measured 110ms of CPU per leg against 1.2ms with it, and a journey search
-    # does ~30 lookups. Costs ~12s of startup.
-    _conn.execute(
-        "CREATE TABLE delays AS"
-        " SELECT *,"
-        "  CASE"
-        # German S-Bahn: bahn.de sends the line label ("S5") as fahrtNr, so key those
-        # rows by line. CH S-Bahn (eva 085%) is already re-keyed to bare digits by
-        # build_ch_days.py and must keep the run-number key.
-        "   WHEN train_type = 'S' AND eva LIKE '080%' AND line_number LIKE 'S%'"
-        "    THEN replace(line_number, ' ', '')"
-        "   WHEN train_type = 'S' AND eva LIKE '080%' AND regexp_matches(line_number, '^[0-9]+$')"
-        "    THEN 'S' || line_number"  # a few networks report bare digits in IRIS l
-        "   ELSE ltrim(train_number, '0')"
-        "  END AS train_no"
-        f" FROM read_parquet('{DELAYS_PARQUET}')"
-        " ORDER BY train_no, eva"
-    )
+        # parquets built before the reason feature lack the column
+        conn.execute("ALTER TABLE delays ADD COLUMN IF NOT EXISTS reason_code INTEGER")
     # a sorted lookup no longer needs 32 threads, and capping them keeps concurrent
     # queries from oversubscribing the box
-    _conn.execute("SET threads=4")
-    # parquets built before the reason feature lack the column
-    _conn.execute("ALTER TABLE delays ADD COLUMN IF NOT EXISTS reason_code INTEGER")
+    conn.execute("SET threads=4")
+    _conn = conn
     _min_day, _max_day = _conn.execute(
         "SELECT min(CAST(arrival_planned_time AS DATE)), max(CAST(arrival_planned_time AS DATE))"
         " FROM delays WHERE arrival_planned_time IS NOT NULL"
