@@ -58,15 +58,15 @@ This creates `.venv/` and installs everything from `uv.lock` (FastAPI, DuckDB, p
 
 ### 3. Build the delay table
 
-The app needs `data/delays.parquet` before it can show delay stats:
+The app needs the merged delay table before it can show delay stats — it opens `data/delays.duckdb` (built by `merge_delays.py`), or falls back to loading `data/delays.parquet` into memory if the db file is absent:
 
 ```bash
 uv run python pipeline/build_delay_db.py            # full window (default: 31 days)
 uv run python pipeline/build_delay_db.py --days 3   # quick smoke run
-uv run python pipeline/merge_delays.py              # write the data/delays.parquet the app reads
+uv run python pipeline/merge_delays.py              # write data/delays.parquet + the data/delays.duckdb the app opens
 ```
 
-This downloads raw parquet files from the HuggingFace dataset into `data/raw_data/` (~4.5 GB for the full window; `data/de/delays.parquet` adds another ~600 MB), parses each day once into the `data/de/parsed/` cache, and merges them into `data/de/delays.parquet`. Re-run it daily to stay fresh — already-downloaded days are skipped and only days with new raw files are re-parsed. No HuggingFace account or token is needed; the dataset is public. `merge_delays.py` then combines the per-country tables (DE alone is fine) into `data/delays.parquet`.
+This downloads raw parquet files from the HuggingFace dataset into `data/raw_data/` (~4.5 GB for the full window; `data/de/delays.parquet` adds another ~600 MB), parses each day once into the `data/de/parsed/` cache, and merges them into `data/de/delays.parquet`. Re-run it daily to stay fresh — already-downloaded days are skipped and only days with new raw files are re-parsed. No HuggingFace account or token is needed; the dataset is public. `merge_delays.py` then combines the per-country tables (DE alone is fine) into `data/delays.parquet` and materializes the sorted `data/delays.duckdb` the app serves from.
 
 ### 4. Run the app
 
@@ -82,14 +82,14 @@ Open http://localhost:8000, search a connection (e.g. Berlin Hbf → München Hb
 |---|---|
 | `pipeline/build_delay_db.py` | HF download + XML parse → `data/de/delays.parquet` |
 | `pipeline/build_ch_days.py`, `pipeline/fr_poller.py`, `pipeline/consolidate_fr.py` | Swiss and French per-day producers |
-| `pipeline/merge_delays.py` | unions the per-country tables → `data/delays.parquet` |
+| `pipeline/merge_delays.py` | unions the per-country tables → `data/delays.parquet` + `data/delays.duckdb` |
 | `app/bahn_api.py` | async client for the bahn.de web API |
 | `app/delays.py` | DuckDB delay-stats lookup (the core matching query) |
 | `app/live_delays.py` | live same-day lookups via the DB Timetables API |
 | `app/main.py` | FastAPI endpoints `/api/locations`, `/api/journeys` + static serving |
 | `static/` | vanilla HTML/CSS/JS frontend |
 | `deutsche-bahn-data/` | git submodule: data collection project whose parser and dataset we reuse |
-| `data/` | gitignored: raw parquet mirror + `delays.parquet` |
+| `data/` | gitignored: raw parquet mirror + `delays.parquet` + `delays.duckdb` |
 
 ## Data sources & credits
 
