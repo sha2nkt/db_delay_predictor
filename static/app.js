@@ -18,6 +18,11 @@ const state = {
   coverage: null,  // {minDay, maxDay, liveMaxDay} for the date picker, fetched on demand
   liveDay: false,  // searched day is past the local data and answered live from IRIS
   claimJourney: null,  // journey shown in the claim-steps modal
+  returnTrip: false,  // a return journey was added in the search card
+  leg: "outbound",  // which leg the result list shows: "outbound" | "return"
+  returnDeparture: null,  // departure ISO of the return search
+  outbound: null,  // journey picked on the outbound step
+  outboundResults: null,  // cached outbound list, so going back doesn't refetch
 };
 
 // DB digital compensation flow lives in the customer account's past-trips list
@@ -47,6 +52,17 @@ const I18N = {
     swapTitle: "Richtung tauschen",
     date: "Datum",
     time: "Uhrzeit",
+    returnAdd: "+ Rückfahrt hinzufügen",
+    returnDate: "Rückfahrt",
+    returnTime: "Uhrzeit",
+    returnRemoveTitle: "Rückfahrt entfernen",
+    returnIncomplete: "Bitte Datum und Uhrzeit der Rückfahrt angeben.",
+    returnBeforeOutbound: "Die Rückfahrt kann nicht vor der Hinfahrt liegen.",
+    stepOutbound: "Hinfahrt",
+    stepReturn: "Rückfahrt",
+    continueBtn: "Weiter",
+    outboundPicked: "Hinfahrt gewählt:",
+    changeOutbound: "Ändern",
     window: "Statistik-Zeitraum",
     days7: "7 Tage",
     days15: "15 Tage",
@@ -166,6 +182,17 @@ const I18N = {
     swapTitle: "Swap direction",
     date: "Date",
     time: "Time",
+    returnAdd: "+ Add return journey",
+    returnDate: "Return",
+    returnTime: "Time",
+    returnRemoveTitle: "Remove return journey",
+    returnIncomplete: "Please enter a date and time for the return journey.",
+    returnBeforeOutbound: "The return journey can't start before the outbound one.",
+    stepOutbound: "Outbound",
+    stepReturn: "Return",
+    continueBtn: "Continue",
+    outboundPicked: "Outbound selected:",
+    changeOutbound: "Change",
     window: "Tracking period",
     days7: "7 days",
     days15: "15 days",
@@ -469,6 +496,7 @@ function applyLang(lang) {
 
   if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
   if (claimModal.open) populateClaimModal();
+  renderTripSteps();
   render();
 }
 
@@ -575,14 +603,65 @@ searchBtn.addEventListener("click", search);
 earlierBtn.addEventListener("click", () => loadPage("earlier"));
 laterBtn.addEventListener("click", () => loadPage("later"));
 
+function refetchCurrentLeg() {
+  if (!state.journeys.length || !state.from || !state.to) return;
+  // the cached outbound list was fetched with the settings that just changed
+  if (state.leg === "return") state.outboundResults = null;
+  runSearch();
+}
+
 document.getElementById("window").addEventListener("change", () => {
   // window is aggregated server-side: refetch, but only if results are showing
-  if (state.journeys.length && state.from && state.to) search();
+  refetchCurrentLeg();
 });
 
 document.getElementById("dticket").addEventListener("change", () => {
   // filtered server-side by bahn.de: refetch, but only if results are showing
-  if (state.journeys.length && state.from && state.to) search();
+  refetchCurrentLeg();
+});
+
+// --- return journey ---
+
+const dateEl = document.getElementById("date");
+const returnAddBtn = document.getElementById("return-add");
+const returnFieldsEl = document.getElementById("return-fields");
+const returnDateEl = document.getElementById("return-date");
+const returnTimeEl = document.getElementById("return-time");
+const tripStepsEl = document.getElementById("trip-steps");
+
+function returnDepartureIso() {
+  return `${returnDateEl.value}T${returnTimeEl.value}:00`;
+}
+
+function setReturnTrip(on) {
+  // the compensation check looks at one journey that already happened
+  state.returnTrip = on && state.mode !== "past";
+  returnAddBtn.classList.toggle("hidden", state.returnTrip);
+  returnFieldsEl.classList.toggle("hidden", !state.returnTrip);
+  if (!state.returnTrip) return;
+  returnDateEl.min = dateEl.value;
+  if (!returnDateEl.value || returnDateEl.value < dateEl.value) returnDateEl.value = dateEl.value;
+  if (!returnTimeEl.value) returnTimeEl.value = "17:00";
+}
+
+returnAddBtn.addEventListener("click", () => {
+  setReturnTrip(true);
+  returnDateEl.focus();
+  track("return-add");
+  // results already on screen keep their place; only their CTA changes to "continue"
+  renderTripSteps();
+  render();
+});
+
+document.getElementById("return-remove").addEventListener("click", () => {
+  setReturnTrip(false);
+  if (state.leg === "return") backToOutbound();
+  else { renderTripSteps(); render(); }
+});
+
+dateEl.addEventListener("change", () => {
+  returnDateEl.min = dateEl.value;
+  if (returnDateEl.value && returnDateEl.value < dateEl.value) returnDateEl.value = dateEl.value;
 });
 
 // --- past mode (compensation check) ---
@@ -637,12 +716,20 @@ document.getElementById("donate-footer").addEventListener("click", () =>
 document.querySelector("#donate-nudge a").addEventListener("click", () =>
   track("donate", { placement: "nudge" }));
 
+// the result list shows one leg at a time; the return leg runs the search backwards
+function searchLeg() {
+  return state.leg === "return"
+    ? { from: state.to, to: state.from, departure: state.returnDeparture }
+    : { from: state.from, to: state.to, departure: state.departure };
+}
+
 async function fetchJourneys(pagingRef) {
   const win = document.getElementById("window").value;
   // the toggle is hidden in past mode: a leftover checked state must not filter
   const dticket = state.mode !== "past" && document.getElementById("dticket").checked;
+  const leg = searchLeg();
   const params = new URLSearchParams({
-    from: state.from.id, to: state.to.id, departure: state.departure, window: win,
+    from: leg.from.id, to: leg.to.id, departure: leg.departure, window: win,
   });
   if (state.mode === "past") params.set("mode", "past");
   if (dticket) params.set("dticket", "1");
@@ -657,9 +744,21 @@ async function fetchJourneys(pagingRef) {
   return resp.json();
 }
 
+// bahn.de answers a departure query with a window that reaches a little before
+// the requested time, so the return list can start before the outbound lands
+function usableJourneys(list) {
+  if (state.leg !== "return" || !state.outbound) return list;
+  const outLegs = state.outbound.legs || [];
+  const arrival = (outLegs[outLegs.length - 1]?.plannedArrival || "").slice(0, 19);
+  if (!arrival) return list;
+  return list.filter((j) => ((j.legs || [])[0]?.plannedDeparture || "").slice(0, 19) >= arrival);
+}
+
 function updatePageButtons() {
-  earlierBtn.classList.toggle("hidden", !state.journeys.length || !state.earlierRef);
-  laterBtn.classList.toggle("hidden", !state.journeys.length || !state.laterRef);
+  // on the return leg everything earlier than the outbound arrival is unusable
+  const canPageEarlier = state.leg !== "return" && state.journeys.length && state.earlierRef;
+  earlierBtn.classList.toggle("hidden", !canPageEarlier);
+  laterBtn.classList.toggle("hidden", !state.laterRef);
 }
 
 async function resolveTyped(key) {
@@ -690,6 +789,10 @@ function syncUrl() {
     window: document.getElementById("window").value,
   });
   if (state.mode !== "past" && document.getElementById("dticket").checked) params.set("dticket", "1");
+  if (state.returnTrip && returnDateEl.value) {
+    params.set("rdate", returnDateEl.value);
+    params.set("rtime", returnTimeEl.value);
+  }
   history.replaceState(null, "", `?${params}`);
 }
 
@@ -726,7 +829,26 @@ async function search() {
       return;
     }
   }
-  state.departure = `${document.getElementById("date").value}T${document.getElementById("time").value}:00`;
+  state.departure = `${dateEl.value}T${document.getElementById("time").value}:00`;
+  if (state.returnTrip) {
+    if (!returnDateEl.value || !returnTimeEl.value) {
+      setStatus("returnIncomplete");
+      statusEl.classList.add("error");
+      return;
+    }
+    if (returnDepartureIso() < state.departure) {
+      setStatus("returnBeforeOutbound");
+      statusEl.classList.add("error");
+      return;
+    }
+    state.returnDeparture = returnDepartureIso();
+  } else {
+    state.returnDeparture = null;
+  }
+  // a fresh search always restarts at the outbound leg
+  state.leg = "outbound";
+  state.outbound = null;
+  state.outboundResults = null;
   syncUrl();
   track("search", {
     from: state.from.name,
@@ -734,7 +856,14 @@ async function search() {
     window: Number(document.getElementById("window").value),
     mode: state.mode,
     dticket: state.mode !== "past" && document.getElementById("dticket").checked,
+    returnTrip: state.returnTrip,
   });
+  await runSearch();
+}
+
+// fetches and renders the leg the flow is currently on; search() sets that up,
+// the window/D-Ticket toggles reuse it to refetch without leaving the leg
+async function runSearch() {
   statusEl.classList.remove("error");
   setStatus("searching");
   resultsEl.innerHTML = "";
@@ -745,10 +874,11 @@ async function search() {
   document.getElementById("refund-cta").classList.add("hidden");
   setDonateNudge(false);
   searchBtn.disabled = true;
+  renderTripSteps();
 
   try {
     const data = await fetchJourneys(null);
-    state.journeys = data.journeys || [];
+    state.journeys = usableJourneys(data.journeys || []);
     state.earlierRef = data.earlierRef || null;
     state.laterRef = data.laterRef || null;
     if (state.journeys.length) setStatus(null);
@@ -767,6 +897,97 @@ async function search() {
   }
 }
 
+// --- two-step round trip: outbound list, then return list ---
+
+function fmtTripDay(iso) {
+  return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(
+    state.lang === "de" ? "de-DE" : "en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+function renderTripSteps() {
+  tripStepsEl.innerHTML = "";
+  const show = state.returnTrip && state.mode !== "past" && state.from && state.to;
+  tripStepsEl.classList.toggle("hidden", !show);
+  if (!show) return;
+
+  const stepper = document.createElement("ol");
+  stepper.className = "trip-stepper";
+  [
+    { leg: "outbound", label: "stepOutbound", from: state.from, to: state.to, when: state.departure },
+    { leg: "return", label: "stepReturn", from: state.to, to: state.from,
+      when: state.returnDeparture || (returnDateEl.value ? returnDepartureIso() : null) },
+  ].forEach((step, i) => {
+    const li = document.createElement("li");
+    li.className = `trip-step${state.leg === step.leg ? " active" : ""}`;
+    li.append(
+      Object.assign(document.createElement("strong"), { textContent: `${i + 1}. ${t(step.label)}` }),
+      Object.assign(document.createElement("span"), {
+        textContent: `${step.from.name} → ${step.to.name}` +
+          (step.when ? ` · ${fmtTripDay(step.when)}` : ""),
+      }),
+    );
+    stepper.appendChild(li);
+  });
+  tripStepsEl.appendChild(stepper);
+
+  if (state.leg !== "return" || !state.outbound) return;
+  const legs = state.outbound.legs || [];
+  const first = legs[0], last = legs[legs.length - 1];
+  const trains = legs.filter((l) => !l.walking).map((l) => l.line?.name).filter(Boolean).join(", ");
+  const picked = document.createElement("div");
+  picked.className = "trip-picked";
+  const change = document.createElement("button");
+  change.type = "button";
+  change.className = "trip-change";
+  change.textContent = t("changeOutbound");
+  change.addEventListener("click", backToOutbound);
+  picked.append(
+    Object.assign(document.createElement("span"), {
+      textContent: `${t("outboundPicked")} ${fmtTripDay(first.plannedDeparture)}, ` +
+        `${fmtTime(first.plannedDeparture)} → ${fmtTime(last.plannedArrival)}` +
+        (trains ? ` · ${trains}` : ""),
+    }),
+    change);
+  tripStepsEl.appendChild(picked);
+}
+
+function selectOutbound(journey) {
+  state.outbound = journey;
+  // keep the list so "change" can go back without a refetch
+  state.outboundResults = {
+    journeys: state.journeys, earlierRef: state.earlierRef, laterRef: state.laterRef,
+  };
+  const legs = journey.legs || [];
+  const arrival = (legs[legs.length - 1]?.plannedArrival || "").slice(0, 19);
+  const wanted = returnDepartureIso();
+  // the return can't leave before the outbound lands
+  state.returnDeparture = arrival && wanted < arrival ? arrival : wanted;
+  state.leg = "return";
+  track("return-continue", { from: state.from?.name, to: state.to?.name });
+  runSearch();
+}
+
+function backToOutbound() {
+  state.leg = "outbound";
+  state.outbound = null;
+  const cached = state.outboundResults;
+  if (!cached) {
+    // dropped because the stats window or D-Ticket filter changed meanwhile
+    renderTripSteps();
+    runSearch();
+    return;
+  }
+  state.journeys = cached.journeys;
+  state.earlierRef = cached.earlierRef;
+  state.laterRef = cached.laterRef;
+  statusEl.classList.remove("error");
+  setStatus(state.journeys.length ? null : "noResults");
+  controlsEl.classList.toggle("hidden", state.journeys.length === 0);
+  updatePageButtons();
+  renderTripSteps();
+  render();
+}
+
 function journeyKey(j) {
   const legs = j.legs || [];
   const trains = legs.filter((l) => !l.walking).map((l) => l.line?.name).join("|");
@@ -783,7 +1004,7 @@ async function loadPage(dir) {
   try {
     const data = await fetchJourneys(ref);
     const seen = new Set(state.journeys.map(journeyKey));
-    const fresh = (data.journeys || []).filter((j) => !seen.has(journeyKey(j)));
+    const fresh = usableJourneys(data.journeys || []).filter((j) => !seen.has(journeyKey(j)));
     if (dir === "earlier") {
       state.journeys = [...fresh, ...state.journeys];
       state.earlierRef = data.earlierRef || null;
@@ -1245,8 +1466,11 @@ function buildDayChart(stats, refEl) {
   return panel;
 }
 
-function bahnDeUrl(journey) {
-  const legs = journey.legs || [];
+// `outbound` is set only on the return step of a round trip: the mask is then
+// built from the outbound journey and `journey` supplies the return date
+function bahnDeUrl(journey, outbound) {
+  const trip = outbound || journey;
+  const legs = trip.legs || [];
   const first = legs[0], last = legs[legs.length - 1];
   const fromName = first.origin?.name || "", fromEva = first.origin?.id || "";
   const toName = last.destination?.name || "", toEva = last.destination?.id || "";
@@ -1256,8 +1480,12 @@ function bahnDeUrl(journey) {
   // dlt/dltv mirror the bahn.de search-mask toggles ("nur Deutschland-Ticket-
   // Verbindungen" / "Deutschland-Ticket vorhanden") so the filter carries over
   const dt = state.dticketUsed ? "&dlt=true&dltv=true" : "";
+  // rd switches the mask to "Hin- und Rückfahrt"; hza/rza pin both dates to a
+  // departure time rather than an arrival time
+  const returnDep = outbound ? ((journey.legs || [])[0]?.plannedDeparture || "").slice(0, 19) : "";
+  const rt = returnDep ? `&hza=D&rd=${returnDep}&rza=D` : "";
   return `https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=${encodeURIComponent(fromName)}` +
-    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}&kl=2${dt}`;
+    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}${rt}&kl=2${dt}`;
 }
 
 // --- claim modal: walks through the steps on bahn.de instead of a bare redirect ---
@@ -1492,26 +1720,39 @@ function render() {
         price.textContent = t("priceNa");
       }
 
-      const book = document.createElement("a");
-      book.className = "book-btn";
-      book.textContent = t("book");
-      book.href = bahnDeUrl(journey);
-      book.target = "_blank";
-      book.rel = "noopener";
-      book.addEventListener("click", () =>
-        track("book-bahn", {
-          from: state.from?.name,
-          to: state.to?.name,
-          price: journey.price ?? "na",
-        })
-      );
+      // on a round trip the outbound step only picks a journey; booking waits
+      // until the return leg, where both dates go into one bahn.de link
+      let action;
+      if (state.returnTrip && state.leg === "outbound") {
+        action = document.createElement("button");
+        action.type = "button";
+        action.className = "continue-btn";
+        action.textContent = t("continueBtn");
+        action.addEventListener("click", () => selectOutbound(journey));
+      } else {
+        const roundTrip = state.leg === "return" ? state.outbound : null;
+        action = document.createElement("a");
+        action.className = "book-btn";
+        action.textContent = t("book");
+        action.href = bahnDeUrl(journey, roundTrip);
+        action.target = "_blank";
+        action.rel = "noopener";
+        action.addEventListener("click", () =>
+          track("book-bahn", {
+            from: state.from?.name,
+            to: state.to?.name,
+            price: journey.price ?? "na",
+            trip: roundTrip ? "return" : "oneway",
+          })
+        );
+      }
 
       // badges, price and booking button wrap together as one right-aligned block
       const cta = document.createElement("div");
       cta.className = "journey-cta";
       // next to a tight-transfer warning the delay badge is only worth the space when red
       const showDelayBadge = !tightBadge || badge.classList.contains("red");
-      cta.append(...(tightBadge ? [tightBadge] : []), ...(showDelayBadge ? [badge] : []), price, book);
+      cta.append(...(tightBadge ? [tightBadge] : []), ...(showDelayBadge ? [badge] : []), price, action);
       head.append(times, meta, spacer, cta);
     }
     card.appendChild(head);
@@ -1647,6 +1888,13 @@ const qp = new URLSearchParams(location.search);
     if (qp.get("time")) document.getElementById("time").value = qp.get("time");
     if (["7", "15", "30"].includes(qp.get("window"))) document.getElementById("window").value = qp.get("window");
     document.getElementById("dticket").checked = qp.get("dticket") === "1";
+    if (!PAST_PAGE && qp.get("rdate")) {
+      // the picked outbound isn't in the URL, so a restored round trip
+      // starts over at step 1
+      setReturnTrip(true);
+      returnDateEl.value = qp.get("rdate");
+      if (qp.get("rtime")) returnTimeEl.value = qp.get("rtime");
+    }
     search();
   }
 })();
