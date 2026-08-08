@@ -29,7 +29,7 @@
 }
 </script>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=47">
+<link rel="stylesheet" href="style.css?v=48">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -72,6 +72,18 @@
       <label for="time" data-i18n="time">Uhrzeit</label>
       <input id="time" type="time">
     </div>
+    <button id="return-add" class="return-add" type="button" data-i18n="returnAdd">+ Rückfahrt hinzufügen</button>
+    <div id="return-fields" class="return-fields hidden">
+      <div class="field field-date">
+        <label for="return-date" data-i18n="returnDate">Rückfahrt</label>
+        <input id="return-date" type="date">
+      </div>
+      <div class="field field-time">
+        <label for="return-time" data-i18n="returnTime">Uhrzeit</label>
+        <input id="return-time" type="time">
+      </div>
+      <button id="return-remove" class="return-remove" type="button" title="Rückfahrt entfernen" data-i18n-title="returnRemoveTitle">✕<span class="return-remove-label" data-i18n="returnRemoveTitle">Rückfahrt entfernen</span></button>
+    </div>
     <div class="field field-window">
       <label for="window" data-i18n="window">Statistik-Zeitraum</label>
       <select id="window">
@@ -113,6 +125,8 @@
     <span data-i18n="refundCtaLead">Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.</span>
     <span data-i18n="refundCtaSub">Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks</span>
   </a>
+
+  <section id="trip-steps" class="trip-steps hidden"></section>
 
   <section id="controls" class="controls hidden">
     <span data-i18n="sortLabel">Sortieren:</span>
@@ -233,6 +247,6 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=63"></script>
+<script src="app.js?v=64"></script>
 </body>
 </html>

@@ -89,6 +89,25 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .dticket-toggle input:checked + .dticket-switch::after { left: 18px; }
 .dticket-toggle input:focus-visible + .dticket-switch { outline: 2px solid var(--db-red); outline-offset: 2px; }
 
+.return-add {
+  align-self: flex-end;
+  background: #fff; border: 1px dashed var(--gray-border); border-radius: 4px;
+  color: var(--db-red); font-family: inherit; font-size: 13px; font-weight: 600;
+  padding: 11px 14px; cursor: pointer; white-space: nowrap;
+}
+.return-add:hover { border-color: var(--db-red); background: color-mix(in srgb, var(--db-red) 4%, #fff); }
+.return-add.hidden { display: none; }
+
+.return-fields { display: flex; gap: 12px; align-items: flex-end; }
+.return-fields.hidden { display: none; }
+.return-remove {
+  background: none; border: none; color: var(--text-muted); font-family: inherit;
+  font-size: 15px; line-height: 1; cursor: pointer; padding: 11px 6px; border-radius: 4px;
+}
+.return-remove:hover { background: var(--gray-bg); color: var(--text); }
+/* stacked on mobile the bare glyph loses its context, so it gets a label there */
+.return-remove-label { display: none; }
+
 .autocomplete-wrap { position: relative; }
 .dropdown {
   position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
@@ -295,6 +314,40 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 }
 .book-btn:hover { background: var(--db-red); color: #fff; }
 
+/* --- round trip: outbound step, then return step --- */
+
+.continue-btn {
+  background: var(--db-red); color: #fff; border: 2px solid var(--db-red);
+  border-radius: 4px; padding: 7px 18px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.continue-btn:hover { background: var(--db-red-dark); border-color: var(--db-red-dark); }
+
+.trip-steps {
+  background: #fff; border-radius: 8px; padding: 12px 16px; margin-top: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.trip-steps.hidden { display: none; }
+.trip-stepper { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.trip-step {
+  flex: 1; min-width: 0; padding: 6px 10px; border-radius: 0 6px 6px 0;
+  border-left: 3px solid var(--gray-border); background: var(--gray-bg); color: var(--text-muted);
+}
+.trip-step.active { border-left-color: var(--db-red); color: var(--text); }
+.trip-step strong { display: block; font-size: 13px; }
+.trip-step span { display: block; font-size: 12px; }
+.trip-picked {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--gray-border);
+  font-size: 13px;
+}
+.trip-picked span { flex: 1; min-width: 0; }
+.trip-change {
+  background: none; border: none; color: var(--db-red); font-family: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer; padding: 0;
+}
+.trip-change:hover { text-decoration: underline; }
+
 .cancel-note { font-size: 12px; color: var(--red); margin-top: 6px; }
 .leg-tight {
   margin: 2px 0 4px 26px; padding: 5px 10px;
@@ -365,6 +418,10 @@ body.past-mode .field-window { display: none; }
 /* D-Ticket journeys carry no Fahrgastrechte compensation, so the filter is
    meaningless in the compensation check */
 body.past-mode .dticket-toggle { display: none; }
+/* the compensation check looks back at one journey that already happened */
+body.past-mode .return-add,
+body.past-mode .return-fields,
+body.past-mode .trip-steps { display: none; }
 
 .claim-btn {
   background: var(--green); border: 2px solid var(--green); color: #fff;
@@ -623,6 +680,14 @@ body.nudge-on #donate-footer-item { display: none; }
   .search-card { flex-direction: column; align-items: stretch; }
   .field input, .field select { min-width: 0; width: 100%; }
   #swap { align-self: center; }
+  .return-add { align-self: stretch; }
+  .return-fields { flex-direction: column; align-items: stretch; }
+  .return-remove {
+    align-self: flex-end; padding: 6px 4px;
+    display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
+  }
+  .return-remove-label { display: inline; }
+  .trip-stepper { flex-direction: column; }
   .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
   .header-title { font-size: 15px; }
   .header-title small { display: none; }
@@ -644,7 +709,7 @@ body.nudge-on #donate-footer-item { display: none; }
   .journey-meta { grid-row: 2; grid-column: 1; }
   .journey-head .badge { grid-column: 2; justify-self: end; }
   button.badge { padding: 6px 10px; border-radius: 14px; }
-  .book-btn, .claim-btn {
+  .book-btn, .claim-btn, .continue-btn {
     grid-column: 1 / -1;
     text-align: center;
     padding: 11px 12px;
