@@ -744,19 +744,33 @@ async function fetchJourneys(pagingRef) {
   return resp.json();
 }
 
+function lastArrival(journey) {
+  const legs = journey?.legs || [];
+  return (legs[legs.length - 1]?.plannedArrival || "").slice(0, 19);
+}
+
+// earliest departure a return may have: you cannot leave before the outbound lands
+function returnFloor() {
+  if (state.leg !== "return" || !state.outbound) return null;
+  return lastArrival(state.outbound) || null;
+}
+
 // bahn.de answers a departure query with a window that reaches a little before
 // the requested time, so the return list can start before the outbound lands
 function usableJourneys(list) {
-  if (state.leg !== "return" || !state.outbound) return list;
-  const outLegs = state.outbound.legs || [];
-  const arrival = (outLegs[outLegs.length - 1]?.plannedArrival || "").slice(0, 19);
-  if (!arrival) return list;
-  return list.filter((j) => ((j.legs || [])[0]?.plannedDeparture || "").slice(0, 19) >= arrival);
+  const floor = returnFloor();
+  if (!floor) return list;
+  return list.filter((j) => ((j.legs || [])[0]?.plannedDeparture || "").slice(0, 19) >= floor);
 }
 
 function updatePageButtons() {
-  // on the return leg everything earlier than the outbound arrival is unusable
-  const canPageEarlier = state.leg !== "return" && state.journeys.length && state.earlierRef;
+  let canPageEarlier = state.journeys.length > 0 && !!state.earlierRef;
+  // the return list starts at the requested time, which can be hours after the
+  // outbound lands — page back, but only down to the arrival
+  const floor = returnFloor();
+  if (canPageEarlier && floor) {
+    canPageEarlier = ((state.journeys[0].legs || [])[0]?.plannedDeparture || "").slice(0, 19) > floor;
+  }
   earlierBtn.classList.toggle("hidden", !canPageEarlier);
   laterBtn.classList.toggle("hidden", !state.laterRef);
 }
@@ -957,8 +971,7 @@ function selectOutbound(journey) {
   state.outboundResults = {
     journeys: state.journeys, earlierRef: state.earlierRef, laterRef: state.laterRef,
   };
-  const legs = journey.legs || [];
-  const arrival = (legs[legs.length - 1]?.plannedArrival || "").slice(0, 19);
+  const arrival = lastArrival(journey);
   const wanted = returnDepartureIso();
   // the return can't leave before the outbound lands
   state.returnDeparture = arrival && wanted < arrival ? arrival : wanted;
@@ -1003,11 +1016,14 @@ async function loadPage(dir) {
 
   try {
     const data = await fetchJourneys(ref);
+    const raw = data.journeys || [];
+    const usable = usableJourneys(raw);
     const seen = new Set(state.journeys.map(journeyKey));
-    const fresh = usableJourneys(data.journeys || []).filter((j) => !seen.has(journeyKey(j)));
+    const fresh = usable.filter((j) => !seen.has(journeyKey(j)));
     if (dir === "earlier") {
       state.journeys = [...fresh, ...state.journeys];
-      state.earlierRef = data.earlierRef || null;
+      // this page already reached past the outbound arrival: nothing usable is left behind it
+      state.earlierRef = raw.length > usable.length ? null : (data.earlierRef || null);
     } else {
       state.journeys = [...state.journeys, ...fresh];
       state.laterRef = data.laterRef || null;
