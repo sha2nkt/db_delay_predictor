@@ -387,7 +387,6 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
   background: var(--db-red); color: #fff;
 }
 .book-btn-lg:hover { background: var(--db-red-dark); border-color: var(--db-red-dark); }
-.trip-summary-note { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; }
 
 .cancel-note { font-size: 12px; color: var(--red); margin-top: 6px; }
 .leg-tight {

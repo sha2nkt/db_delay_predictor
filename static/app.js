@@ -71,7 +71,6 @@ const I18N = {
     summaryTitle: "Deine Reise",
     summaryTotal: "Gesamtpreis",
     bookBoth: "Beide Fahrten auf bahn.de buchen",
-    summaryNote: "bahn.de öffnet die Suche mit beiden Daten und Uhrzeiten vorbelegt – die hier gewählten Züge stehen dort jeweils oben in der Liste. Einen Link, der beide Züge fest vorauswählt, bietet bahn.de nicht an. Der Gesamtpreis addiert die „ab“-Preise beider Einzelfahrten; bahn.de rechnet beim Buchen neu.",
     window: "Statistik-Zeitraum",
     days7: "7 Tage",
     days15: "15 Tage",
@@ -208,7 +207,6 @@ const I18N = {
     summaryTitle: "Your trip",
     summaryTotal: "Total",
     bookBoth: "Book both trips on bahn.de",
-    summaryNote: "bahn.de opens its search with both dates and times pre-filled – the trains picked here sit at the top of each list. bahn.de offers no link format that locks in both trains. The total adds up the “from” prices of the two one-way legs; bahn.de re-prices at booking.",
     window: "Tracking period",
     days7: "7 days",
     days15: "15 days",
@@ -2097,7 +2095,7 @@ function renderSummary() {
   );
 
   // the mask carries both dates and both departure minutes; bahn.de has no link
-  // format that pins the two trains themselves, so the note says so
+  // format that pins the two trains themselves
   const book = document.createElement("a");
   book.className = "book-btn book-btn-lg";
   book.textContent = t("bookBoth");
@@ -2113,9 +2111,7 @@ function renderSummary() {
     })
   );
 
-  panel.append(total, book, Object.assign(document.createElement("p"), {
-    className: "trip-summary-note", textContent: t("summaryNote"),
-  }));
+  panel.append(total, book);
   resultsEl.appendChild(panel);
 }
 
