@@ -29,7 +29,7 @@
 }
 </script>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=53">
+<link rel="stylesheet" href="style.css?v=55">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -145,6 +145,18 @@
     <span data-i18n="donateNudgeLead">Hat dir das geholfen?</span>
     <a href="https://ko-fi.com/delaybahn" target="_blank" rel="noopener" data-i18n="donateNudgeLink">☕ Spendier mir einen Kaffee</a>
   </p>
+  <div id="feedback-nudge" class="feedback-nudge hidden" aria-live="polite">
+    <div class="feedback-row">
+      <span id="feedback-lead" data-i18n="feedbackAsk">Hat dir das geholfen?</span>
+      <button class="feedback-vote" data-vote="up" type="button" data-i18n-title="feedbackYes" data-i18n-aria="feedbackYes">👍</button>
+      <button class="feedback-vote" data-vote="down" type="button" data-i18n-title="feedbackNo" data-i18n-aria="feedbackNo">👎</button>
+      <button id="feedback-skip" class="feedback-skip" type="button" data-i18n-title="feedbackDismiss" data-i18n-aria="feedbackDismiss">✕</button>
+    </div>
+    <form id="feedback-form" class="feedback-form hidden">
+      <input id="feedback-text" type="text" maxlength="1000" data-i18n-placeholder="feedbackPlaceholder">
+      <button type="submit" class="feedback-send" data-i18n="feedbackSend">Senden</button>
+    </form>
+  </div>
   <p id="past-disclaimer" class="past-disclaimer hidden" data-i18n="pastDisclaimer">Entschädigung nach EU-Fahrgastrechten: 25 % des Ticketpreises ab 60 min, 50 % ab 120 min Verspätung am Ziel. Auszahlung ab 4 €. Angezeigte Verspätungen basieren auf unseren aufgezeichneten Daten – maßgeblich ist die tatsächliche Ankunft.</p>
 </main>
 <dialog id="claim-modal" class="claim-modal">
@@ -155,6 +167,15 @@
     <ol id="claim-modal-steps" class="claim-steps"></ol>
     <a id="claim-modal-go" class="claim-modal-go" target="_blank" rel="noopener"></a>
     <p class="claim-modal-alt"><span id="claim-modal-alt-pre"></span> <a id="claim-modal-alt" target="_blank" rel="noopener"></a></p>
+  </div>
+</dialog>
+<dialog id="contact-modal" class="claim-modal">
+  <div class="claim-modal-inner">
+    <button id="contact-close" class="claim-modal-close" type="button" aria-label="Schließen">✕</button>
+    <h2 class="claim-modal-title" data-i18n="contactTitle">Schreib uns</h2>
+    <p class="claim-modal-lead" data-i18n="contactLead">Fragen, Ideen oder etwas kaputt? Deine Nachricht öffnet sich gleich in deinem E-Mail-Programm.</p>
+    <textarea id="contact-text" class="contact-text" rows="5" autofocus data-i18n-placeholder="contactPlaceholder"></textarea>
+    <button id="contact-send" class="claim-modal-go contact-send" type="button" data-i18n="contactSend">Per E-Mail senden</button>
   </div>
 </dialog>
 <div class="train-scene" aria-hidden="true">
@@ -238,7 +259,8 @@
 <footer class="site-footer">
   <a href="https://github.com/sha2nkt/delay_bahn" target="_blank" rel="noopener" data-i18n="footerOpenSource">Open Source – Quellcode auf GitHub</a> ·
   <span id="donate-footer-item"><a href="https://ko-fi.com/delaybahn" target="_blank" rel="noopener" id="donate-footer" data-i18n="footerDonate">☕ Spendier mir einen Kaffee</a> ·</span>
-  <a href="impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a>
+  <a href="impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a> ·
+  <a href="#" id="contact-link" data-i18n="footerContact">Kontakt</a>
   <p class="footer-data">
     <span data-i18n="footerData">Verspätungsdaten:</span>
     <a href="https://github.com/piebro/deutsche-bahn-data" target="_blank" rel="noopener">Deutsche Bahn (IRIS)</a> ·
@@ -247,6 +269,6 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=70"></script>
+<script src="app.js?v=72"></script>
 </body>
 </html>

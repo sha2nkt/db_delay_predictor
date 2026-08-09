@@ -541,6 +541,15 @@ body.past-mode .trip-steps { display: none; }
 .claim-modal-go:hover { filter: brightness(1.12); }
 .claim-modal-alt { margin-top: 10px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
 .claim-modal-alt a { color: var(--db-red); }
+
+/* contact dialog: shares the claim modal's shell, adds only the message box */
+.contact-text {
+  width: 100%; margin-top: 16px; padding: 9px 11px; min-height: 110px; resize: vertical;
+  font-family: inherit; font-size: 14px; color: var(--text);
+  border: 1px solid var(--gray-border); border-radius: 6px;
+}
+.contact-text:focus { outline: none; border-color: var(--db-red); }
+.contact-send { width: 100%; border: none; cursor: pointer; font-family: inherit; }
 .past-disclaimer { margin: 4px 0 16px; font-size: 12px; color: var(--text-muted); }
 .past-disclaimer.hidden { display: none; }
 
@@ -565,6 +574,36 @@ body.past-mode .trip-steps { display: none; }
 .donate-nudge.hidden { display: none; }
 .donate-nudge a { color: var(--text-muted); text-decoration: underline; }
 body.nudge-on #donate-footer-item { display: none; }
+
+/* post-result feedback ask: deliberately as quiet as the donate nudge above */
+.feedback-nudge { margin: 12px 0 0; font-size: 12px; color: var(--text-muted); }
+.feedback-nudge.hidden { display: none; }
+.feedback-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; }
+.feedback-vote, .feedback-skip {
+  font-family: inherit; background: none; border: none; cursor: pointer;
+  line-height: 1; padding: 5px 7px; border-radius: 6px; color: var(--text-muted);
+}
+.feedback-vote { font-size: 15px; }
+.feedback-skip { font-size: 12px; }
+.feedback-vote:hover, .feedback-skip:hover { background: var(--gray-bg); color: var(--text); }
+.feedback-vote:focus-visible, .feedback-skip:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.feedback-voted .feedback-vote { display: none; }
+.feedback-done .feedback-skip { display: none; }
+
+.feedback-form { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.feedback-form.hidden { display: none; }
+.feedback-form input {
+  font-family: inherit; font-size: 12px; width: 320px; max-width: 100%;
+  padding: 7px 9px; color: var(--text);
+  border: 1px solid var(--gray-border); border-radius: 4px;
+}
+.feedback-form input:focus { outline: none; border-color: var(--db-red); }
+.feedback-send {
+  font-family: inherit; font-size: 12px; padding: 7px 14px; cursor: pointer;
+  background: #fff; color: var(--db-red);
+  border: 1px solid var(--db-red); border-radius: 4px;
+}
+.feedback-send:hover { background: var(--db-red); color: #fff; }
 
 .legal-card {
   background: #fff; border-radius: 8px; padding: 24px 28px;

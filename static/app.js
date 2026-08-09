@@ -134,7 +134,20 @@ const I18N = {
     footerDonate: "☕ Spendier mir einen Kaffee",
     donateNudgeLead: "Hat dir das geholfen?",
     donateNudgeLink: "☕ Spendier mir einen Kaffee",
+    feedbackAsk: "Hat dir das geholfen?",
+    feedbackYes: "Ja, hilfreich",
+    feedbackNo: "Nein, nicht hilfreich",
+    feedbackDismiss: "Ausblenden",
+    feedbackFollowUp: "Danke! Was können wir besser machen?",
+    feedbackPlaceholder: "Optional, ein Satz genügt",
+    feedbackSend: "Senden",
+    feedbackThanks: "Danke für dein Feedback.",
     footerLegal: "Impressum & Datenschutz",
+    footerContact: "Kontakt",
+    contactTitle: "Schreib uns",
+    contactLead: "Fragen, Ideen oder etwas kaputt? Deine Nachricht öffnet sich gleich in deinem E-Mail-Programm.",
+    contactPlaceholder: "Deine Nachricht",
+    contactSend: "Per E-Mail senden",
     footerDisclaimer: "DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.",
     navRefund: "Entschädigung beantragen",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
@@ -270,7 +283,20 @@ const I18N = {
     footerDonate: "☕ Buy me a coffee",
     donateNudgeLead: "Found this useful?",
     donateNudgeLink: "☕ Buy me a coffee",
+    feedbackAsk: "Was this helpful?",
+    feedbackYes: "Yes, helpful",
+    feedbackNo: "No, not helpful",
+    feedbackDismiss: "Dismiss",
+    feedbackFollowUp: "Thanks! What could be better?",
+    feedbackPlaceholder: "Optional, one sentence is plenty",
+    feedbackSend: "Send",
+    feedbackThanks: "Thanks for your feedback.",
     footerLegal: "Legal notice & privacy",
+    footerContact: "Contact us",
+    contactTitle: "Write to us",
+    contactLead: "Questions, ideas or something broken? Your message will open in your email app.",
+    contactPlaceholder: "Your message",
+    contactSend: "Send by email",
     footerDisclaimer: "DelayBahn is an independent project and is not affiliated with Deutsche Bahn AG. “DB” and “Deutsche Bahn” are trademarks of Deutsche Bahn AG.",
     navRefund: "Apply delay compensation",
     refundCtaTitle: "Hit by over 1 hour of delay?",
@@ -505,6 +531,7 @@ function applyLang(lang) {
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
   document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.ariaLabel = t(el.dataset.i18nAria); });
 
   updateChartImg();
 
@@ -712,6 +739,116 @@ function setDonateNudge(show) {
   document.body.classList.toggle("nudge-on", show);
 }
 
+// --- feedback nudge ---
+
+const feedbackEl = document.getElementById("feedback-nudge");
+const feedbackLead = document.getElementById("feedback-lead");
+const feedbackForm = document.getElementById("feedback-form");
+const feedbackInput = document.getElementById("feedback-text");
+
+// one id per prompt, so the vote and the comment that may follow become one row
+let feedbackSid = null;
+
+// randomUUID is missing outside a secure context, which local LAN dev hits
+const newSid = () =>
+  crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+// every fresh result list gets a fresh ask: answering only closes the prompt
+// for the list it was answered on, never for the visit or the browser
+function resetFeedback() {
+  feedbackSid = newSid();
+  delete feedbackEl.dataset.vote;
+  feedbackEl.classList.remove("feedback-voted", "feedback-done");
+  feedbackForm.classList.add("hidden");
+  feedbackInput.value = "";
+  feedbackLead.dataset.i18n = "feedbackAsk";
+  feedbackLead.textContent = t("feedbackAsk");
+}
+
+// results have landed and the visitor isn't already looking at a donate ask
+function setFeedbackNudge(show) {
+  show = show && !DONATE_ENABLED;
+  feedbackEl.classList.toggle("hidden", !show);
+  if (show) resetFeedback();
+}
+
+// the visitor is doing us a favour: a failed send must never surface as an error
+async function sendFeedback(vote, text) {
+  try {
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sid: feedbackSid, vote, text,
+        lang: state.lang,
+        context: PAST_PAGE ? "past" : "future",
+      }),
+    });
+  } catch { /* swallowed by design */ }
+}
+
+function thankFeedback() {
+  // swapping data-i18n keeps the line correct if the language is switched afterwards
+  feedbackLead.dataset.i18n = "feedbackThanks";
+  feedbackLead.textContent = t("feedbackThanks");
+  feedbackForm.classList.add("hidden");
+  feedbackEl.classList.add("feedback-done");
+}
+
+feedbackEl.querySelectorAll(".feedback-vote").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const vote = btn.dataset.vote;
+    feedbackEl.dataset.vote = vote;
+    track("feedback", { step: "vote", vote });
+    sendFeedback(vote, "");
+    feedbackLead.dataset.i18n = "feedbackFollowUp";
+    feedbackLead.textContent = t("feedbackFollowUp");
+    feedbackEl.classList.add("feedback-voted");
+    feedbackForm.classList.remove("hidden");
+    feedbackInput.focus();
+  });
+});
+
+feedbackForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = feedbackInput.value.trim();
+  if (text) {
+    track("feedback", { step: "text", vote: feedbackEl.dataset.vote });
+    sendFeedback(feedbackEl.dataset.vote, text);
+  }
+  thankFeedback();
+});
+
+document.getElementById("feedback-skip").addEventListener("click", () => {
+  track("feedback", { step: "dismiss" });
+  setFeedbackNudge(false);
+});
+
+// --- contact ---
+
+// assembled at click time so the address never sits in the HTML for scrapers
+const CONTACT_ADDR = ["kontakt", "delaybahn.com"].join("@");
+
+const contactModal = document.getElementById("contact-modal");
+const contactText = document.getElementById("contact-text");
+
+document.getElementById("contact-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  track("contact", { step: "open" });
+  contactModal.showModal();
+});
+
+document.getElementById("contact-close").addEventListener("click", () => contactModal.close());
+contactModal.addEventListener("click", (e) => { if (e.target === contactModal) contactModal.close(); });
+
+document.getElementById("contact-send").addEventListener("click", () => {
+  track("contact", { step: "send" });
+  location.href = `mailto:${CONTACT_ADDR}` +
+    `?subject=${encodeURIComponent("DelayBahn Feedback")}` +
+    `&body=${encodeURIComponent(contactText.value)}`;
+  contactModal.close();
+});
+
 // the sub-page's body class, banner and search-button label are baked into the
 // served HTML; only the coverage-dependent date bounds need JS on load
 async function initPastPage() {
@@ -909,6 +1046,7 @@ async function runSearch() {
   document.getElementById("hero-chart").classList.add("hidden");
   document.getElementById("refund-cta").classList.add("hidden");
   setDonateNudge(false);
+  setFeedbackNudge(false);
   searchBtn.disabled = true;
   renderTripSteps();
 
@@ -923,6 +1061,7 @@ async function runSearch() {
     document.getElementById("past-disclaimer").classList.toggle(
       "hidden", !(state.mode === "past" && state.journeys.length));
     setDonateNudge(state.journeys.length > 0);
+    setFeedbackNudge(state.journeys.length > 0);
     updatePageButtons();
     render();
   } catch (e) {

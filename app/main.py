@@ -4,15 +4,18 @@ from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Literal
 from zoneinfo import ZoneInfo
 
+import anyio
 import httpx
 from curl_cffi.requests.exceptions import HTTPError, RequestException
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
-from app import bahn_api, delays, live_delays
+from app import bahn_api, delays, feedback, live_delays
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -44,6 +47,7 @@ async def lifespan(app: FastAPI):
     yield
     await bahn_api.close()
     await live_delays.close()
+    await feedback.close()
     await umami.aclose()
 
 
@@ -640,6 +644,45 @@ async def umami_send(request: Request):
     except httpx.HTTPError:
         raise HTTPException(502, "analytics unavailable")
     return Response(resp.content, resp.status_code, media_type=resp.headers.get("content-type"))
+
+
+class Feedback(BaseModel):
+    # sid is generated per prompt by the browser: the vote lands first and the
+    # optional comment follows under the same id, so the two become one row
+    sid: str = Field(min_length=8, max_length=64)
+    vote: Literal["up", "down"]
+    text: str = Field("", max_length=1000)
+    lang: Literal["de", "en"] = "de"
+    context: Literal["future", "past"] = "future"
+
+
+_tasks: set[asyncio.Task] = set()
+
+
+def _spawn(coro) -> None:
+    # a bare create_task can be garbage-collected mid-flight
+    task = asyncio.create_task(coro)
+    _tasks.add(task)
+    task.add_done_callback(_tasks.discard)
+
+
+@app.post("/api/feedback", status_code=204)
+async def submit_feedback(fb: Feedback, request: Request) -> Response:
+    # real client IP behind the Cloudflare tunnel, as in the analytics proxy above
+    ip = request.headers.get("cf-connecting-ip") or (
+        request.client.host if request.client else ""
+    )
+    if feedback.throttled(ip):
+        raise HTTPException(429, "too many submissions")
+    text = fb.text.strip()
+    # sqlite3 blocks and /health doubles as an event-loop canary: keep the write off it
+    await anyio.to_thread.run_sync(
+        feedback.save, fb.sid, fb.vote, text, fb.lang, fb.context
+    )
+    # only a written comment is worth a phone buzz, and never on the request's clock
+    if text:
+        _spawn(feedback.notify(fb.vote, text, fb.lang, fb.context))
+    return Response(status_code=204)
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
