@@ -336,6 +336,17 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 .trip-step.active { border-left-color: var(--db-red); color: var(--text); }
 .trip-step strong { display: block; font-size: 13px; }
 .trip-step span { display: block; font-size: 12px; }
+/* steps already behind the flow are pressable shortcuts back to them, so they
+   carry the full text colour rather than reading as unavailable */
+.trip-step-done { padding: 0; color: var(--text); }
+.trip-step-btn {
+  display: block; width: 100%; padding: 6px 10px; text-align: left;
+  background: none; border: none; border-radius: 0 6px 6px 0;
+  font: inherit; color: inherit; cursor: pointer;
+}
+.trip-step-done:hover { background: var(--gray-border); }
+.trip-step-done:hover strong { text-decoration: underline; }
+.trip-step-btn:focus-visible { outline: 2px solid var(--db-red); outline-offset: -2px; }
 .trip-picked {
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
   margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--gray-border);
@@ -347,6 +358,7 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
   font-size: 13px; font-weight: 600; cursor: pointer; padding: 0;
 }
 .trip-change:hover { text-decoration: underline; }
+.trip-change:disabled { color: var(--text-muted); cursor: default; text-decoration: none; }
 
 /* --- round trip step 3: the whole trip, then a single booking link --- */
 

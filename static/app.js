@@ -64,6 +64,7 @@ const I18N = {
     stepReturn: "Rückfahrt",
     stepSummary: "Übersicht",
     stepSummaryHint: "Prüfen und buchen",
+    stepBack: (n, label) => `Zurück zu Schritt ${n}: ${label}`,
     continueBtn: "Weiter",
     outboundPicked: "Hinfahrt gewählt:",
     changeOutbound: "Ändern",
@@ -200,6 +201,7 @@ const I18N = {
     stepReturn: "Return",
     stepSummary: "Summary",
     stepSummaryHint: "Review and book",
+    stepBack: (n, label) => `Back to step ${n}: ${label}`,
     continueBtn: "Continue",
     outboundPicked: "Outbound selected:",
     changeOutbound: "Change",
@@ -930,6 +932,8 @@ async function runSearch() {
     statusEl.classList.add("error");
   } finally {
     searchBtn.disabled = false;
+    // the steps behind this one only become pressable now the leg has landed
+    renderTripSteps();
   }
 }
 
@@ -938,6 +942,16 @@ async function runSearch() {
 function fmtTripDay(iso) {
   return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(
     state.lang === "de" ? "de-DE" : "en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+// the round trip's steps in order; `state.leg` is always one of these
+const STEPS = ["outbound", "return", "summary"];
+
+// stepping back while a leg is still loading would land on the list the
+// in-flight fetch is about to replace
+function goToStep(back) {
+  if (searchBtn.disabled) return;
+  back();
 }
 
 function renderTripSteps() {
@@ -956,14 +970,33 @@ function renderTripSteps() {
   ].forEach((step, i) => {
     const li = document.createElement("li");
     li.className = `trip-step${state.leg === step.leg ? " active" : ""}`;
-    li.append(
-      Object.assign(document.createElement("strong"), { textContent: `${i + 1}. ${t(step.label)}` }),
-      Object.assign(document.createElement("span"), {
-        textContent: step.from
-          ? `${step.from.name} → ${step.to.name}` + (step.when ? ` · ${fmtTripDay(step.when)}` : "")
-          : t("stepSummaryHint"),
-      }),
-    );
+    const label = Object.assign(document.createElement("strong"), {
+      textContent: `${i + 1}. ${t(step.label)}`,
+    });
+    const detail = Object.assign(document.createElement("span"), {
+      textContent: step.from
+        ? `${step.from.name} → ${step.to.name}` + (step.when ? ` · ${fmtTripDay(step.when)}` : "")
+        : t("stepSummaryHint"),
+    });
+    // only steps already behind the flow are reachable: going forward needs a
+    // pick, and leaving a step drops the pick that was made on it. While a leg
+    // is loading nothing is pressable — the list it would return to is about to
+    // be replaced, and a dead button reads worse than a plain one
+    const back = !searchBtn.disabled && i < STEPS.indexOf(state.leg)
+      ? [backToOutbound, backToReturn][i]
+      : null;
+    if (back) {
+      li.classList.add("trip-step-done");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "trip-step-btn";
+      btn.setAttribute("aria-label", t("stepBack", i + 1, t(step.label)));
+      btn.append(label, detail);
+      btn.addEventListener("click", () => goToStep(back));
+      li.appendChild(btn);
+    } else {
+      li.append(label, detail);
+    }
     stepper.appendChild(li);
   });
   tripStepsEl.appendChild(stepper);
@@ -980,7 +1013,8 @@ function renderTripSteps() {
   change.type = "button";
   change.className = "trip-change";
   change.textContent = t("changeOutbound");
-  change.addEventListener("click", backToOutbound);
+  change.disabled = searchBtn.disabled;
+  change.addEventListener("click", () => goToStep(backToOutbound));
   picked.append(
     Object.assign(document.createElement("span"), {
       textContent: `${t("outboundPicked")} ${fmtTripDay(first.plannedDeparture)}, ` +
@@ -1985,7 +2019,7 @@ function summaryLegBox(journey, labelKey, onChange) {
   change.type = "button";
   change.className = "trip-change";
   change.textContent = t("changeOutbound");
-  change.addEventListener("click", onChange);
+  change.addEventListener("click", () => goToStep(onChange));
   const head = document.createElement("div");
   head.className = "summary-leg-head";
   head.append(
