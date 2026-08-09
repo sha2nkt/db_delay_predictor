@@ -19,10 +19,12 @@ const state = {
   liveDay: false,  // searched day is past the local data and answered live from IRIS
   claimJourney: null,  // journey shown in the claim-steps modal
   returnTrip: false,  // a return journey was added in the search card
-  leg: "outbound",  // which leg the result list shows: "outbound" | "return"
+  leg: "outbound",  // step of the round trip: "outbound" | "return" | "summary"
   returnDeparture: null,  // departure ISO of the return search
   outbound: null,  // journey picked on the outbound step
   outboundResults: null,  // cached outbound list, so going back doesn't refetch
+  returnJourney: null,  // journey picked on the return step
+  returnResults: null,  // cached return list, so going back doesn't refetch
 };
 
 // DB digital compensation flow lives in the customer account's past-trips list
@@ -60,9 +62,15 @@ const I18N = {
     returnBeforeOutbound: "Die Rückfahrt kann nicht vor der Hinfahrt liegen.",
     stepOutbound: "Hinfahrt",
     stepReturn: "Rückfahrt",
+    stepSummary: "Übersicht",
+    stepSummaryHint: "Prüfen und buchen",
     continueBtn: "Weiter",
     outboundPicked: "Hinfahrt gewählt:",
     changeOutbound: "Ändern",
+    summaryTitle: "Deine Reise",
+    summaryTotal: "Gesamtpreis",
+    bookBoth: "Beide Fahrten auf bahn.de buchen",
+    summaryNote: "bahn.de öffnet die Suche mit beiden Daten und Uhrzeiten vorbelegt – die hier gewählten Züge stehen dort jeweils oben in der Liste. Einen Link, der beide Züge fest vorauswählt, bietet bahn.de nicht an. Der Gesamtpreis addiert die „ab“-Preise beider Einzelfahrten; bahn.de rechnet beim Buchen neu.",
     window: "Statistik-Zeitraum",
     days7: "7 Tage",
     days15: "15 Tage",
@@ -190,9 +198,15 @@ const I18N = {
     returnBeforeOutbound: "The return journey can't start before the outbound one.",
     stepOutbound: "Outbound",
     stepReturn: "Return",
+    stepSummary: "Summary",
+    stepSummaryHint: "Review and book",
     continueBtn: "Continue",
     outboundPicked: "Outbound selected:",
     changeOutbound: "Change",
+    summaryTitle: "Your trip",
+    summaryTotal: "Total",
+    bookBoth: "Book both trips on bahn.de",
+    summaryNote: "bahn.de opens its search with both dates and times pre-filled – the trains picked here sit at the top of each list. bahn.de offers no link format that locks in both trains. The total adds up the “from” prices of the two one-way legs; bahn.de re-prices at booking.",
     window: "Tracking period",
     days7: "7 days",
     days15: "15 days",
@@ -605,8 +619,14 @@ laterBtn.addEventListener("click", () => loadPage("later"));
 
 function refetchCurrentLeg() {
   if (!state.journeys.length || !state.from || !state.to) return;
-  // the cached outbound list was fetched with the settings that just changed
-  if (state.leg === "return") state.outboundResults = null;
+  // the picked return may not survive the new filter, so step 3 cannot stand
+  if (state.leg === "summary") state.leg = "return";
+  // the cached lists were fetched with the settings that just changed
+  if (state.leg === "return") {
+    state.outboundResults = null;
+    state.returnJourney = null;
+    state.returnResults = null;
+  }
   runSearch();
 }
 
@@ -655,7 +675,7 @@ returnAddBtn.addEventListener("click", () => {
 
 document.getElementById("return-remove").addEventListener("click", () => {
   setReturnTrip(false);
-  if (state.leg === "return") backToOutbound();
+  if (state.leg !== "outbound") backToOutbound();
   else { renderTripSteps(); render(); }
 });
 
@@ -718,9 +738,9 @@ document.querySelector("#donate-nudge a").addEventListener("click", () =>
 
 // the result list shows one leg at a time; the return leg runs the search backwards
 function searchLeg() {
-  return state.leg === "return"
-    ? { from: state.to, to: state.from, departure: state.returnDeparture }
-    : { from: state.from, to: state.to, departure: state.departure };
+  return state.leg === "outbound"
+    ? { from: state.from, to: state.to, departure: state.departure }
+    : { from: state.to, to: state.from, departure: state.returnDeparture };
 }
 
 async function fetchJourneys(pagingRef) {
@@ -863,6 +883,8 @@ async function search() {
   state.leg = "outbound";
   state.outbound = null;
   state.outboundResults = null;
+  state.returnJourney = null;
+  state.returnResults = null;
   syncUrl();
   track("search", {
     from: state.from.name,
@@ -930,20 +952,24 @@ function renderTripSteps() {
     { leg: "outbound", label: "stepOutbound", from: state.from, to: state.to, when: state.departure },
     { leg: "return", label: "stepReturn", from: state.to, to: state.from,
       when: state.returnDeparture || (returnDateEl.value ? returnDepartureIso() : null) },
+    { leg: "summary", label: "stepSummary" },
   ].forEach((step, i) => {
     const li = document.createElement("li");
     li.className = `trip-step${state.leg === step.leg ? " active" : ""}`;
     li.append(
       Object.assign(document.createElement("strong"), { textContent: `${i + 1}. ${t(step.label)}` }),
       Object.assign(document.createElement("span"), {
-        textContent: `${step.from.name} → ${step.to.name}` +
-          (step.when ? ` · ${fmtTripDay(step.when)}` : ""),
+        textContent: step.from
+          ? `${step.from.name} → ${step.to.name}` + (step.when ? ` · ${fmtTripDay(step.when)}` : "")
+          : t("stepSummaryHint"),
       }),
     );
     stepper.appendChild(li);
   });
   tripStepsEl.appendChild(stepper);
 
+  // step 3 shows both journeys in full, so the one-line recap only earns its
+  // space while the return list is still being picked from
   if (state.leg !== "return" || !state.outbound) return;
   const legs = state.outbound.legs || [];
   const first = legs[0], last = legs[legs.length - 1];
@@ -980,16 +1006,35 @@ function selectOutbound(journey) {
   runSearch();
 }
 
-function backToOutbound() {
-  state.leg = "outbound";
-  state.outbound = null;
-  const cached = state.outboundResults;
-  if (!cached) {
-    // dropped because the stats window or D-Ticket filter changed meanwhile
-    renderTripSteps();
-    runSearch();
-    return;
-  }
+function selectReturn(journey) {
+  state.returnJourney = journey;
+  // keep the list so "change" can go back without a refetch
+  state.returnResults = {
+    journeys: state.journeys, earlierRef: state.earlierRef, laterRef: state.laterRef,
+  };
+  state.leg = "summary";
+  track("summary-open", {
+    from: state.from?.name, to: state.to?.name, price: tripTotal() ?? "na",
+  });
+  // step 3 has no list of its own: nothing to fetch, sort or page
+  statusEl.classList.remove("error");
+  setStatus(null);
+  controlsEl.classList.add("hidden");
+  earlierBtn.classList.add("hidden");
+  laterBtn.classList.add("hidden");
+  renderTripSteps();
+  render();
+  tripStepsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// both legs carry the "ab" price of a one-way; a total only means something
+// once bahn.de has priced both
+function tripTotal() {
+  const out = state.outbound?.price, ret = state.returnJourney?.price;
+  return out != null && ret != null ? out + ret : null;
+}
+
+function restoreList(cached) {
   state.journeys = cached.journeys;
   state.earlierRef = cached.earlierRef;
   state.laterRef = cached.laterRef;
@@ -999,6 +1044,34 @@ function backToOutbound() {
   updatePageButtons();
   renderTripSteps();
   render();
+}
+
+function backToOutbound() {
+  state.leg = "outbound";
+  state.outbound = null;
+  // the return was picked to follow the outbound now being dropped
+  state.returnJourney = null;
+  state.returnResults = null;
+  const cached = state.outboundResults;
+  if (!cached) {
+    // dropped because the stats window or D-Ticket filter changed meanwhile
+    renderTripSteps();
+    runSearch();
+    return;
+  }
+  restoreList(cached);
+}
+
+function backToReturn() {
+  state.leg = "return";
+  state.returnJourney = null;
+  const cached = state.returnResults;
+  if (!cached) {
+    renderTripSteps();
+    runSearch();
+    return;
+  }
+  restoreList(cached);
 }
 
 function journeyKey(j) {
@@ -1603,7 +1676,56 @@ document.getElementById("claim-modal-go").addEventListener("click", () => {
   });
 });
 
+// price slot: an offer price, the D-Ticket label when the filter is on, or a
+// pointer to bahn.de when the search turned up no price
+function priceNode(value) {
+  const price = document.createElement("span");
+  price.className = "price";
+  if (value != null) {
+    price.textContent = t("priceFrom", value);
+  } else if (state.dticketUsed) {
+    // D-Ticket-filtered results carry no offer price: the ticket is the fare
+    price.classList.add("price-dticket");
+    price.textContent = t("dticketIncluded");
+    price.title = t("dticketIncludedTooltip");
+  } else {
+    price.classList.add("price-na");
+    price.textContent = t("priceNa");
+  }
+  return price;
+}
+
+// future-mode journey badges; `stats` comes back set only when the caller still
+// has to wire the day chart onto the returned badge
+function journeyBadges(journey, finalLeg) {
+  const unlikelyTts = (journey.tightTransfers || []).filter((tt) => tt.unlikely);
+  if (unlikelyTts.length) {
+    // final-leg stats are meaningless if an earlier connection is likely missed
+    const badge = document.createElement("span");
+    badge.className = "badge red";
+    badge.textContent = t("unlikelyBadge");
+    badge.title = t("unlikelyBadgeTooltip", unlikelyTts.map((tt) => tt.station).join(", "));
+    return { badge, tightBadge: null, stats: null };
+  }
+  if (UNTRACKED_PRODUCTS.has(finalLeg?.line?.product)) {
+    return { badge: notTrackedBadge(), tightBadge: null, stats: null };
+  }
+  const stats = finalLeg ? finalLeg.delayStats : null;
+  const badge = delayBadge(stats, true);
+  let tightBadge = null;
+  const tts = journey.tightTransfers || [];
+  if (tts.length) {
+    tightBadge = document.createElement("span");
+    tightBadge.className = "badge yellow";
+    tightBadge.textContent = t("tightBadge");
+    tightBadge.title = t("tightBadgeTooltip", tts.map((tt) => tt.station).join(", "));
+  }
+  return { badge, tightBadge, stats };
+}
+
 function render() {
+  // step 3 replaces the result list with the trip as a whole
+  if (state.leg === "summary") return renderSummary();
   resultsEl.innerHTML = "";
   for (const journey of sortedJourneys()) {
     const legs = journey.legs || [];
@@ -1671,27 +1793,10 @@ function render() {
         badge = exactDelayBadge(finalLeg?.delayOnDate);
       }
     } else {
-      const finalStats = finalLeg ? finalLeg.delayStats : null;
-      const unlikelyTts = (journey.tightTransfers || []).filter((tt) => tt.unlikely);
-      if (unlikelyTts.length) {
-        // final-leg stats are meaningless if an earlier connection is likely missed
-        badge = document.createElement("span");
-        badge.className = "badge red";
-        badge.textContent = t("unlikelyBadge");
-        badge.title = t("unlikelyBadgeTooltip", unlikelyTts.map((tt) => tt.station).join(", "));
-      } else if (UNTRACKED_PRODUCTS.has(finalLeg?.line?.product)) {
-        badge = notTrackedBadge();
-      } else {
-        badge = delayBadge(finalStats, true);
-        if (finalStats) wireDayChart(badge, finalStats, head, finalLeg.line?.name);
-        const tts = journey.tightTransfers || [];
-        if (tts.length) {
-          tightBadge = document.createElement("span");
-          tightBadge.className = "badge yellow";
-          tightBadge.textContent = t("tightBadge");
-          tightBadge.title = t("tightBadgeTooltip", tts.map((tt) => tt.station).join(", "));
-        }
-      }
+      const badges = journeyBadges(journey, finalLeg);
+      badge = badges.badge;
+      tightBadge = badges.tightBadge;
+      if (badges.stats) wireDayChart(badge, badges.stats, head, finalLeg.line?.name);
     }
 
     let claimable = false;
@@ -1722,35 +1827,23 @@ function render() {
       }
       head.append(times, meta, spacer, badge, action);
     } else {
-      const price = document.createElement("span");
-      price.className = "price";
-      if (journey.price != null) {
-        price.textContent = t("priceFrom", journey.price);
-      } else if (state.dticketUsed) {
-        // D-Ticket-filtered results carry no offer price: the ticket is the fare
-        price.classList.add("price-dticket");
-        price.textContent = t("dticketIncluded");
-        price.title = t("dticketIncludedTooltip");
-      } else {
-        price.classList.add("price-na");
-        price.textContent = t("priceNa");
-      }
+      const price = priceNode(journey.price);
 
-      // on a round trip the outbound step only picks a journey; booking waits
-      // until the return leg, where both dates go into one bahn.de link
+      // on a round trip both list steps only pick a journey; booking waits for
+      // the summary, where the two dates go into one bahn.de link
       let action;
-      if (state.returnTrip && state.leg === "outbound") {
+      if (state.returnTrip) {
         action = document.createElement("button");
         action.type = "button";
         action.className = "continue-btn";
         action.textContent = t("continueBtn");
-        action.addEventListener("click", () => selectOutbound(journey));
+        action.addEventListener("click", () =>
+          state.leg === "outbound" ? selectOutbound(journey) : selectReturn(journey));
       } else {
-        const roundTrip = state.leg === "return" ? state.outbound : null;
         action = document.createElement("a");
         action.className = "book-btn";
         action.textContent = t("book");
-        action.href = bahnDeUrl(journey, roundTrip);
+        action.href = bahnDeUrl(journey, null);
         action.target = "_blank";
         action.rel = "noopener";
         action.addEventListener("click", () =>
@@ -1758,7 +1851,7 @@ function render() {
             from: state.from?.name,
             to: state.to?.name,
             price: journey.price ?? "na",
-            trip: roundTrip ? "return" : "oneway",
+            trip: "oneway",
           })
         );
       }
@@ -1878,6 +1971,118 @@ function render() {
 
     resultsEl.appendChild(card);
   }
+}
+
+// --- step 3: the picked outbound and return on one screen, then one booking link ---
+
+function summaryLegBox(journey, labelKey, onChange) {
+  const legs = journey.legs || [];
+  const first = legs[0], last = legs[legs.length - 1];
+  const trainLegs = legs.filter((l) => !l.walking);
+  const transfers = journey.transfers ?? Math.max(0, trainLegs.length - 1);
+
+  const change = document.createElement("button");
+  change.type = "button";
+  change.className = "trip-change";
+  change.textContent = t("changeOutbound");
+  change.addEventListener("click", onChange);
+  const head = document.createElement("div");
+  head.className = "summary-leg-head";
+  head.append(
+    Object.assign(document.createElement("strong"), { textContent: t(labelKey) }),
+    Object.assign(document.createElement("span"), {
+      className: "summary-leg-route",
+      textContent: `${fmtTripDay(first.plannedDeparture)} · ` +
+        `${first.origin?.name || ""} → ${last.destination?.name || ""}`,
+    }),
+    change,
+  );
+
+  const meta = document.createElement("div");
+  meta.className = "summary-leg-meta";
+  const times = document.createElement("span");
+  times.className = "journey-times";
+  times.append(
+    timeNode(first.plannedDeparture, first.departure),
+    document.createTextNode(" → "),
+    timeNode(last.plannedArrival, last.arrival),
+  );
+  const dur = document.createElement("span");
+  dur.className = "journey-meta";
+  dur.textContent = `${fmtDuration(journey.ezDurationSeconds ?? journey.durationSeconds)} · ` +
+    (transfers === 0 ? t("direct") : t("transfers", transfers));
+  const spacer = document.createElement("span");
+  spacer.className = "spacer";
+  const finalLeg = trainLegs.length ? trainLegs[trainLegs.length - 1] : null;
+  const badges = journeyBadges(journey, finalLeg);
+  if (badges.stats) wireDayChart(badges.badge, badges.stats, meta, finalLeg.line?.name);
+  meta.append(times, dur, spacer,
+    ...(badges.tightBadge ? [badges.tightBadge] : []), badges.badge, priceNode(journey.price));
+
+  const legsEl = document.createElement("div");
+  legsEl.className = "legs";
+  legs.forEach((leg, i) => {
+    const row = buildLegRow(leg, false, false);
+    if (i === 0) row.classList.add("rail-first");
+    if (i === legs.length - 1) row.classList.add("rail-last");
+    // the day chart stays reachable here: the pick is made, but not yet booked
+    if (!leg.walking && leg.delayStats) {
+      wireDayChart(row.querySelector(".badge"), leg.delayStats, row, leg.line?.name);
+    }
+    legsEl.appendChild(row);
+  });
+
+  const box = document.createElement("div");
+  box.className = "summary-leg";
+  box.append(head, meta, legsEl);
+  return box;
+}
+
+function renderSummary() {
+  resultsEl.innerHTML = "";
+  const out = state.outbound, ret = state.returnJourney;
+  if (!out || !ret) return;
+
+  const panel = document.createElement("div");
+  panel.className = "trip-summary";
+  panel.append(
+    Object.assign(document.createElement("h2"), {
+      className: "trip-summary-title", textContent: t("summaryTitle"),
+    }),
+    summaryLegBox(out, "stepOutbound", backToOutbound),
+    summaryLegBox(ret, "stepReturn", backToReturn),
+  );
+
+  const total = document.createElement("div");
+  total.className = "trip-total";
+  total.append(
+    Object.assign(document.createElement("span"), {
+      className: "trip-total-label", textContent: t("summaryTotal"),
+    }),
+    priceNode(tripTotal()),
+  );
+
+  // the mask carries both dates and both departure minutes; bahn.de has no link
+  // format that pins the two trains themselves, so the note says so
+  const book = document.createElement("a");
+  book.className = "book-btn book-btn-lg";
+  book.textContent = t("bookBoth");
+  book.href = bahnDeUrl(ret, out);
+  book.target = "_blank";
+  book.rel = "noopener";
+  book.addEventListener("click", () =>
+    track("book-bahn", {
+      from: state.from?.name,
+      to: state.to?.name,
+      price: tripTotal() ?? "na",
+      trip: "roundtrip",
+    })
+  );
+
+  panel.append(total, book, Object.assign(document.createElement("p"), {
+    className: "trip-summary-note", textContent: t("summaryNote"),
+  }));
+  resultsEl.appendChild(panel);
 }
 
 // --- init ---

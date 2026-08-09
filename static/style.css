@@ -348,6 +348,35 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 }
 .trip-change:hover { text-decoration: underline; }
 
+/* --- round trip step 3: the whole trip, then a single booking link --- */
+
+.trip-summary {
+  background: #fff; border-radius: 8px; padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.trip-summary-title { font-size: 18px; margin: 0 0 4px; }
+.summary-leg { padding: 12px 0; border-top: 1px solid var(--gray-border); }
+.summary-leg:first-of-type { border-top: none; }
+.summary-leg-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.summary-leg-head strong { font-size: 14px; }
+.summary-leg-route { flex: 1; min-width: 0; font-size: 13px; color: var(--text-muted); }
+.summary-leg-meta {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0 8px;
+}
+.summary-leg-meta .spacer { flex: 1; }
+.trip-total {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-top: 12px; border-top: 2px solid var(--gray-border);
+}
+.trip-total-label { flex: 1; font-size: 15px; font-weight: 700; }
+.trip-total .price { font-size: 20px; }
+.book-btn-lg {
+  display: block; margin-top: 12px; padding: 12px; text-align: center; font-size: 15px;
+  background: var(--db-red); color: #fff;
+}
+.book-btn-lg:hover { background: var(--db-red-dark); border-color: var(--db-red-dark); }
+.trip-summary-note { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; }
+
 .cancel-note { font-size: 12px; color: var(--red); margin-top: 6px; }
 .leg-tight {
   margin: 2px 0 4px 26px; padding: 5px 10px;
@@ -703,6 +732,8 @@ body.nudge-on #donate-footer-item { display: none; }
     row-gap: 6px;
   }
   .journey-head .spacer { display: none; }
+  .trip-summary { padding: 14px; }
+  .summary-leg-meta .spacer { display: none; }
   .journey-cta { display: contents; }
   .journey-times { grid-row: 1; grid-column: 1; }
   .journey-head .price { grid-row: 1; grid-column: 2; justify-self: end; }
