@@ -2007,7 +2007,7 @@ function render() {
 
 // --- step 3: the picked outbound and return on one screen, then one booking link ---
 
-function summaryLegBox(journey, labelKey, onChange) {
+function summaryLegBox(journey, n, labelKey, onChange) {
   const legs = journey.legs || [];
   const first = legs[0], last = legs[legs.length - 1];
   const trainLegs = legs.filter((l) => !l.walking);
@@ -2021,14 +2021,23 @@ function summaryLegBox(journey, labelKey, onChange) {
   const head = document.createElement("div");
   head.className = "summary-leg-head";
   head.append(
-    Object.assign(document.createElement("strong"), { textContent: t(labelKey) }),
+    // the arrow and the step number carry the direction at a glance, so the two
+    // blocks don't rely on reading their labels to be told apart
+    Object.assign(document.createElement("strong"), {
+      className: "summary-leg-chip",
+      textContent: `${n === 1 ? "→" : "←"} ${n}. ${t(labelKey)}`,
+    }),
     Object.assign(document.createElement("span"), {
-      className: "summary-leg-route",
-      textContent: `${fmtTripDay(first.plannedDeparture)} · ` +
-        `${first.origin?.name || ""} → ${last.destination?.name || ""}`,
+      className: "summary-leg-day",
+      textContent: fmtTripDay(first.plannedDeparture),
     }),
     change,
   );
+
+  const route = Object.assign(document.createElement("div"), {
+    className: "summary-leg-route",
+    textContent: `${first.origin?.name || ""} → ${last.destination?.name || ""}`,
+  });
 
   const meta = document.createElement("div");
   meta.className = "summary-leg-meta";
@@ -2066,7 +2075,7 @@ function summaryLegBox(journey, labelKey, onChange) {
 
   const box = document.createElement("div");
   box.className = "summary-leg";
-  box.append(head, meta, legsEl);
+  box.append(head, route, meta, legsEl);
   return box;
 }
 
@@ -2081,8 +2090,8 @@ function renderSummary() {
     Object.assign(document.createElement("h2"), {
       className: "trip-summary-title", textContent: t("summaryTitle"),
     }),
-    summaryLegBox(out, "stepOutbound", backToOutbound),
-    summaryLegBox(ret, "stepReturn", backToReturn),
+    summaryLegBox(out, 1, "stepOutbound", backToOutbound),
+    summaryLegBox(ret, 2, "stepReturn", backToReturn),
   );
 
   const total = document.createElement("div");

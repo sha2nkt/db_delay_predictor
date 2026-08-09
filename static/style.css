@@ -367,11 +367,18 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
   box-shadow: 0 1px 3px rgba(0,0,0,.1);
 }
 .trip-summary-title { font-size: 18px; margin: 0 0 4px; }
-.summary-leg { padding: 12px 0; border-top: 1px solid var(--gray-border); }
-.summary-leg:first-of-type { border-top: none; }
-.summary-leg-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.summary-leg-head strong { font-size: 14px; }
-.summary-leg-route { flex: 1; min-width: 0; font-size: 13px; color: var(--text-muted); }
+/* the two directions must not read as one continuous list; the direction chip
+   and the route headline carry that, so the blocks only need a plain divider */
+.summary-leg { padding: 14px 0; border-top: 1px solid var(--gray-border); }
+.summary-leg:first-of-type { border-top: none; padding-top: 6px; }
+.summary-leg-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.summary-leg-chip {
+  background: var(--gray-bg); color: var(--text);
+  border-radius: 4px; padding: 3px 9px; white-space: nowrap;
+  font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+}
+.summary-leg-day { flex: 1; min-width: 0; font-size: 13px; color: var(--text-muted); }
+.summary-leg-route { font-size: 15px; font-weight: 600; margin-top: 7px; }
 .summary-leg-meta {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0 8px;
 }
