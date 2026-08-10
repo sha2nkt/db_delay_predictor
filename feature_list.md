@@ -89,6 +89,16 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Contact dialog | done | footer "Kontakt / Contact us" link after Impressum opens a dialog in the claim modal's shell (autofocused textarea); send opens the visitor's mail app via `mailto:` to kontakt@delaybahn.com with the message as body (address assembled in JS at click time, kept out of the HTML); on / and /entschaedigung; `track("contact")` open/send events (2026-08-10, Playwright-verified) |
 | Toy-train footer scene | done | full-width CSS/SVG strip above the footer: cartoon loco + coaches with synced spinning wheels roll in, 1.5 s stop at a centered station under a red "+75 min" board, then off; hills/trees/signal/sun/clouds/birds; language-neutral, `aria-hidden`, `prefers-reduced-motion` static pose; headless-Chrome-verified desktop + mobile (2026-07-31) |
 
+## Progressive Web App (PWA, 2026-08-10)
+
+| Feature | Status | Notes |
+|---|---|---|
+| Web app manifest | done | `static/manifest.json` — name "DelayBahn – DB Delay Check", short_name "DelayBahn", `display: standalone`, DB-red `theme_color` (#ec0016), page-bg splash, `any` + `maskable` icons at 192/512, apple-touch 180, an "Entschädigung prüfen" shortcut; linked from index.html with `theme-color` + `apple-mobile-web-app-*`/`mobile-web-app-capable` meta |
+| Service worker (offline shell + cached API) | done | `static/sw.js`, scope `/`: precaches the app shell and serves it cache-first with background revalidate; `/api/*` network-first, responses stamped `sw-cached-at` and served offline only if younger than 10 min (delay data never stale past that); feedback POST / `/stats` analytics / `/health` / cross-origin pass through untouched; precache list pinned to the current `?v=` busters (bump `SHELL_VERSION` with them) |
+| Placeholder app icons | done | DB-red tile + white train mark (reusing the toy-train colours), generated with PIL: 192/512 in `any` and `maskable`, plus a 180 px apple-touch, in `static/icons/` |
+| Installability | done | Lighthouse PWA category scores 1.0 and a CDP check confirms the worker registers, activates and controls the page (headless Chrome 146); installable on Android/desktop Chromium and iOS Safari |
+| In-app install prompt | planned | no `beforeinstallprompt` button or iOS Share hint yet — users rely on the browser's own affordance (Android ⋮ menu; iOS Share → Add to Home Screen); a minimal, dismissable prompt is the next step |
+
 ## Known limitations
 
 - Delay stats are per-train-number history; a rescheduled or renumbered train shows "keine Daten".
@@ -107,3 +117,4 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 - Simulation assumes a rational passenger taking the earliest-arriving catchable connection; replacement legs without delay data count as on time; the DB claim page lists only journeys booked in that bahn.de account (form fallback linked).
 - The claim modal's bahn.de button labels are best-effort recreations, not captured from the live bahn.de UI; if DB renames its buttons the modal needs a one-line i18n update.
 - The contact dialog sends via `mailto:` — a visitor without a configured mail client gets nothing when clicking send; the anonymous feedback box (or the address printed in the impressum) is the fallback. Feedback comment pushes need `NTFY_TOPIC` in the service environment; without it comments still land in SQLite, silently.
+- PWA: installable, but there is no in-app install prompt — Android surfaces install only through Chrome's menu, and iOS Safari gives no hint at all (Share → Add to Home Screen is the only path, and Safari-only; Chrome/Firefox on iOS cannot install). The service worker's precache list is pinned to the current `?v=` cache-busters, so a buster bump that forgets to bump `SHELL_VERSION` in sw.js would keep serving the old shell until the worker updates.
