@@ -36,7 +36,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="style.css?v=55">
+<link rel="stylesheet" href="style.css?v=56">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -53,6 +53,16 @@
 </header>
 
 <main>
+  <div id="install-prompt" class="install-prompt hidden" role="region" data-i18n-aria="installTitle">
+    <img class="install-icon" src="/icons/icon-192.png" alt="" width="40" height="40">
+    <div class="install-text">
+      <strong data-i18n="installTitle">DelayBahn als App installieren</strong>
+      <span class="install-lead" id="install-lead-android" data-i18n="installLeadAndroid">Schneller Zugriff vom Startbildschirm.</span>
+      <span class="install-lead hidden" id="install-lead-ios" data-i18n="installLeadIos">Zum Installieren „Teilen“ antippen, dann „Zum Home-Bildschirm“.</span>
+    </div>
+    <button id="install-accept" class="install-btn hidden" type="button" data-i18n="installBtn">Installieren</button>
+    <button id="install-dismiss" class="install-dismiss" type="button" data-i18n-title="installDismiss" data-i18n-aria="installDismiss">✕</button>
+  </div>
   <section class="search-card">
     <div id="past-banner" class="past-banner">
       <strong data-i18n="pastTitle">Verspätungs-Check für vergangene Reisen</strong>
@@ -276,7 +286,7 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=72"></script>
+<script src="app.js?v=75"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

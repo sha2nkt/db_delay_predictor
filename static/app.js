@@ -189,6 +189,11 @@ const I18N = {
     simBadgeTooltip: "Simulierte Verspätung am Ziel – verpasste Anschlüsse und tatsächliche Weiterfahrt berücksichtigt",
     simIncomplete: "Keine Ersatzverbindung in den Daten gefunden – tatsächliche Ankunft unbekannt",
     pastDisclaimer: "Entschädigung nach EU-Fahrgastrechten: 25 % des Ticketpreises ab 60 min, 50 % ab 120 min Verspätung am Ziel. Auszahlung ab 4 €. Angezeigte Verspätungen basieren auf unseren aufgezeichneten Daten – maßgeblich ist die tatsächliche Ankunft.",
+    installTitle: "DelayBahn als App installieren",
+    installLeadAndroid: "Schneller Zugriff vom Startbildschirm.",
+    installLeadIos: "Zum Installieren „Teilen“ antippen, dann „Zum Home-Bildschirm“.",
+    installBtn: "Installieren",
+    installDismiss: "Schließen",
   },
   en: {
     pageTitle: "DB Connection Search with Delay Statistics",
@@ -338,6 +343,11 @@ const I18N = {
     simBadgeTooltip: "Simulated delay at destination – missed connections and the actual onward journey taken into account",
     simIncomplete: "No replacement connection found in the data – actual arrival unknown",
     pastDisclaimer: "Compensation under EU passenger rights: 25% of the ticket price from 60 min, 50% from 120 min delay at your destination. Paid out from €4. Shown delays are based on our recorded data – the actual arrival is authoritative.",
+    installTitle: "Install DelayBahn as an app",
+    installLeadAndroid: "Quick access from your home screen.",
+    installLeadIos: "To install, tap Share, then “Add to Home Screen”.",
+    installBtn: "Install",
+    installDismiss: "Dismiss",
   },
 };
 
@@ -2262,6 +2272,91 @@ function renderSummary() {
   panel.append(total, book);
   resultsEl.appendChild(panel);
 }
+
+// --- install prompt (PWA awareness) ---
+// The manifest + service worker make the site installable, but browsers surface
+// that only faintly (Android: a buried menu entry) or not at all (iOS Safari).
+// This shows a single dismissable prompt: a real Install button where the browser
+// offers one (beforeinstallprompt), and the manual Share instructions on iOS.
+
+(function initInstallPrompt() {
+  const promptEl = document.getElementById("install-prompt");
+  if (!promptEl) return;
+  const acceptBtn = document.getElementById("install-accept");
+  const dismissBtn = document.getElementById("install-dismiss");
+  const androidLead = document.getElementById("install-lead-android");
+  const iosLead = document.getElementById("install-lead-ios");
+
+  const DISMISS_KEY = "installPromptDismissed";
+  const DISMISS_DAYS = 60;
+
+  const standalone = window.matchMedia("(display-mode: standalone)").matches
+    || window.navigator.standalone === true;
+  const dismissedTs = Number(localStorage.getItem(DISMISS_KEY) || 0);
+  const recentlyDismissed = dismissedTs > 0 && Date.now() - dismissedTs < DISMISS_DAYS * 864e5;
+
+  // Already installed (running standalone) or recently dismissed: never offer.
+  if (standalone || recentlyDismissed) return;
+
+  const show = () => promptEl.classList.remove("hidden");
+  const hide = () => promptEl.classList.add("hidden");
+  const remember = () => localStorage.setItem(DISMISS_KEY, String(Date.now()));
+
+  // Dismiss and install-completion apply on every platform.
+  dismissBtn.addEventListener("click", () => {
+    remember();
+    hide();
+    track("install", { step: "dismiss" });
+  });
+  window.addEventListener("appinstalled", () => {
+    remember();
+    hide();
+    track("install", { step: "installed" });
+  });
+
+  // iOS Safari has no install event or API — instruct the manual flow and stop:
+  // iOS never fires beforeinstallprompt, so the Android handler below must not run
+  // and clobber this back to the wrong copy. (Chrome/Firefox on iOS can't install
+  // at all, so they're excluded.)
+  const ua = navigator.userAgent || "";
+  const isIOS = /iphone|ipad|ipod/i.test(ua)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isIOSSafari = isIOS && /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+  if (isIOSSafari) {
+    androidLead.classList.add("hidden");
+    iosLead.classList.remove("hidden");
+    acceptBtn.classList.add("hidden");
+    show();
+    track("install", { step: "shown", platform: "ios" });
+    return;
+  }
+
+  // Android (mobile Chromium): the browser tells us the app is installable.
+  // Desktop is intentionally excluded — this prompt is mobile-only — and there we
+  // leave the browser's own install affordance (omnibox icon / menu) untouched.
+  const uaData = navigator.userAgentData;
+  const isMobile = uaData ? uaData.mobile === true : /android|mobile/i.test(ua);
+  let deferred = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    if (!isMobile) return; // desktop: don't show our banner, keep native install
+    e.preventDefault(); // on mobile, suppress Chrome's mini-infobar; we drive it
+    deferred = e;
+    androidLead.classList.remove("hidden");
+    iosLead.classList.add("hidden");
+    acceptBtn.classList.remove("hidden");
+    show();
+    track("install", { step: "shown", platform: "android" });
+  });
+  acceptBtn.addEventListener("click", async () => {
+    if (!deferred) return;
+    track("install", { step: "accept" });
+    deferred.prompt();
+    const choice = await deferred.userChoice;
+    track("install", { step: choice && choice.outcome === "accepted" ? "accepted" : "declined" });
+    deferred = null;
+    hide();
+  });
+})();
 
 // --- init ---
 

@@ -804,3 +804,30 @@ body.nudge-on #donate-footer-item { display: none; }
   }
   .journey-head .claim-none { grid-column: 1 / -1; }
 }
+
+/* install prompt (PWA) */
+.install-prompt {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+}
+.install-prompt.hidden, #install-prompt .hidden { display: none; }
+.install-icon { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 9px; }
+.install-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.3; }
+.install-text strong { font-size: 14px; color: var(--text); }
+.install-lead { font-size: 12.5px; color: var(--text-muted); }
+.install-btn {
+  flex: 0 0 auto; background: var(--db-red); color: #fff; border: none; border-radius: 6px;
+  font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; cursor: pointer;
+}
+.install-btn:hover { background: var(--db-red-dark); }
+.install-dismiss {
+  flex: 0 0 auto; background: none; border: none; color: var(--text-muted);
+  font-size: 16px; line-height: 1; cursor: pointer; padding: 4px 6px; border-radius: 4px;
+}
+.install-dismiss:hover { background: var(--gray-bg); color: var(--text); }
+@media (max-width: 700px) {
+  .install-text strong { font-size: 13px; }
+  .install-lead { font-size: 12px; }
+}
