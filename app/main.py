@@ -11,7 +11,7 @@ import anyio
 import httpx
 from curl_cffi.requests.exceptions import HTTPError, RequestException
 from fastapi import FastAPI, HTTPException, Query, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -683,6 +683,19 @@ async def submit_feedback(fb: Feedback, request: Request) -> Response:
     if text:
         _spawn(feedback.notify(fb.vote, text, fb.lang, fb.context))
     return Response(status_code=204)
+
+
+@app.get("/sw.js")
+async def service_worker() -> FileResponse:
+    # The service worker has a fixed URL, so it can't be ?v=-cache-busted like
+    # the other static assets. Without this, Cloudflare edge-caches it (default
+    # ~4 h) and a new SHELL_VERSION can't roll out. no-cache forces the browser
+    # and Cloudflare to revalidate every time, so updates go live immediately.
+    return FileResponse(
+        STATIC_DIR / "sw.js",
+        media_type="text/javascript",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
