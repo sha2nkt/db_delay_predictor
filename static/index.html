@@ -36,7 +36,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="style.css?v=56">
+<link rel="stylesheet" href="style.css?v=57">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -57,8 +57,7 @@
     <img class="install-icon" src="/icons/icon-192.png" alt="" width="40" height="40">
     <div class="install-text">
       <strong data-i18n="installTitle">DelayBahn als App installieren</strong>
-      <span class="install-lead" id="install-lead-android" data-i18n="installLeadAndroid">Schneller Zugriff vom Startbildschirm.</span>
-      <span class="install-lead hidden" id="install-lead-ios" data-i18n="installLeadIos">Zum Installieren „Teilen“ antippen, dann „Zum Home-Bildschirm“.</span>
+      <span class="install-lead" data-i18n="installLead">Schneller Zugriff vom Startbildschirm.</span>
     </div>
     <button id="install-accept" class="install-btn hidden" type="button" data-i18n="installBtn">Installieren</button>
     <button id="install-dismiss" class="install-dismiss" type="button" data-i18n-title="installDismiss" data-i18n-aria="installDismiss">✕</button>
@@ -195,6 +194,42 @@
     <button id="contact-send" class="claim-modal-go contact-send" type="button" data-i18n="contactSend">Per E-Mail senden</button>
   </div>
 </dialog>
+<dialog id="ios-install-sheet" class="ios-sheet">
+  <div class="ios-sheet-inner">
+    <div class="ios-sheet-grip"></div>
+    <button id="ios-sheet-close" class="ios-sheet-close" type="button" data-i18n-title="iosSheetClose" data-i18n-aria="iosSheetClose">✕</button>
+    <h2 class="ios-sheet-title" data-i18n="iosSheetTitle">Zum Home-Bildschirm hinzufügen</h2>
+    <p class="ios-sheet-lead" data-i18n="iosSheetLead">In Safari, in 3 Schritten:</p>
+    <ol class="ios-steps">
+      <li>
+        <span class="ios-step-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 L12 15"/><path d="M8.5 6.5 L12 3 L15.5 6.5"/>
+            <path d="M6 10 L6 20 A1 1 0 0 0 7 21 L17 21 A1 1 0 0 0 18 20 L18 10"/>
+          </svg>
+        </span>
+        <span class="ios-step-text"><span class="ios-step-n">1</span><span data-i18n="iosStep1">Auf „Teilen“ tippen</span></span>
+      </li>
+      <li>
+        <span class="ios-step-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M12 8 L12 16 M8 12 L16 12"/>
+          </svg>
+        </span>
+        <span class="ios-step-text"><span class="ios-step-n">2</span><span data-i18n="iosStep2">„Zum Home-Bildschirm“ wählen</span></span>
+      </li>
+      <li>
+        <span class="ios-step-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/><path d="M8 12 L11 15 L16 9"/>
+          </svg>
+        </span>
+        <span class="ios-step-text"><span class="ios-step-n">3</span><span data-i18n="iosStep3">„Hinzufügen“ tippen</span></span>
+      </li>
+    </ol>
+    <button id="ios-sheet-done" class="ios-sheet-done" type="button" data-i18n="iosSheetDone">Verstanden</button>
+  </div>
+</dialog>
 <div class="train-scene" aria-hidden="true">
   <div class="ts-sun"></div>
   <div class="ts-cloud ts-cloud-1"></div>
@@ -286,7 +321,7 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=75"></script>
+<script src="app.js?v=76"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

@@ -831,3 +831,41 @@ body.nudge-on #donate-footer-item { display: none; }
   .install-text strong { font-size: 13px; }
   .install-lead { font-size: 12px; }
 }
+
+/* iOS "add to home screen" bottom sheet */
+.ios-sheet {
+  position: fixed; inset: auto 0 0 0; margin: 0 auto;
+  width: 100%; max-width: 460px;
+  border: none; padding: 0; background: #fff;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, .18);
+}
+.ios-sheet::backdrop { background: rgba(0, 0, 0, .45); }
+.ios-sheet[open] { animation: iosSheetUp .24s cubic-bezier(.2, .8, .2, 1); }
+@keyframes iosSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.ios-sheet-inner { position: relative; padding: 10px 22px calc(24px + env(safe-area-inset-bottom)); }
+.ios-sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--gray-border); margin: 6px auto 16px; }
+.ios-sheet-close {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none; color: var(--text-muted);
+  font-size: 18px; line-height: 1; cursor: pointer; padding: 4px 6px;
+}
+.ios-sheet-title { margin: 0 0 2px; font-size: 18px; color: var(--text); text-align: center; }
+.ios-sheet-lead { margin: 0 0 18px; font-size: 13px; color: var(--text-muted); text-align: center; }
+.ios-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.ios-steps li { display: flex; align-items: center; gap: 14px; }
+.ios-step-icon {
+  flex: 0 0 46px; height: 46px; display: grid; place-items: center;
+  background: var(--gray-bg); border-radius: 12px; color: var(--text);
+}
+.ios-step-text { font-size: 15px; color: var(--text); }
+.ios-step-n {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; vertical-align: middle;
+  border-radius: 50%; background: var(--db-red); color: #fff; font-size: 12px; font-weight: 700; margin-right: 6px;
+}
+.ios-sheet-done {
+  display: block; width: 100%; margin-top: 22px; padding: 13px;
+  background: var(--db-red); color: #fff; border: none; border-radius: 10px;
+  font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.ios-sheet-done:hover { background: var(--db-red-dark); }

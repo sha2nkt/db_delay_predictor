@@ -190,9 +190,15 @@ const I18N = {
     simIncomplete: "Keine Ersatzverbindung in den Daten gefunden – tatsächliche Ankunft unbekannt",
     pastDisclaimer: "Entschädigung nach EU-Fahrgastrechten: 25 % des Ticketpreises ab 60 min, 50 % ab 120 min Verspätung am Ziel. Auszahlung ab 4 €. Angezeigte Verspätungen basieren auf unseren aufgezeichneten Daten – maßgeblich ist die tatsächliche Ankunft.",
     installTitle: "DelayBahn als App installieren",
-    installLeadAndroid: "Schneller Zugriff vom Startbildschirm.",
-    installLeadIos: "Zum Installieren „Teilen“ antippen, dann „Zum Home-Bildschirm“.",
+    installLead: "Schneller Zugriff vom Startbildschirm.",
     installBtn: "Installieren",
+    iosSheetTitle: "Zum Home-Bildschirm hinzufügen",
+    iosSheetLead: "In Safari, in 3 Schritten:",
+    iosStep1: "Auf „Teilen“ tippen",
+    iosStep2: "„Zum Home-Bildschirm“ wählen",
+    iosStep3: "„Hinzufügen“ tippen",
+    iosSheetDone: "Verstanden",
+    iosSheetClose: "Schließen",
     installDismiss: "Schließen",
   },
   en: {
@@ -344,9 +350,15 @@ const I18N = {
     simIncomplete: "No replacement connection found in the data – actual arrival unknown",
     pastDisclaimer: "Compensation under EU passenger rights: 25% of the ticket price from 60 min, 50% from 120 min delay at your destination. Paid out from €4. Shown delays are based on our recorded data – the actual arrival is authoritative.",
     installTitle: "Install DelayBahn as an app",
-    installLeadAndroid: "Quick access from your home screen.",
-    installLeadIos: "To install, tap Share, then “Add to Home Screen”.",
+    installLead: "Quick access from your home screen.",
     installBtn: "Install",
+    iosSheetTitle: "Add to your home screen",
+    iosSheetLead: "In Safari, in 3 steps:",
+    iosStep1: "Tap “Share”",
+    iosStep2: "Choose “Add to Home Screen”",
+    iosStep3: "Tap “Add”",
+    iosSheetDone: "Got it",
+    iosSheetClose: "Close",
     installDismiss: "Dismiss",
   },
 };
@@ -2276,16 +2288,16 @@ function renderSummary() {
 // --- install prompt (PWA awareness) ---
 // The manifest + service worker make the site installable, but browsers surface
 // that only faintly (Android: a buried menu entry) or not at all (iOS Safari).
-// This shows a single dismissable prompt: a real Install button where the browser
-// offers one (beforeinstallprompt), and the manual Share instructions on iOS.
+// A single dismissable, mobile-only banner with an Install button: on Android it
+// triggers the native install; on iOS Safari — which has no install API — the
+// button opens a bottom sheet with the manual Share -> Add to Home Screen steps.
 
 (function initInstallPrompt() {
   const promptEl = document.getElementById("install-prompt");
   if (!promptEl) return;
   const acceptBtn = document.getElementById("install-accept");
   const dismissBtn = document.getElementById("install-dismiss");
-  const androidLead = document.getElementById("install-lead-android");
-  const iosLead = document.getElementById("install-lead-ios");
+  const iosSheet = document.getElementById("ios-install-sheet");
 
   const DISMISS_KEY = "installPromptDismissed";
   const DISMISS_DAYS = 60;
@@ -2314,20 +2326,29 @@ function renderSummary() {
     track("install", { step: "installed" });
   });
 
-  // iOS Safari has no install event or API — instruct the manual flow and stop:
-  // iOS never fires beforeinstallprompt, so the Android handler below must not run
-  // and clobber this back to the wrong copy. (Chrome/Firefox on iOS can't install
-  // at all, so they're excluded.)
   const ua = navigator.userAgent || "";
   const isIOS = /iphone|ipad|ipod/i.test(ua)
     || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const isIOSSafari = isIOS && /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+
+  // iOS Safari: same banner + Install button, but there is no install API, so the
+  // button opens a bottom sheet with the manual Share -> Add to Home Screen steps.
+  // Stop here: iOS never fires beforeinstallprompt, so the Android handler below
+  // must not run and rebind the button to a prompt that will never arrive.
   if (isIOSSafari) {
-    androidLead.classList.add("hidden");
-    iosLead.classList.remove("hidden");
-    acceptBtn.classList.add("hidden");
+    acceptBtn.classList.remove("hidden");
     show();
     track("install", { step: "shown", platform: "ios" });
+    if (iosSheet) {
+      acceptBtn.addEventListener("click", () => {
+        track("install", { step: "ios-sheet" });
+        iosSheet.showModal();
+      });
+      const closeSheet = () => iosSheet.close();
+      document.getElementById("ios-sheet-close").addEventListener("click", closeSheet);
+      document.getElementById("ios-sheet-done").addEventListener("click", closeSheet);
+      iosSheet.addEventListener("click", (e) => { if (e.target === iosSheet) closeSheet(); });
+    }
     return;
   }
 
@@ -2341,8 +2362,6 @@ function renderSummary() {
     if (!isMobile) return; // desktop: don't show our banner, keep native install
     e.preventDefault(); // on mobile, suppress Chrome's mini-infobar; we drive it
     deferred = e;
-    androidLead.classList.remove("hidden");
-    iosLead.classList.add("hidden");
     acceptBtn.classList.remove("hidden");
     show();
     track("install", { step: "shown", platform: "android" });
