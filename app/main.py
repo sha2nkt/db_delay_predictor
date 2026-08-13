@@ -3,19 +3,20 @@ import re
 from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
+from math import ceil
 from pathlib import Path
 from typing import Literal
 from zoneinfo import ZoneInfo
 
 import anyio
 import httpx
-from curl_cffi.requests.exceptions import HTTPError, RequestException
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from app import bahn_api, delays, feedback, live_delays
+from app import bahn_api, delays, feedback, live_delays, ratelimit
+from app.config import env_int
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -29,6 +30,46 @@ UNTRACKED_PRODUCTS = {"BUS", "TRAM", "UBAHN", "SCHIFF", "ANRUFPFLICHTIG"}
 # Self-hosted Umami; proxied first-party under /stats/* so adblock list rules
 # for analytics hosts/paths don't match.
 umami = httpx.AsyncClient(base_url="http://127.0.0.1:3001", timeout=5)
+
+# Per-client search budget: bursty legitimate use (outbound + return + paging +
+# one retry) stays well inside it; only hammering trips it. Limits are per
+# process, which is global in this single-worker deployment.
+CLIENT_SEARCH_BURST_LIMIT = env_int("CLIENT_SEARCH_BURST_LIMIT", 10)
+CLIENT_SEARCH_BURST_WINDOW = 10
+CLIENT_SEARCH_PER_MINUTE_LIMIT = env_int("CLIENT_SEARCH_PER_MINUTE_LIMIT", 40)
+
+_search_limiter = ratelimit.SlidingWindowLimiter(
+    burst_limit=CLIENT_SEARCH_BURST_LIMIT,
+    burst_window=CLIENT_SEARCH_BURST_WINDOW,
+    sustained_limit=CLIENT_SEARCH_PER_MINUTE_LIMIT,
+    sustained_window=60,
+)
+
+
+def client_ip(request: Request) -> str:
+    """Real client IP. cf-connecting-ip is trustworthy in this deployment:
+    production is reachable only through the Cloudflare tunnel (no open inbound
+    port), so the header always comes from Cloudflare itself. Direct dev/LAN
+    requests carry no such header and fall back to the socket address."""
+    return request.headers.get("cf-connecting-ip") or (
+        request.client.host if request.client else ""
+    )
+
+
+def _upstream_http_error(e: bahn_api.UpstreamError) -> HTTPException:
+    """Map the upstream failure taxonomy to what our clients should see: a
+    throttled or unreachable bahn.de is a temporary outage (503 + Retry-After);
+    only a genuinely unusable response is a bad gateway (502). Details stay
+    generic — no internal URLs, headers or anti-bot specifics."""
+    if isinstance(e, bahn_api.UpstreamProtocolError):
+        return HTTPException(502, "bahn.de returned an unusable response")
+    retry_in = max(1, ceil(e.retry_after or bahn_api.RATE_BASE_COOLDOWN))
+    detail = (
+        "bahn.de is rate-limiting requests; please retry shortly"
+        if isinstance(e, bahn_api.UpstreamRateLimited)
+        else "bahn.de is temporarily unavailable; please retry shortly"
+    )
+    return HTTPException(503, detail, headers={"Retry-After": str(retry_in)})
 
 
 _rows = 0
@@ -64,8 +105,8 @@ async def locations(query: str, response: Response):
         return local
     try:
         results = await bahn_api.locations(query)
-    except RequestException as e:
-        raise HTTPException(502, f"bahn.de error: {e}")
+    except bahn_api.UpstreamError as e:
+        raise _upstream_http_error(e)
     return [
         {"id": r["id"], "extId": r["extId"], "name": r["name"]}
         for r in results
@@ -239,7 +280,7 @@ async def _replan(origin: dict, dest: dict, ready) -> dict | None:
             f"A=1@O={dest['name']}@L={dest['id']}@",
             ready.strftime("%Y-%m-%dT%H:%M:%S"),
         )
-    except (HTTPError, RequestException):
+    except bahn_api.UpstreamError:
         return None  # transient: don't cache failures
     _replan_cache[key] = data
     _replan_cache.move_to_end(key)
@@ -414,6 +455,7 @@ def compensation_pct(arrival_delay: int | None) -> int | None:
 
 @app.get("/api/journeys")
 async def journeys(
+    request: Request,
     response: Response,
     from_id: str = Query(alias="from"),
     to_id: str = Query(alias="to"),
@@ -427,6 +469,14 @@ async def journeys(
         raise HTTPException(422, "window must be 7, 15 or 30")
     if mode not in ("future", "past"):
         raise HTTPException(422, "mode must be future or past")
+    # our own limit on this client, distinct from bahn.de throttling us (503)
+    wait = _search_limiter.retry_after(client_ip(request))
+    if wait is not None:
+        bahn_api.metrics["client_rate_limited"] += 1
+        raise HTTPException(
+            429, "too many searches; please slow down",
+            headers={"Retry-After": str(wait)},
+        )
     response.headers["Cache-Control"] = "public, max-age=120"
     past = mode == "past"
     # the D-Ticket is excluded from Fahrgastrechte compensation, so the filter
@@ -434,14 +484,8 @@ async def journeys(
     dticket = dticket and not past
     try:
         data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket)
-    except HTTPError as e:
-        # the circuit-breaker fail-fast raises HTTPError without a .response
-        upstream = getattr(e, "response", None)
-        if upstream is not None:
-            raise HTTPException(502, f"bahn.de error {upstream.status_code}: {upstream.text[:300]}")
-        raise HTTPException(502, f"bahn.de error: {e}")
-    except RequestException as e:
-        raise HTTPException(502, f"bahn.de error: {e}")
+    except bahn_api.UpstreamError as e:
+        raise _upstream_http_error(e)
     if stale_age:
         # a degraded answer must not be cached by the edge or the browser: the
         # fresh one can be a single upstream recovery away
@@ -572,6 +616,7 @@ async def health():
             "delayOnDate": len(delays._date_cache),
             "departureOnDate": len(delays._dep_date_cache),
         },
+        "upstream": bahn_api.status(),
     }
 
 
@@ -680,11 +725,7 @@ def _spawn(coro) -> None:
 
 @app.post("/api/feedback", status_code=204)
 async def submit_feedback(fb: Feedback, request: Request) -> Response:
-    # real client IP behind the Cloudflare tunnel, as in the analytics proxy above
-    ip = request.headers.get("cf-connecting-ip") or (
-        request.client.host if request.client else ""
-    )
-    if feedback.throttled(ip):
+    if feedback.throttled(client_ip(request)):
         raise HTTPException(429, "too many submissions")
     text = fb.text.strip()
     # sqlite3 blocks and /health doubles as an event-loop canary: keep the write off it
