@@ -1820,6 +1820,8 @@ function buildDayChart(stats, refEl) {
   const band = plotW / slots.length;
   const barW = Math.min(24, Math.max(2, band - 2));  // 2px surface gap between bars
   const labelEvery = slots.length <= 10 ? 1 : slots.length <= 16 ? 2 : 5;
+  const showVals = band >= 18;  // value labels only where adjacent ones can't collide
+  const valSize = slots.length <= 10 ? 10 : 9;
   const colors = { green: "#2a7230", yellow: "#b8860b", red: "#c50014" };
 
   // clicking/tapping a day shows its details (incl. delay reason) in a bubble
@@ -1874,11 +1876,14 @@ function buildDayChart(stats, refEl) {
       const fill = v < 3 ? colors.green : v < 10 ? colors.yellow : colors.red;
       if (v !== 0) {
         svg.appendChild(svgEl("path", { d: barPath(cx - barW / 2, barW, y(0), y(v)), fill }));
+      } else {
+        // baseline stub so an on-time day is distinguishable from a no-data gap
+        svg.appendChild(svgEl("rect", { x: cx - barW / 2, y: y(0) - 2, width: barW, height: 2, fill }));
       }
-      if (slots.length <= 10) {
+      if (showVals) {
         svg.appendChild(svgEl("text", {
           x: cx, y: v >= 0 ? y(v) - 4 : y(v) + 11, "text-anchor": "middle",
-          "font-size": 10, fill: "#646973",
+          "font-size": valSize, fill: "#646973",
         }, `${v >= 0 ? "+" : ""}${v}`));
       }
     }
@@ -1892,7 +1897,7 @@ function buildDayChart(stats, refEl) {
     // bubble anchor: top of the bar, clearing the ✕ glyph / the value label
     let tipY = y(0);
     if (rec?.canceled) tipY = y(0) - 18;
-    else if (rec) tipY = y(Math.max(rec.delay, 0)) - (slots.length <= 10 && rec.delay >= 0 ? 14 : 0);
+    else if (rec) tipY = y(Math.max(rec.delay, 0)) - (showVals && rec.delay >= 0 ? 14 : 0);
 
     // full-height hover/click target with a native tooltip
     const hit = svgEl("rect", { x: x0, y: m.top, width: band, height: plotH, fill: "transparent", cursor: "pointer" });
