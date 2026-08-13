@@ -105,8 +105,14 @@ async def locations(query: str, response: Response):
         return local
     try:
         results = await bahn_api.locations(query)
-    except bahn_api.UpstreamError as e:
-        raise _upstream_http_error(e)
+    except bahn_api.UpstreamError:
+        # Autocomplete is a suggestion, not an answer: an empty list degrades to
+        # "no match for this typo", which is what the user sees anyway, while an
+        # error status paints the search mask red mid-typing. The station index
+        # above already answers everything with delay data, so this only affects
+        # rural stops, POIs and misspellings.
+        response.headers["Cache-Control"] = "no-store"
+        return []
     return [
         {"id": r["id"], "extId": r["extId"], "name": r["name"]}
         for r in results
@@ -234,6 +240,11 @@ def tight_transfers(legs: list[dict]) -> list[dict]:
 
 # how often a past journey may be re-planned after missed connections
 MAX_REPLANS = 3
+
+# ceiling on the optional "if you miss this transfer" lookups one future-mode
+# search may trigger; each is an extra bahn.de call, and the first few cover the
+# transfers a reader actually opens
+MAX_IF_MISSED_REPLANS = env_int("BAHN_MAX_IF_MISSED_REPLANS", 3)
 
 # Holds raw bahn.de journey payloads (100-500KB each). The previous wholesale clear at
 # 5000 entries allowed ~1-2GB of transient growth on top of a ~6GB process, so evict LRU.
@@ -580,15 +591,18 @@ async def journeys(
             })
         journeys_out.append(journey)
 
-    if not past:
-        # one bahn.de replan per tight transfer; _replan and the bahn_api task
-        # cache dedupe identical (station, destination, minute) lookups
+    # One extra bahn.de replan per tight transfer, on top of the search itself —
+    # the biggest multiplier on our upstream rate, and only an enrichment (the
+    # disclosure simply stays closed without it). So it is skipped whenever
+    # bahn.de is already straining, and capped per search either way; _replan and
+    # the bahn_api task cache dedupe identical (station, destination, minute)
+    # lookups on top of that.
+    if not past and not stale_age and bahn_api.healthy():
         async def fill(j: dict, tt: dict) -> None:
             tt["ifMissed"] = await _if_missed_connection(j["legs"], tt, window)
 
-        await asyncio.gather(*(
-            fill(j, tt) for j in journeys_out for tt in j["tightTransfers"]
-        ))
+        pending = [(j, tt) for j in journeys_out for tt in j["tightTransfers"]]
+        await asyncio.gather(*(fill(j, tt) for j, tt in pending[:MAX_IF_MISSED_REPLANS]))
 
     ref = data.get("verbindungReference") or {}
     out = {"journeys": journeys_out, "earlierRef": ref.get("earlier"), "laterRef": ref.get("later")}

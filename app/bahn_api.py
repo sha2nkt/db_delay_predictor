@@ -204,12 +204,16 @@ class CircuitBreaker:
         self._transition("open")
 
     def _open(self, floor: float | None) -> None:
-        cooldown = min(self._max, self._base * (2 ** self._streak) * random.uniform(1.0, 1.25))
         if floor is not None:
-            # respect Retry-After, but never sleep longer than the cap: if the
-            # ask was larger the half-open probe will simply get 429'd again
-            cooldown = max(cooldown, min(floor, self._max))
-        self._streak += 1
+            # bahn.de named a wait: that number is better information than any
+            # backoff we could guess, so use it as-is (capped) and don't let the
+            # escalation ladder stretch a 45 s ask into minutes. The streak is
+            # left alone for the same reason — an answered "wait 45 s" is not
+            # evidence that the next cooldown should be longer.
+            cooldown = min(floor, self._max)
+        else:
+            cooldown = min(self._max, self._base * (2 ** self._streak) * random.uniform(1.0, 1.25))
+            self._streak += 1
         self._cooldown = cooldown
         self._until = self._clock() + cooldown
         metrics["circuit_opened"] += 1
@@ -538,6 +542,13 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
         metrics["stale_misses"] += 1
         raise
     return data, 0
+
+
+def healthy() -> bool:
+    """True when bahn.de is answering normally. Optional enrichment calls check
+    this first so they don't spend a strained upstream budget that the searches
+    users are actually waiting on need."""
+    return _breaker.state == "closed"
 
 
 def status() -> dict:

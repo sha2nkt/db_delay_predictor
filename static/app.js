@@ -99,7 +99,7 @@ const I18N = {
     searching: "Suche Verbindungen…",
     noResults: "Keine Verbindungen gefunden.",
     error: (msg) => `Fehler: ${msg}`,
-    overloadRetry: "DB-Server überlastet – neuer Versuch in ein paar Sekunden…",
+    overloadRetryIn: (s) => `DB-Server überlastet – neuer Versuch in ${s} s…`,
     overloadFail: "Die DB-Server sind gerade überlastet. Bitte versuch es in einer Minute noch einmal.",
     staleNotice: (min) => `DB-Server überlastet – Ergebnisse vom Stand vor ${min} Min.`,
     noData: "keine Daten",
@@ -262,7 +262,7 @@ const I18N = {
     searching: "Searching for connections…",
     noResults: "No connections found.",
     error: (msg) => `Error: ${msg}`,
-    overloadRetry: "DB's servers are busy – retrying in a few seconds…",
+    overloadRetryIn: (s) => `DB's servers are busy – retrying in ${s} s…`,
     overloadFail: "DB's servers are overloaded right now. Please try again in a minute.",
     staleNotice: (min) => `DB servers busy – results as of ${min} min ago.`,
     noData: "no data",
@@ -931,11 +931,47 @@ function searchLeg() {
     : { from: state.to, to: state.from, departure: state.returnDeparture };
 }
 
-// bahn.de shedding load (a 429 behind our 502) usually clears within seconds —
-// the server swaps its session — so one delayed retry often saves the search
+// bahn.de rate-limits the session all our searches share, and says how long it
+// wants us to wait (Retry-After, ~45 s, passed through on our 503). Waiting that
+// out beats failing: the search then succeeds a little late instead of telling
+// the user to come back. A fixed short retry used to land inside the same window
+// and fail for certain.
 const RETRYABLE = new Set([429, 502, 503, 504]);
+// no or unparsable Retry-After: long enough not to pile straight back on
+const RETRY_FALLBACK_S = 8;
+// never sit on one wait longer than this, however long the header asks for
+const RETRY_MAX_WAIT_S = 60;
+// total time a search may spend waiting before giving up on it
+const RETRY_MAX_TOTAL_S = 75;
 
-async function fetchJourneys(pagingRef, isRetry = false) {
+// Bumped by every new search intent, so a retry still counting down for an
+// abandoned search neither renders into the new one nor keeps the button locked.
+let searchGen = 0;
+
+function retryAfterSeconds(resp) {
+  const raw = (resp.headers.get("Retry-After") || "").trim();
+  if (!raw) return RETRY_FALLBACK_S;
+  const secs = Number(raw);
+  if (Number.isFinite(secs) && secs >= 0) return secs;
+  const when = Date.parse(raw);  // the HTTP-date form
+  if (!Number.isNaN(when)) return Math.max(0, Math.round((when - Date.now()) / 1000));
+  return RETRY_FALLBACK_S;
+}
+
+// Counts the wait down in the status line: a visible "retrying in 41 s" reads as
+// progress, where a frozen spinner for the same 45 s reads as a hang.
+// Resolves false when a newer search superseded this one.
+async function waitBeforeRetry(seconds, gen) {
+  for (let left = Math.ceil(seconds); left > 0; left--) {
+    if (gen !== searchGen) return false;
+    statusEl.classList.remove("error");
+    setStatus("overloadRetryIn", left);
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return gen === searchGen;
+}
+
+async function fetchJourneys(pagingRef) {
   const win = document.getElementById("window").value;
   // the toggle is hidden in past mode: a leftover checked state must not filter
   const dticket = state.mode !== "past" && document.getElementById("dticket").checked;
@@ -946,22 +982,30 @@ async function fetchJourneys(pagingRef, isRetry = false) {
   if (state.mode === "past") params.set("mode", "past");
   if (dticket) params.set("dticket", "1");
   if (pagingRef) params.set("pagingRef", pagingRef);
-  const resp = await fetch(`/api/journeys?${params}`);
-  if (!resp.ok) {
-    if (RETRYABLE.has(resp.status) && !isRetry) {
-      statusEl.classList.remove("error");
-      setStatus("overloadRetry");
-      await new Promise((r) => setTimeout(r, 4500));
-      return fetchJourneys(pagingRef, true);
+
+  const gen = searchGen;
+  let waited = 0;
+  for (;;) {
+    const resp = await fetch(`/api/journeys?${params}`);
+    if (resp.ok) {
+      state.windowUsed = Number(win);
+      state.dticketUsed = dticket;
+      return resp.json();
     }
-    const body = await resp.json().catch(() => ({}));
-    const err = new Error(body.detail || `HTTP ${resp.status}`);
-    err.overloaded = RETRYABLE.has(resp.status);
-    throw err;
+    // wait out the server's own cooldown, as often as its budget allows
+    const wait = Math.min(retryAfterSeconds(resp), RETRY_MAX_WAIT_S);
+    if (!RETRYABLE.has(resp.status) || waited + wait > RETRY_MAX_TOTAL_S) {
+      const body = await resp.json().catch(() => ({}));
+      const err = new Error(body.detail || `HTTP ${resp.status}`);
+      err.overloaded = RETRYABLE.has(resp.status);
+      throw err;
+    }
+    waited += wait;
+    if (!(await waitBeforeRetry(wait, gen))) {
+      // a newer search took over: end this one quietly, it owns no UI any more
+      throw Object.assign(new Error("superseded"), { superseded: true });
+    }
   }
-  state.windowUsed = Number(win);
-  state.dticketUsed = dticket;
-  return resp.json();
 }
 
 function lastArrival(journey) {
@@ -1100,6 +1144,7 @@ async function search() {
 // fetches and renders the leg the flow is currently on; search() sets that up,
 // the window/D-Ticket toggles reuse it to refetch without leaving the leg
 async function runSearch() {
+  const gen = ++searchGen;  // supersedes any retry still counting down
   statusEl.classList.remove("error");
   setStatus("searching");
   setStaleNotice(0);
@@ -1130,13 +1175,17 @@ async function runSearch() {
     updatePageButtons();
     render();
   } catch (e) {
+    if (e.superseded) return;  // a newer search owns the UI now
     if (e.overloaded) setStatus("overloadFail");
     else setStatus("error", e.message);
     statusEl.classList.add("error");
   } finally {
-    searchBtn.disabled = false;
-    // the steps behind this one only become pressable now the leg has landed
-    renderTripSteps();
+    // a superseded search must not re-enable the button under the new one
+    if (gen === searchGen) {
+      searchBtn.disabled = false;
+      // the steps behind this one only become pressable now the leg has landed
+      renderTripSteps();
+    }
   }
 }
 
@@ -1321,6 +1370,7 @@ async function loadPage(dir) {
   const ref = dir === "earlier" ? state.earlierRef : state.laterRef;
   if (!ref) return;
   const btn = dir === "earlier" ? earlierBtn : laterBtn;
+  const gen = ++searchGen;  // supersedes any retry still counting down
   btn.disabled = true;
   statusEl.classList.remove("error");
 
@@ -1344,11 +1394,12 @@ async function loadPage(dir) {
     updatePageButtons();
     render();
   } catch (e) {
+    if (e.superseded) return;  // a newer search owns the UI now
     if (e.overloaded) setStatus("overloadFail");
     else setStatus("error", e.message);
     statusEl.classList.add("error");
   } finally {
-    btn.disabled = false;
+    if (gen === searchGen) btn.disabled = false;
   }
 }
 

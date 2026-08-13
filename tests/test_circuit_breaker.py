@@ -102,6 +102,34 @@ def test_retry_after_zero_does_not_force_open():
     assert breaker.state == "closed"  # "retry now" counts toward the threshold only
 
 
+def test_retry_after_wins_over_escalated_backoff():
+    """bahn.de naming a wait is better information than our backoff ladder:
+    a 45 s ask must stay 45 s, not become minutes after repeated opens."""
+    clock = FakeClock()
+    breaker = make(clock, base=30, cap=300)
+    for _ in range(4):  # escalate the ladder well past 45 s
+        fail_until_open(breaker, 3)
+        cooldown = breaker._until - clock()
+        clock.advance(cooldown + 1)
+        breaker.record_failure(breaker.acquire())
+    clock.advance(breaker._until - clock() + 1)
+    breaker.record_success(breaker.acquire())  # close, keeping the streak history
+    breaker.record_failure(probe=False, cooldown_floor=45)
+    assert 44 <= breaker._until - clock() <= 46
+
+
+def test_retry_after_does_not_escalate_the_ladder():
+    """Repeated 429s that keep asking for 45 s keep costing 45 s — the ladder
+    must not turn a steady upstream cadence into minutes of blackout."""
+    clock = FakeClock()
+    breaker = make(clock, base=30, cap=300)
+    breaker.record_failure(probe=False, cooldown_floor=45)
+    for _ in range(3):
+        assert 44 <= breaker._until - clock() <= 46
+        clock.advance(50)
+        breaker.record_failure(breaker.acquire(), cooldown_floor=45)  # probe 429s again
+
+
 def test_retry_after_floor_capped_at_max_cooldown():
     clock = FakeClock()
     breaker = make(clock, cap=300)
