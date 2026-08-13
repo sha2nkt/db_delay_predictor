@@ -155,7 +155,13 @@ async def _request(method: str, path: str, **kwargs):
             _trip_breaker()
         if resp.status_code == 429:
             _note_429()
-            if attempt < len(PROFILES) - 1 and _reset_session(profile):
+            if attempt < len(PROFILES) - 1:
+                # the 429 follows the fingerprint as well as the jar (observed
+                # 2026-08-13: fresh firefox sessions were 429'd on arrival while
+                # fresh safari sessions passed), so move to the next profile and
+                # refresh the penalized jar for its next turn
+                _reset_session(profile)
+                await _rotate(profile)
                 continue
         resp.raise_for_status()
         return resp.json()
