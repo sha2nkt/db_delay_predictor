@@ -58,6 +58,10 @@ _blocked_until = 0.0
 _last_rate_reset = float("-inf")
 _upstream_sem = asyncio.Semaphore(MAX_UPSTREAM_CONCURRENCY)
 _stale: OrderedDict[tuple, tuple[float, dict]] = OrderedDict()  # key -> (stored_at, data)
+# "now" searches roll their 5-min departure bucket, so the exact key above misses
+# minutes after a success; this second index answers by route + travel day instead:
+# (from, to, dticket) -> (stored_at, departure_iso, data)
+_stale_route: OrderedDict[tuple, tuple[float, str, dict]] = OrderedDict()
 _rate_events: deque[float] = deque()
 _last_alert = float("-inf")
 
@@ -167,7 +171,8 @@ async def _request(method: str, path: str, **kwargs):
         return resp.json()
 
 
-def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable], remember: bool = False) -> "asyncio.Task":
+def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable],
+            on_success: Callable[[dict], None] | None = None) -> "asyncio.Task":
     hit = _cache.get(key)
     if hit and (time.monotonic() < hit[0] or not hit[1].done()):
         _cache.move_to_end(key)
@@ -185,13 +190,10 @@ def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable], remember: bool 
             entry = _cache.get(key)
             if entry and entry[1] is done:
                 del _cache[key]
-        elif remember:
-            # stamped here, at fetch completion, so the served age is the data's
-            # real age rather than the age of the newest cache hit
-            _stale[key] = (time.monotonic(), done.result())
-            _stale.move_to_end(key)
-            while len(_stale) > STALE_MAX:
-                _stale.popitem(last=False)
+        elif on_success is not None:
+            # invoked here, at fetch completion, so a remembered age is the
+            # data's real age rather than the age of the newest cache hit
+            on_success(done.result())
 
     task.add_done_callback(settle)
     return task
@@ -252,17 +254,43 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     if paging_ref:
         body["pagingReference"] = paging_ref
     key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket)
+    # paged responses are offsets into a result list, so they only ever stand in
+    # for the same page (exact key), never for the route's primary answer
+    route = (from_id, to_id, dticket) if paging_ref is None else None
+
+    def keep(data: dict) -> None:
+        now = time.monotonic()
+        _stale[key] = (now, data)
+        _stale.move_to_end(key)
+        while len(_stale) > STALE_MAX:
+            _stale.popitem(last=False)
+        if route is not None:
+            _stale_route[route] = (now, departure_iso, data)
+            _stale_route.move_to_end(route)
+            while len(_stale_route) > STALE_MAX:
+                _stale_route.popitem(last=False)
+
     try:
         data = await _cached(
             key, JOURNEYS_TTL,
             lambda: _request("post", "/angebote/fahrplan", json=body),
-            remember=True,
+            on_success=keep,
         )
     except RequestException:
+        now = time.monotonic()
         hit = _stale.get(key)
-        if hit is None or time.monotonic() - hit[0] > STALE_TTL:
-            raise
-        age = int(time.monotonic() - hit[0])
-        log.warning("bahn.de unavailable; serving %ss-old journeys for %s -> %s", age, from_id, to_id)
-        return hit[1], age
+        if hit and now - hit[0] <= STALE_TTL:
+            age = int(now - hit[0])
+            log.warning("bahn.de unavailable; serving %ss-old journeys for %s -> %s", age, from_id, to_id)
+            return hit[1], age
+        # same route and travel day but a newer departure bucket: still a useful
+        # answer, and never across days — a past-mode compensation check must not
+        # get another day's journeys
+        r = _stale_route.get(route) if route is not None else None
+        if r and now - r[0] <= STALE_TTL and r[1][:10] == departure_iso[:10]:
+            age = int(now - r[0])
+            log.warning("bahn.de unavailable; serving %ss-old journeys (route match) for %s -> %s",
+                        age, from_id, to_id)
+            return r[2], age
+        raise
     return data, 0
