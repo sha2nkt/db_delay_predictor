@@ -1428,6 +1428,10 @@ async function loadPage(dir) {
   const ref = dir === "earlier" ? state.earlierRef : state.laterRef;
   if (!ref) return;
   const btn = dir === "earlier" ? earlierBtn : laterBtn;
+  // counted on intent, not on success: a page that fails upstream is still a
+  // user who wanted one. How often this fires decides whether prefetching the
+  // adjacent pages is worth the extra bahn.de calls.
+  track("page", { dir, leg: state.leg });
   const gen = ++searchGen;  // supersedes any retry still counting down
   btn.disabled = true;
   statusEl.classList.remove("error");
