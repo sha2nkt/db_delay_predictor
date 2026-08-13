@@ -21,17 +21,28 @@ BASE_URL = "https://www.bahn.de/web/api"
 # So keep spares and rotate to the next profile whenever one gets blocked.
 PROFILES = ["firefox135", "safari17_0", "chrome"]
 
-JOURNEYS_TTL = 120
+JOURNEYS_TTL = 300
 LOCATIONS_TTL = 600
 CACHE_MAX = 512
 
 # how long to stop calling bahn.de after every profile has been blocked
 BLOCK_COOLDOWN = 30
 
+# Akamai also rate-limits per session (429), not per IP: once the shared cookie
+# jar exceeds its budget it stays penalized for as long as traffic keeps coming.
+# A fresh jar clears it — but swap at most once a minute, the cadence of
+# restarting a browser, and rely on caching to keep the request rate survivable.
+RATE_RESET_INTERVAL = 60
+
+# spike insurance: bound how many requests we fan out to bahn.de at once
+MAX_UPSTREAM_CONCURRENCY = 4
+
 _sessions: dict[str, requests.AsyncSession] = {}
 _profile_idx = 0
 _rotate_lock = asyncio.Lock()
 _blocked_until = 0.0
+_last_rate_reset = float("-inf")
+_upstream_sem = asyncio.Semaphore(MAX_UPSTREAM_CONCURRENCY)
 
 
 def _trip_breaker() -> None:
@@ -65,6 +76,19 @@ async def _rotate(blocked: str) -> None:
         log.warning("bahn.de blocked impersonate=%s, switching to %s", blocked, PROFILES[_profile_idx])
 
 
+def _reset_session(profile: str) -> bool:
+    global _last_rate_reset
+    now = time.monotonic()
+    if now - _last_rate_reset < RATE_RESET_INTERVAL:
+        return False
+    _last_rate_reset = now
+    old = _sessions.pop(profile, None)
+    if old is not None:
+        asyncio.ensure_future(old.close())
+    log.warning("bahn.de rate-limited (429) impersonate=%s; starting a fresh session", profile)
+    return True
+
+
 async def _request(method: str, path: str, **kwargs):
     # Every profile 403'd recently: Akamai is blocking us wholesale, and retrying all
     # three profiles per request would triple our outbound rate at exactly the moment
@@ -74,12 +98,15 @@ async def _request(method: str, path: str, **kwargs):
 
     for attempt in range(len(PROFILES)):
         profile = PROFILES[_profile_idx]
-        resp = await getattr(_session(profile), method)(f"{BASE_URL}{path}", **kwargs)
+        async with _upstream_sem:
+            resp = await getattr(_session(profile), method)(f"{BASE_URL}{path}", **kwargs)
         if resp.status_code == 403 and attempt < len(PROFILES) - 1:
             await _rotate(profile)
             continue
         if resp.status_code == 403:
             _trip_breaker()
+        if resp.status_code == 429 and attempt < len(PROFILES) - 1 and _reset_session(profile):
+            continue
         resp.raise_for_status()
         return resp.json()
 
@@ -131,6 +158,12 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     dticket=True restricts results to Deutschland-Ticket-valid connections — the same
     two flags the bahn.de search mask toggle sends.
     """
+    # Searches default to "now", so the departure minute fragments the cache: the
+    # same route searched a minute apart misses every time. Floor to 5-minute
+    # buckets — results then start at most 4 minutes earlier than asked for.
+    if len(departure_iso) >= 16 and departure_iso[14:16].isdigit():
+        minute = int(departure_iso[14:16])
+        departure_iso = f"{departure_iso[:14]}{minute - minute % 5:02d}:00"
     body = {
         "abfahrtsHalt": from_id,
         "ankunftsHalt": to_id,
