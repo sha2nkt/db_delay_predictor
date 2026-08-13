@@ -435,7 +435,11 @@ async def journeys(
     try:
         data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket)
     except HTTPError as e:
-        raise HTTPException(502, f"bahn.de error {e.response.status_code}: {e.response.text[:300]}")
+        # the circuit-breaker fail-fast raises HTTPError without a .response
+        upstream = getattr(e, "response", None)
+        if upstream is not None:
+            raise HTTPException(502, f"bahn.de error {upstream.status_code}: {upstream.text[:300]}")
+        raise HTTPException(502, f"bahn.de error: {e}")
     except RequestException as e:
         raise HTTPException(502, f"bahn.de error: {e}")
     if stale_age:
