@@ -57,7 +57,7 @@ def sx(v): return X0 + (v / AXIS_MAX) * (X1 - X0)
 def sy(v): return Y1 - (v / AXIS_MAX) * (Y1 - Y0)
 
 dots = "\n".join(
-    f'  <circle cx="{sx(r.h1):.1f}" cy="{sy(r.h2):.1f}" r="3" fill="#ec0016" fill-opacity="0.22"/>'
+    f'  <circle cx="{sx(r.h1):.1f}" cy="{sy(r.h2):.1f}" r="3" fill="#fd1c17" fill-opacity="0.22"/>'
     for r in sample.itertuples()
 )
 grid = "\n".join(

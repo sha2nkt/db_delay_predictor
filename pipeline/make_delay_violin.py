@@ -61,8 +61,8 @@ for i, (lo, hi) in enumerate(BINS):
     left = [f"{cx - wi:.1f},{sy(y):.1f}" for y, wi in zip(grid_y[::-1], w[::-1])]
     q1, med, q3 = np.percentile(vals, [25, 50, 75])
     violins.append(
-        f'  <polygon points="{" ".join(right + left)}" fill="#ec0016" fill-opacity="0.14" '
-        f'stroke="#ec0016" stroke-width="1.5" stroke-linejoin="round"/>\n'
+        f'  <polygon points="{" ".join(right + left)}" fill="#fd1c17" fill-opacity="0.14" '
+        f'stroke="#fd1c17" stroke-width="1.5" stroke-linejoin="round"/>\n'
         f'  <line x1="{cx:.1f}" y1="{sy(q1):.1f}" x2="{cx:.1f}" y2="{sy(q3):.1f}" '
         f'stroke="#8f000e" stroke-width="4" stroke-linecap="round"/>\n'
         f'  <circle cx="{cx:.1f}" cy="{sy(med):.1f}" r="4.5" fill="#8f000e" stroke="#ffffff" stroke-width="2"/>'

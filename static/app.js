@@ -522,8 +522,8 @@ function reasonText(code) {
 }
 
 const chartSrcs = {
-  scatter: { de: "delay-correlation.svg?v=3", en: "delay-correlation-en.svg?v=3", alt: "chartAlt" },
-  violin: { de: "delay-violin.svg?v=2", en: "delay-violin-en.svg?v=2", alt: "violinAlt" },
+  scatter: { de: "delay-correlation.svg?v=4", en: "delay-correlation-en.svg?v=4", alt: "chartAlt" },
+  violin: { de: "delay-violin.svg?v=3", en: "delay-violin-en.svg?v=3", alt: "violinAlt" },
 };
 
 function updateChartImg() {

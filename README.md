@@ -1,6 +1,6 @@
 # DB Delay Predictor
 
-[![Live at delaybahn.com](https://img.shields.io/badge/live-delaybahn.com-EC0016)](https://delaybahn.com)
+[![Live at delaybahn.com](https://img.shields.io/badge/live-delaybahn.com-FD1C17)](https://delaybahn.com)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009485?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![DuckDB](https://img.shields.io/badge/DuckDB-FFF000?logo=duckdb&logoColor=black)](https://duckdb.org/)
