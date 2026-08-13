@@ -678,7 +678,20 @@ if (PAST_PAGE) searchBtn.dataset.i18n = "searchPast";
 const earlierBtn = document.getElementById("earlier");
 const laterBtn = document.getElementById("later");
 
-searchBtn.addEventListener("click", search);
+// on phones the outcome of a tapped search — the list, the "no connections"
+// note or an error — lands below the fold, and a visitor who sees nothing
+// move re-taps "search"; bring it into view unless it already is
+function scrollResultsIntoView() {
+  const anchor = !tripStepsEl.classList.contains("hidden") ? tripStepsEl
+    : !controlsEl.classList.contains("hidden") ? controlsEl : statusEl;
+  if (anchor.getBoundingClientRect().top < window.innerHeight * 0.5) return;
+  anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+searchBtn.addEventListener("click", async () => {
+  await search();
+  scrollResultsIntoView();
+});
 earlierBtn.addEventListener("click", () => loadPage("earlier"));
 laterBtn.addEventListener("click", () => loadPage("later"));
 
