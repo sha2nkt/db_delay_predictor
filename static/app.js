@@ -25,6 +25,7 @@ const state = {
   outboundResults: null,  // cached outbound list, so going back doesn't refetch
   returnJourney: null,  // journey picked on the return step
   returnResults: null,  // cached return list, so going back doesn't refetch
+  returnPrefetch: null,  // {departure, data} proven answerable by the search's preflight
 };
 
 // DB digital compensation flow lives in the customer account's past-trips list
@@ -102,6 +103,9 @@ const I18N = {
     overloadRetryIn: (s) => `DB-Server überlastet – neuer Versuch in ${s} s…`,
     overloadFail: "Die DB-Server sind gerade überlastet. Bitte versuch es in einer Minute noch einmal.",
     staleNotice: (min) => `DB-Server überlastet – Ergebnisse vom Stand vor ${min} Min.`,
+    returnChecking: "Prüfe Verbindungen für die Rückfahrt…",
+    returnRetryIn: (s) => `Rückfahrt noch nicht abrufbar – neuer Versuch in ${s} s…`,
+    returnUnavailable: "Die Rückfahrt lässt sich gerade nicht abrufen – die DB-Server sind überlastet. Bitte versuch es in einer Minute noch einmal.",
     noData: "keine Daten",
     notTracked: "nicht erfasst",
     notTrackedTooltip: "Für U-Bahn, Tram, Bus und Fähre werden keine Verspätungsdaten erhoben",
@@ -265,6 +269,9 @@ const I18N = {
     overloadRetryIn: (s) => `DB's servers are busy – retrying in ${s} s…`,
     overloadFail: "DB's servers are overloaded right now. Please try again in a minute.",
     staleNotice: (min) => `DB servers busy – results as of ${min} min ago.`,
+    returnChecking: "Checking connections for the return journey…",
+    returnRetryIn: (s) => `Return journey not available yet – retrying in ${s} s…`,
+    returnUnavailable: "The return journey can't be loaded right now – DB's servers are overloaded. Please try again in a minute.",
     noData: "no data",
     notTracked: "not tracked",
     notTrackedTooltip: "Delay data isn't collected for metro, tram, bus and ferry services",
@@ -700,6 +707,7 @@ function refetchCurrentLeg() {
   // the picked return may not survive the new filter, so step 3 cannot stand
   if (state.leg === "summary") state.leg = "return";
   // the cached lists were fetched with the settings that just changed
+  state.returnPrefetch = null;
   if (state.leg === "return") {
     state.outboundResults = null;
     state.returnJourney = null;
@@ -943,6 +951,10 @@ const RETRY_FALLBACK_S = 8;
 const RETRY_MAX_WAIT_S = 60;
 // total time a search may spend waiting before giving up on it
 const RETRY_MAX_TOTAL_S = 75;
+// The return preflight gets a longer budget than a plain search: its result
+// gates a list the user is already waiting for, and giving up means throwing
+// away the outbound answer we just paid an upstream call for.
+const PREFLIGHT_MAX_TOTAL_S = 150;
 
 // Bumped by every new search intent, so a retry still counting down for an
 // abandoned search neither renders into the new one nor keeps the button locked.
@@ -961,21 +973,25 @@ function retryAfterSeconds(resp) {
 // Counts the wait down in the status line: a visible "retrying in 41 s" reads as
 // progress, where a frozen spinner for the same 45 s reads as a hang.
 // Resolves false when a newer search superseded this one.
-async function waitBeforeRetry(seconds, gen) {
+async function waitBeforeRetry(seconds, gen, statusKey) {
   for (let left = Math.ceil(seconds); left > 0; left--) {
     if (gen !== searchGen) return false;
     statusEl.classList.remove("error");
-    setStatus("overloadRetryIn", left);
+    setStatus(statusKey, left);
     await new Promise((r) => setTimeout(r, 1000));
   }
   return gen === searchGen;
 }
 
-async function fetchJourneys(pagingRef) {
+// opts: {leg} to fetch a leg other than the one on screen (the return preflight),
+// {maxTotal, retryStatusKey} to give that fetch its own retry budget and wording.
+async function fetchJourneys(pagingRef, opts = {}) {
+  const maxTotal = opts.maxTotal ?? RETRY_MAX_TOTAL_S;
+  const retryStatusKey = opts.retryStatusKey ?? "overloadRetryIn";
   const win = document.getElementById("window").value;
   // the toggle is hidden in past mode: a leftover checked state must not filter
   const dticket = state.mode !== "past" && document.getElementById("dticket").checked;
-  const leg = searchLeg();
+  const leg = opts.leg ?? searchLeg();
   const params = new URLSearchParams({
     from: leg.from.id, to: leg.to.id, departure: leg.departure, window: win,
   });
@@ -992,16 +1008,17 @@ async function fetchJourneys(pagingRef) {
       state.dticketUsed = dticket;
       return resp.json();
     }
-    // wait out the server's own cooldown, as often as its budget allows
-    const wait = Math.min(retryAfterSeconds(resp), RETRY_MAX_WAIT_S);
-    if (!RETRYABLE.has(resp.status) || waited + wait > RETRY_MAX_TOTAL_S) {
+    // wait out the server's own cooldown, as often as its budget allows; the
+    // floor keeps a Retry-After of 0 from spinning the loop against the budget
+    const wait = Math.max(1, Math.min(retryAfterSeconds(resp), RETRY_MAX_WAIT_S));
+    if (!RETRYABLE.has(resp.status) || waited + wait > maxTotal) {
       const body = await resp.json().catch(() => ({}));
       const err = new Error(body.detail || `HTTP ${resp.status}`);
       err.overloaded = RETRYABLE.has(resp.status);
       throw err;
     }
     waited += wait;
-    if (!(await waitBeforeRetry(wait, gen))) {
+    if (!(await waitBeforeRetry(wait, gen, retryStatusKey))) {
       // a newer search took over: end this one quietly, it owns no UI any more
       throw Object.assign(new Error("superseded"), { superseded: true });
     }
@@ -1129,6 +1146,7 @@ async function search() {
   state.outboundResults = null;
   state.returnJourney = null;
   state.returnResults = null;
+  state.returnPrefetch = null;
   syncUrl();
   track("search", {
     from: state.from.name,
@@ -1161,6 +1179,10 @@ async function runSearch() {
 
   try {
     const data = await fetchJourneys(null);
+    // an outbound list the user can act on implies a return list behind it
+    if (state.returnTrip && state.leg === "outbound" && (data.journeys || []).length) {
+      await preflightReturn();
+    }
     state.journeys = usableJourneys(data.journeys || []);
     state.earlierRef = data.earlierRef || null;
     state.laterRef = data.laterRef || null;
@@ -1176,7 +1198,9 @@ async function runSearch() {
     render();
   } catch (e) {
     if (e.superseded) return;  // a newer search owns the UI now
-    if (e.overloaded) setStatus("overloadFail");
+    // the outbound may well have come back fine: say which half is missing
+    if (e.returnLeg && e.overloaded) setStatus("returnUnavailable");
+    else if (e.overloaded) setStatus("overloadFail");
     else setStatus("error", e.message);
     statusEl.classList.add("error");
   } finally {
@@ -1190,6 +1214,27 @@ async function runSearch() {
 }
 
 // --- two-step round trip: outbound list, then return list ---
+
+// bahn.de throttles us hard, and step 2 only runs once the user has picked an
+// outbound — so a return leg that cannot be fetched used to surface as a dead
+// end two steps in, or (worse) as a cached answer for some other time of day.
+// Prove the return answerable at the requested time before the outbound list is
+// shown at all, and hand that proven answer to step 2 rather than asking twice.
+async function preflightReturn() {
+  setStatus("returnChecking");
+  const leg = { from: state.to, to: state.from, departure: state.returnDeparture };
+  try {
+    const data = await fetchJourneys(null, {
+      leg,
+      maxTotal: PREFLIGHT_MAX_TOTAL_S,
+      retryStatusKey: "returnRetryIn",
+    });
+    state.returnPrefetch = { departure: leg.departure, data };
+  } catch (e) {
+    e.returnLeg = true;
+    throw e;
+  }
+}
 
 function fmtTripDay(iso) {
   return new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(
@@ -1289,6 +1334,19 @@ function selectOutbound(journey) {
   state.returnDeparture = arrival && wanted < arrival ? arrival : wanted;
   state.leg = "return";
   track("return-continue", { from: state.from?.name, to: state.to?.name });
+  // the preflight already answered this exact query; only a return clamped up to
+  // the outbound arrival, or return fields edited since, needs asking again
+  const pre = state.returnPrefetch;
+  if (pre && pre.departure === state.returnDeparture) {
+    state.returnPrefetch = null;
+    setStaleNotice(pre.data.staleSeconds || 0);
+    restoreList({
+      journeys: usableJourneys(pre.data.journeys || []),
+      earlierRef: pre.data.earlierRef || null,
+      laterRef: pre.data.laterRef || null,
+    });
+    return;
+  }
   runSearch();
 }
 

@@ -49,6 +49,12 @@ MAX_UPSTREAM_CONCURRENCY = env_int("BAHN_MAX_CONCURRENCY", 4)
 STALE_TTL = env_int("BAHN_STALE_CACHE_TTL_SECONDS", 3600)
 STALE_MAX = 256
 
+# A route-level fallback answers a *different* departure time than the one asked
+# for, so it may only stand in for a near-enough one: a 22:00 return served from
+# a 17:00 search reads as the site ignoring the entered time, which is worse
+# than an honest error.
+STALE_ROUTE_MAX_SKEW = env_int("BAHN_STALE_ROUTE_SKEW_SECONDS", 1800)
+
 # Circuit breaker: this many upstream failures (429/5xx/timeouts) within the
 # window open it; while open every call fails fast (stale data still serves).
 # The cooldown starts at the base, doubles per consecutive open, is capped at
@@ -455,6 +461,15 @@ async def locations(query: str) -> list[dict]:
     ))
 
 
+def _departure_skew(a: str, b: str) -> float:
+    """Seconds between two departure timestamps; inf when either is unparsable,
+    so an unusable value can never qualify as a near-enough fallback."""
+    try:
+        return abs((datetime.fromisoformat(a) - datetime.fromisoformat(b)).total_seconds())
+    except ValueError:
+        return float("inf")
+
+
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
                    dticket: bool = False) -> tuple[dict, int]:
     """Returns (data, stale_age_seconds); age is 0 for a fresh answer, else how
@@ -529,11 +544,12 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
             age = int(now - hit[0])
             log.warning("bahn.de unavailable; serving %ss-old journeys for %s -> %s", age, from_id, to_id)
             return hit[1], age
-        # same route and travel day but a newer departure bucket: still a useful
-        # answer, and never across days — a past-mode compensation check must not
-        # get another day's journeys
+        # same route and a near-enough departure bucket: still a useful answer,
+        # and never across days — a past-mode compensation check must not get
+        # another day's journeys
         r = _stale_route.get(route) if route is not None else None
-        if r and now - r[0] <= STALE_TTL and r[1][:10] == departure_iso[:10]:
+        if (r and now - r[0] <= STALE_TTL and r[1][:10] == departure_iso[:10]
+                and _departure_skew(r[1], departure_iso) <= STALE_ROUTE_MAX_SKEW):
             metrics["stale_hits_route"] += 1
             age = int(now - r[0])
             log.warning("bahn.de unavailable; serving %ss-old journeys (route match) for %s -> %s",

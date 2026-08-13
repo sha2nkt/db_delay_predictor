@@ -107,6 +107,18 @@ async def test_route_level_stale_survives_bucket_rollover_same_day_only(bahn):
         await search(departure="2026-08-14T10:00:00")
 
 
+async def test_route_level_stale_not_served_for_another_time_of_day(bahn):
+    """A 22:00 search answered from a 17:00 one reads as the site ignoring the
+    entered time — the reason round trips showed afternoon return connections."""
+    bahn.use(FakeResponse(payload=PAYLOAD))
+    await search(departure="2026-08-13T17:00:00")
+    bahn.clock.advance(400)
+    bahn.use(FakeResponse(429))
+    with pytest.raises(bahn_api.UpstreamRateLimited):
+        await search(departure="2026-08-13T22:00:00")
+    assert bahn_api.metrics["stale_hits_route"] == 0
+
+
 # --- single-flight ---
 
 
