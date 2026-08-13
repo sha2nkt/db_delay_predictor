@@ -1,13 +1,18 @@
 import asyncio
 import logging
 import os
+import random
 import time
-from collections import OrderedDict, deque
+from collections import Counter, OrderedDict, deque
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Awaitable, Callable
 
 import httpx
 from curl_cffi import requests
-from curl_cffi.requests.exceptions import HTTPError, RequestException
+from curl_cffi.requests.exceptions import RequestException
+
+from app.config import env_int
 
 log = logging.getLogger(__name__)
 
@@ -23,49 +28,210 @@ BASE_URL = "https://www.bahn.de/web/api"
 # So keep spares and rotate to the next profile whenever one gets blocked.
 PROFILES = ["firefox135", "safari17_0", "chrome"]
 
-JOURNEYS_TTL = 300
+# All tunables below read the environment once at import (systemd Environment=
+# in production, .env locally via app.config) and fall back to safe defaults.
+# Every piece of state in this module — caches, breaker, counters — is
+# per-process; the app runs as a single uvicorn worker, so in practice these
+# limits are global. With multiple workers each process would keep its own.
+JOURNEYS_TTL = env_int("BAHN_CACHE_TTL_SECONDS", 300)
 LOCATIONS_TTL = 600
 CACHE_MAX = 512
 
 # how long to stop calling bahn.de after every profile has been blocked
 BLOCK_COOLDOWN = 30
 
-# Akamai also rate-limits per session (429), not per IP: once the shared cookie
-# jar exceeds its budget it stays penalized for as long as traffic keeps coming.
-# A fresh jar clears it — but swap at most once a minute, the cadence of
-# restarting a browser, and rely on caching to keep the request rate survivable.
-RATE_RESET_INTERVAL = 60
-
 # spike insurance: bound how many requests we fan out to bahn.de at once
-MAX_UPSTREAM_CONCURRENCY = 4
+MAX_UPSTREAM_CONCURRENCY = env_int("BAHN_MAX_CONCURRENCY", 4)
 
 # When bahn.de refuses (429/403/timeouts), a search that has an earlier answer
 # should degrade to it instead of erroring: journeys are kept for an hour past
 # their cache TTL and served with their age, which the frontend discloses.
-STALE_TTL = 3600
+STALE_TTL = env_int("BAHN_STALE_CACHE_TTL_SECONDS", 3600)
 STALE_MAX = 256
 
-# page via ntfy when 429s keep coming despite the session swap: that means the
-# demand-side mitigations are exhausted and users are seeing degraded results
+# Circuit breaker: this many upstream failures (429/5xx/timeouts) within the
+# window open it; while open every call fails fast (stale data still serves).
+# The cooldown starts at the base, doubles per consecutive open, is capped at
+# the max, and a bahn.de Retry-After header raises it to at least that value.
+CIRCUIT_FAILURE_THRESHOLD = env_int("BAHN_CIRCUIT_FAILURE_THRESHOLD", 5)
+CIRCUIT_FAILURE_WINDOW = env_int("BAHN_CIRCUIT_FAILURE_WINDOW_SECONDS", 60)
+RATE_BASE_COOLDOWN = env_int("BAHN_429_BASE_COOLDOWN_SECONDS", 30)
+RATE_MAX_COOLDOWN = env_int("BAHN_MAX_COOLDOWN_SECONDS", 300)
+HALF_OPEN_PROBES = env_int("BAHN_HALF_OPEN_PROBES", 1)
+
+# a 429 whose Retry-After promises relief within this many seconds is worth
+# waiting out once inside the same request; anything longer fails over to stale
+QUICK_RETRY_MAX_WAIT = 2.0
+
+# page via ntfy when 429s keep coming: that means the demand-side mitigations
+# are exhausted and users are seeing degraded results
 ALERT_THRESHOLD = 8
 ALERT_WINDOW = 300
 ALERT_COOLDOWN = 1800
 
+# One long-lived AsyncSession per impersonation profile: keeps TLS/HTTP2
+# connection pooling and stays on one upstream identity per profile for the
+# process lifetime — every app user deliberately shares it. Load is managed by
+# caching, coalescing, the semaphore and the circuit breaker; a 429 never swaps
+# the cookie jar or fingerprint (that would be rate-limit evasion).
 _sessions: dict[str, requests.AsyncSession] = {}
 _profile_idx = 0
 _rotate_lock = asyncio.Lock()
-_blocked_until = 0.0
-_last_rate_reset = float("-inf")
 _upstream_sem = asyncio.Semaphore(MAX_UPSTREAM_CONCURRENCY)
 _stale: OrderedDict[tuple, tuple[float, dict]] = OrderedDict()  # key -> (stored_at, data)
 _rate_events: deque[float] = deque()
 _last_alert = float("-inf")
 
+# Pipeline counters, exposed via status() on /health. Keys are a small fixed
+# set (no station names, IPs or full journey keys).
+metrics: Counter[str] = Counter()
 
-def _trip_breaker() -> None:
-    global _blocked_until
-    _blocked_until = time.monotonic() + BLOCK_COOLDOWN
-    log.warning("bahn.de blocked every profile; pausing upstream calls for %ss", BLOCK_COOLDOWN)
+
+class UpstreamError(Exception):
+    """Base for every failure talking to bahn.de. retry_after is a hint, in
+    seconds, for how long callers should wait before trying again."""
+
+    def __init__(self, message: str, retry_after: float | None = None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class UpstreamRateLimited(UpstreamError):
+    """bahn.de answered 429 Too Many Requests."""
+
+
+class UpstreamBlocked(UpstreamError):
+    """Akamai 403-blocked every impersonation profile."""
+
+
+class UpstreamUnavailable(UpstreamError):
+    """5xx, network failure/timeout, or the circuit breaker is open."""
+
+
+class UpstreamProtocolError(UpstreamError):
+    """bahn.de answered with something that is not a usable API response."""
+
+
+class CircuitBreaker:
+    """CLOSED -> OPEN after `threshold` failures within `window` seconds (or
+    immediately when bahn.de sends an explicit Retry-After); OPEN fails fast
+    for a cooldown that doubles per consecutive open, jittered and capped;
+    HALF-OPEN then admits `probes` trial calls — a success closes the circuit,
+    a failure reopens it with a longer cooldown.
+
+    Safe for a single event loop without locks: every method mutates state
+    synchronously, so no await point can interleave a transition."""
+
+    def __init__(self, threshold: int, window: float, base_cooldown: float,
+                 max_cooldown: float, probes: int,
+                 clock: Callable[[], float] = time.monotonic):
+        self._threshold = threshold
+        self._window = window
+        self._base = base_cooldown
+        self._max = max_cooldown
+        self._probes = probes
+        self._clock = clock
+        self.state = "closed"
+        self._failures: deque[float] = deque()
+        self._until = 0.0
+        self._streak = 0  # consecutive opens without a successful close
+        self._probes_left = 0
+        self._cooldown = 0.0
+
+    def acquire(self) -> bool:
+        """Reserve one upstream call; True means it is a half-open probe.
+        Raises UpstreamUnavailable while the circuit is open."""
+        now = self._clock()
+        if self.state == "open":
+            if now < self._until:
+                metrics["circuit_rejected"] += 1
+                raise UpstreamUnavailable(
+                    "bahn.de calls paused by circuit breaker",
+                    retry_after=self._until - now,
+                )
+            self._transition("half-open")
+            self._probes_left = self._probes
+        if self.state == "half-open":
+            if self._probes_left <= 0:
+                metrics["circuit_rejected"] += 1
+                raise UpstreamUnavailable(
+                    "bahn.de probe already in flight", retry_after=self._base
+                )
+            self._probes_left -= 1
+            return True
+        return False
+
+    def release(self, probe: bool) -> None:
+        """Return a reserved call unused (cancelled mid-flight): no evidence
+        either way, so only the probe slot is given back."""
+        if probe and self.state == "half-open":
+            self._probes_left += 1
+
+    def record_success(self, probe: bool) -> None:
+        if probe and self.state == "half-open":
+            self._streak = 0
+            self._failures.clear()
+            self._transition("closed")
+
+    def record_failure(self, probe: bool, cooldown_floor: float | None = None) -> None:
+        """cooldown_floor is an explicit upstream Retry-After: authoritative,
+        so it opens the circuit immediately rather than counting toward the
+        threshold."""
+        if cooldown_floor is not None and cooldown_floor <= 0:
+            cooldown_floor = None  # "retry now" carries no pause request
+        if probe and self.state == "half-open":
+            self._open(cooldown_floor)
+            return
+        now = self._clock()
+        self._failures.append(now)
+        while self._failures and now - self._failures[0] > self._window:
+            self._failures.popleft()
+        if self.state == "closed" and (
+            len(self._failures) >= self._threshold or cooldown_floor is not None
+        ):
+            self._open(cooldown_floor)
+
+    def force_open(self, cooldown: float) -> None:
+        """Open for a fixed cooldown regardless of failure counts (the 403
+        every-profile-blocked path)."""
+        self._cooldown = cooldown
+        self._until = self._clock() + cooldown
+        metrics["circuit_opened"] += 1
+        self._transition("open")
+
+    def _open(self, floor: float | None) -> None:
+        cooldown = min(self._max, self._base * (2 ** self._streak) * random.uniform(1.0, 1.25))
+        if floor is not None:
+            # respect Retry-After, but never sleep longer than the cap: if the
+            # ask was larger the half-open probe will simply get 429'd again
+            cooldown = max(cooldown, min(floor, self._max))
+        self._streak += 1
+        self._cooldown = cooldown
+        self._until = self._clock() + cooldown
+        metrics["circuit_opened"] += 1
+        self._transition("open")
+
+    def _transition(self, new: str) -> None:
+        if new != self.state:
+            detail = f" for {self._cooldown:.0f}s" if new == "open" else ""
+            log.warning("bahn.de circuit breaker: %s -> %s%s", self.state, new, detail)
+            self.state = new
+
+    def snapshot(self) -> dict:
+        return {
+            "state": self.state,
+            "retryIn": max(0, round(self._until - self._clock())) if self.state == "open" else 0,
+            "recentFailures": len(self._failures),
+        }
+
+
+_breaker = CircuitBreaker(
+    threshold=CIRCUIT_FAILURE_THRESHOLD,
+    window=CIRCUIT_FAILURE_WINDOW,
+    base_cooldown=RATE_BASE_COOLDOWN,
+    max_cooldown=RATE_MAX_COOLDOWN,
+    probes=HALF_OPEN_PROBES,
+)
 
 # key -> (expires_at, task). The task is shared, so concurrent callers asking
 # for the same thing during a traffic spike ride one upstream request.
@@ -110,12 +276,18 @@ async def _alert(text: str) -> None:
         log.warning("ntfy alert failed: %s", exc)
 
 
-def _note_429() -> None:
+def _note_429(profile: str, path: str, retry_after: float | None) -> None:
+    """Log every upstream 429 distinctly from other failures and page via ntfy
+    when they keep coming. Never logs cookies or response bodies."""
     global _last_alert
     now = time.monotonic()
     _rate_events.append(now)
     while _rate_events and now - _rate_events[0] > ALERT_WINDOW:
         _rate_events.popleft()
+    log.warning(
+        "bahn.de 429: profile=%s path=%s retry_after=%s recent=%d/%ds",
+        profile, path, retry_after, len(_rate_events), ALERT_WINDOW,
+    )
     if len(_rate_events) >= ALERT_THRESHOLD and now - _last_alert > ALERT_COOLDOWN:
         _last_alert = now
         asyncio.ensure_future(_alert(
@@ -124,55 +296,119 @@ def _note_429() -> None:
         ))
 
 
-def _reset_session(profile: str) -> bool:
-    global _last_rate_reset
-    now = time.monotonic()
-    if now - _last_rate_reset < RATE_RESET_INTERVAL:
-        return False
-    _last_rate_reset = now
-    old = _sessions.pop(profile, None)
-    if old is not None:
-        asyncio.ensure_future(old.close())
-    log.warning("bahn.de rate-limited (429) impersonate=%s; starting a fresh session", profile)
-    return True
+def _retry_after_seconds(resp) -> float | None:
+    """Seconds bahn.de asks us to wait, from either Retry-After form
+    (delta-seconds or HTTP-date); None when absent or unparsable."""
+    raw = (resp.headers.get("Retry-After") or "").strip()
+    if not raw:
+        return None
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        pass
+    try:
+        dt = parsedate_to_datetime(raw)
+    except (TypeError, ValueError):
+        return None
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return max(0.0, (dt - datetime.now(timezone.utc)).total_seconds())
 
 
-async def _request(method: str, path: str, **kwargs):
-    # Every profile 403'd recently: Akamai is blocking us wholesale, and retrying all
-    # three profiles per request would triple our outbound rate at exactly the moment
-    # that risks a lasting IP ban. Fail fast until the cooldown expires.
-    if time.monotonic() < _blocked_until:
-        raise HTTPError("bahn.de blocked all profiles; backing off")
+async def _request(method: str, path: str, **kwargs) -> dict:
+    """One upstream call under the circuit breaker: fails fast while the
+    circuit is open, otherwise issues the request and feeds the outcome back."""
+    probe = _breaker.acquire()
+    try:
+        data = await _issue(method, path, **kwargs)
+    except UpstreamRateLimited as e:
+        _breaker.record_failure(probe, cooldown_floor=e.retry_after)
+        raise
+    except UpstreamBlocked:
+        # wholesale Akamai block: not a rolling-window signal, pause outright
+        _breaker.force_open(BLOCK_COOLDOWN)
+        raise
+    except (UpstreamUnavailable, UpstreamProtocolError):
+        _breaker.record_failure(probe)
+        raise
+    except BaseException:
+        # cancellation or an unexpected bug: no upstream evidence either way
+        _breaker.release(probe)
+        raise
+    _breaker.record_success(probe)
+    return data
 
-    for attempt in range(len(PROFILES)):
+
+async def _issue(method: str, path: str, **kwargs) -> dict:
+    """Issue one request to bahn.de, rotating impersonation profiles on 403 as
+    before, and translate every failure mode into the UpstreamError taxonomy.
+    The only retry is a single same-session wait when a 429 carries a
+    Retry-After of at most QUICK_RETRY_MAX_WAIT seconds."""
+    rotations = 0
+    quick_retried = False
+    while True:
         profile = PROFILES[_profile_idx]
-        async with _upstream_sem:
-            resp = await getattr(_session(profile), method)(f"{BASE_URL}{path}", **kwargs)
-        if resp.status_code == 403 and attempt < len(PROFILES) - 1:
-            await _rotate(profile)
-            continue
-        if resp.status_code == 403:
-            _trip_breaker()
-        if resp.status_code == 429:
-            _note_429()
-            if attempt < len(PROFILES) - 1:
-                # the 429 follows the fingerprint as well as the jar (observed
-                # 2026-08-13: fresh firefox sessions were 429'd on arrival while
-                # fresh safari sessions passed), so move to the next profile and
-                # refresh the penalized jar for its next turn
-                _reset_session(profile)
+        metrics["upstream_requests"] += 1
+        try:
+            async with _upstream_sem:
+                resp = await getattr(_session(profile), method)(f"{BASE_URL}{path}", **kwargs)
+        except RequestException as e:
+            # DNS/connect failures and timeouts land here
+            metrics["upstream_network_errors"] += 1
+            log.warning("bahn.de unreachable: profile=%s path=%s error=%s",
+                        profile, path, type(e).__name__)
+            raise UpstreamUnavailable(f"bahn.de unreachable: {type(e).__name__}") from e
+
+        status = resp.status_code
+        if status == 403:
+            metrics["upstream_403"] += 1
+            rotations += 1
+            if rotations < len(PROFILES):
                 await _rotate(profile)
                 continue
-        resp.raise_for_status()
-        return resp.json()
+            raise UpstreamBlocked("bahn.de blocked every impersonation profile")
+        if status == 429:
+            metrics["upstream_429"] += 1
+            retry_after = _retry_after_seconds(resp)
+            _note_429(profile, path, retry_after)
+            if not quick_retried and retry_after is not None and 0 < retry_after <= QUICK_RETRY_MAX_WAIT:
+                # honor a short advertised wait once, on the same session —
+                # never a retry loop, never a fresh identity
+                quick_retried = True
+                await asyncio.sleep(retry_after + random.uniform(0, 0.5))
+                continue
+            raise UpstreamRateLimited("bahn.de rate limit", retry_after=retry_after)
+        if status >= 500:
+            metrics["upstream_5xx"] += 1
+            log.warning("bahn.de %d: path=%s profile=%s", status, path, profile)
+            raise UpstreamUnavailable(f"bahn.de responded {status}")
+        if status >= 400:
+            metrics["upstream_4xx"] += 1
+            log.warning("bahn.de %d: path=%s profile=%s", status, path, profile)
+            raise UpstreamProtocolError(f"bahn.de responded {status}")
+        try:
+            data = resp.json()
+        except Exception as e:
+            metrics["upstream_malformed"] += 1
+            log.warning("bahn.de malformed response: path=%s profile=%s error=%s",
+                        path, profile, type(e).__name__)
+            raise UpstreamProtocolError("bahn.de returned a malformed response") from e
+        metrics["upstream_200"] += 1
+        return data
 
 
 def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable], remember: bool = False) -> "asyncio.Task":
     hit = _cache.get(key)
     if hit and (time.monotonic() < hit[0] or not hit[1].done()):
+        # a finished task is a fresh hit; an unfinished one means this caller
+        # coalesces onto an upstream request already in flight
+        metrics["cache_hits" if hit[1].done() else "cache_coalesced"] += 1
         _cache.move_to_end(key)
         return hit[1]
 
+    metrics["cache_misses"] += 1
     task = asyncio.ensure_future(call())
     _cache[key] = (time.monotonic() + ttl, task)
     _cache.move_to_end(key)
@@ -204,11 +440,13 @@ async def close() -> None:
 
 
 async def locations(query: str) -> list[dict]:
-    return await _cached(
+    # shield: the fetch task is shared with concurrent identical callers, so
+    # one waiter's disconnect must not cancel it for everyone else
+    return await asyncio.shield(_cached(
         ("locations", query.strip().lower()),
         LOCATIONS_TTL,
         lambda: _request("get", "/reiseloesung/orte", params={"suchbegriff": query, "typ": "ALL", "limit": 8}),
-    )
+    ))
 
 
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
@@ -252,17 +490,27 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     if paging_ref:
         body["pagingReference"] = paging_ref
     key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket)
+    metrics["searches"] += 1
     try:
-        data = await _cached(
+        # shield: the fetch task is shared with concurrent identical callers,
+        # so one waiter's disconnect must not cancel it for everyone else
+        data = await asyncio.shield(_cached(
             key, JOURNEYS_TTL,
             lambda: _request("post", "/angebote/fahrplan", json=body),
             remember=True,
-        )
-    except RequestException:
+        ))
+    except UpstreamError:
         hit = _stale.get(key)
         if hit is None or time.monotonic() - hit[0] > STALE_TTL:
+            metrics["stale_misses"] += 1
             raise
+        metrics["stale_hits"] += 1
         age = int(time.monotonic() - hit[0])
         log.warning("bahn.de unavailable; serving %ss-old journeys for %s -> %s", age, from_id, to_id)
         return hit[1], age
     return data, 0
+
+
+def status() -> dict:
+    """Circuit state and pipeline counters for /health."""
+    return {"circuit": _breaker.snapshot(), "counters": dict(metrics)}

@@ -18,3 +18,10 @@ dependencies = [
     "gtfs-realtime-bindings>=2.1.0",
     "brotli>=1.2.0",
 ]
+
+[dependency-groups]
+# async tests run on anyio's pytest plugin, which fastapi already pulls in
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
