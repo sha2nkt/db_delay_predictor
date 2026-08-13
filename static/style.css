@@ -212,6 +212,7 @@ body.past-mode .refund-nav {
   border-left: 3px solid var(--yellow);
   border-radius: 0 6px 6px 0;
 }
+.stale-notice.hidden { display: none; }
 
 .page-btn {
   background: none; border: none; cursor: pointer;
