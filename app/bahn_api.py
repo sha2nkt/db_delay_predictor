@@ -1,11 +1,13 @@
 import asyncio
 import logging
+import os
 import time
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from typing import Awaitable, Callable
 
+import httpx
 from curl_cffi import requests
-from curl_cffi.requests.exceptions import HTTPError
+from curl_cffi.requests.exceptions import HTTPError, RequestException
 
 log = logging.getLogger(__name__)
 
@@ -37,12 +39,27 @@ RATE_RESET_INTERVAL = 60
 # spike insurance: bound how many requests we fan out to bahn.de at once
 MAX_UPSTREAM_CONCURRENCY = 4
 
+# When bahn.de refuses (429/403/timeouts), a search that has an earlier answer
+# should degrade to it instead of erroring: journeys are kept for an hour past
+# their cache TTL and served with their age, which the frontend discloses.
+STALE_TTL = 3600
+STALE_MAX = 256
+
+# page via ntfy when 429s keep coming despite the session swap: that means the
+# demand-side mitigations are exhausted and users are seeing degraded results
+ALERT_THRESHOLD = 8
+ALERT_WINDOW = 300
+ALERT_COOLDOWN = 1800
+
 _sessions: dict[str, requests.AsyncSession] = {}
 _profile_idx = 0
 _rotate_lock = asyncio.Lock()
 _blocked_until = 0.0
 _last_rate_reset = float("-inf")
 _upstream_sem = asyncio.Semaphore(MAX_UPSTREAM_CONCURRENCY)
+_stale: OrderedDict[tuple, tuple[float, dict]] = OrderedDict()  # key -> (stored_at, data)
+_rate_events: deque[float] = deque()
+_last_alert = float("-inf")
 
 
 def _trip_breaker() -> None:
@@ -76,6 +93,37 @@ async def _rotate(blocked: str) -> None:
         log.warning("bahn.de blocked impersonate=%s, switching to %s", blocked, PROFILES[_profile_idx])
 
 
+async def _alert(text: str) -> None:
+    """Never raises — an unreachable notifier must not affect a search."""
+    topic = os.environ.get("NTFY_TOPIC")
+    if not topic:
+        return
+    base = os.environ.get("NTFY_URL", "https://ntfy.sh").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            await client.post(
+                f"{base}/{topic}",
+                content=text.encode("utf-8"),
+                headers={"Title": "DelayBahn upstream alert", "Tags": "warning"},
+            )
+    except httpx.HTTPError as exc:
+        log.warning("ntfy alert failed: %s", exc)
+
+
+def _note_429() -> None:
+    global _last_alert
+    now = time.monotonic()
+    _rate_events.append(now)
+    while _rate_events and now - _rate_events[0] > ALERT_WINDOW:
+        _rate_events.popleft()
+    if len(_rate_events) >= ALERT_THRESHOLD and now - _last_alert > ALERT_COOLDOWN:
+        _last_alert = now
+        asyncio.ensure_future(_alert(
+            f"bahn.de is rate-limiting: {len(_rate_events)} HTTP 429s in the last "
+            f"{ALERT_WINDOW // 60} min. Searches are degrading to cached/stale results."
+        ))
+
+
 def _reset_session(profile: str) -> bool:
     global _last_rate_reset
     now = time.monotonic()
@@ -105,13 +153,15 @@ async def _request(method: str, path: str, **kwargs):
             continue
         if resp.status_code == 403:
             _trip_breaker()
-        if resp.status_code == 429 and attempt < len(PROFILES) - 1 and _reset_session(profile):
-            continue
+        if resp.status_code == 429:
+            _note_429()
+            if attempt < len(PROFILES) - 1 and _reset_session(profile):
+                continue
         resp.raise_for_status()
         return resp.json()
 
 
-def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable]) -> "asyncio.Task":
+def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable], remember: bool = False) -> "asyncio.Task":
     hit = _cache.get(key)
     if hit and (time.monotonic() < hit[0] or not hit[1].done()):
         _cache.move_to_end(key)
@@ -123,14 +173,21 @@ def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable]) -> "asyncio.Tas
     while len(_cache) > CACHE_MAX:
         _cache.popitem(last=False)
 
-    def drop_if_failed(done: "asyncio.Task") -> None:
+    def settle(done: "asyncio.Task") -> None:
         # never serve a cached error: a block clears as soon as we rotate
         if done.cancelled() or done.exception() is not None:
             entry = _cache.get(key)
             if entry and entry[1] is done:
                 del _cache[key]
+        elif remember:
+            # stamped here, at fetch completion, so the served age is the data's
+            # real age rather than the age of the newest cache hit
+            _stale[key] = (time.monotonic(), done.result())
+            _stale.move_to_end(key)
+            while len(_stale) > STALE_MAX:
+                _stale.popitem(last=False)
 
-    task.add_done_callback(drop_if_failed)
+    task.add_done_callback(settle)
     return task
 
 
@@ -149,8 +206,10 @@ async def locations(query: str) -> list[dict]:
 
 
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
-                   dticket: bool = False) -> dict:
-    """from_id/to_id are full HAFAS location ids (A=1@O=...@L=...@) from locations().
+                   dticket: bool = False) -> tuple[dict, int]:
+    """Returns (data, stale_age_seconds); age is 0 for a fresh answer, else how
+    old the served fallback is. from_id/to_id are full HAFAS location ids
+    (A=1@O=...@L=...@) from locations().
 
     paging_ref is a verbindungReference.earlier/later token from a previous response;
     when set, the API returns the adjacent result page instead of the requested time.
@@ -186,8 +245,18 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     }
     if paging_ref:
         body["pagingReference"] = paging_ref
-    return await _cached(
-        ("journeys", from_id, to_id, departure_iso, paging_ref, dticket),
-        JOURNEYS_TTL,
-        lambda: _request("post", "/angebote/fahrplan", json=body),
-    )
+    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket)
+    try:
+        data = await _cached(
+            key, JOURNEYS_TTL,
+            lambda: _request("post", "/angebote/fahrplan", json=body),
+            remember=True,
+        )
+    except RequestException:
+        hit = _stale.get(key)
+        if hit is None or time.monotonic() - hit[0] > STALE_TTL:
+            raise
+        age = int(time.monotonic() - hit[0])
+        log.warning("bahn.de unavailable; serving %ss-old journeys for %s -> %s", age, from_id, to_id)
+        return hit[1], age
+    return data, 0

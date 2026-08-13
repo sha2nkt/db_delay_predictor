@@ -233,7 +233,8 @@ async def _replan(origin: dict, dest: dict, ready) -> dict | None:
         _replan_cache.move_to_end(key)
         return _replan_cache[key]
     try:
-        data = await bahn_api.journeys(
+        # a stale fallback answer (age ignored) beats no replan at all
+        data, _ = await bahn_api.journeys(
             f"A=1@O={origin['name']}@L={origin['id']}@",
             f"A=1@O={dest['name']}@L={dest['id']}@",
             ready.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -432,11 +433,15 @@ async def journeys(
     # has no place in the past-journey compensation check
     dticket = dticket and not past
     try:
-        data = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket)
+        data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket)
     except HTTPError as e:
         raise HTTPException(502, f"bahn.de error {e.response.status_code}: {e.response.text[:300]}")
     except RequestException as e:
         raise HTTPException(502, f"bahn.de error: {e}")
+    if stale_age:
+        # a degraded answer must not be cached by the edge or the browser: the
+        # fresh one can be a single upstream recovery away
+        response.headers["Cache-Control"] = "no-store"
 
     # days the nightly parquet hasn't reached yet are answered live from IRIS
     parquet_max = delays.coverage()[1]
@@ -538,7 +543,10 @@ async def journeys(
         ))
 
     ref = data.get("verbindungReference") or {}
-    return {"journeys": journeys_out, "earlierRef": ref.get("earlier"), "laterRef": ref.get("later")}
+    out = {"journeys": journeys_out, "earlierRef": ref.get("earlier"), "laterRef": ref.get("later")}
+    if stale_age:
+        out["staleSeconds"] = stale_age
+    return out
 
 
 def live_max_day() -> date | None:

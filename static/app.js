@@ -99,6 +99,9 @@ const I18N = {
     searching: "Suche Verbindungen…",
     noResults: "Keine Verbindungen gefunden.",
     error: (msg) => `Fehler: ${msg}`,
+    overloadRetry: "DB-Server überlastet – neuer Versuch in ein paar Sekunden…",
+    overloadFail: "Die DB-Server sind gerade überlastet. Bitte versuch es in einer Minute noch einmal.",
+    staleNotice: (min) => `DB-Server überlastet – Ergebnisse vom Stand vor ${min} Min.`,
     noData: "keine Daten",
     notTracked: "nicht erfasst",
     notTrackedTooltip: "Für U-Bahn, Tram, Bus und Fähre werden keine Verspätungsdaten erhoben",
@@ -259,6 +262,9 @@ const I18N = {
     searching: "Searching for connections…",
     noResults: "No connections found.",
     error: (msg) => `Error: ${msg}`,
+    overloadRetry: "DB's servers are busy – retrying in a few seconds…",
+    overloadFail: "DB's servers are overloaded right now. Please try again in a minute.",
+    staleNotice: (min) => `DB servers busy – results as of ${min} min ago.`,
     noData: "no data",
     notTracked: "not tracked",
     notTrackedTooltip: "Delay data isn't collected for metro, tram, bus and ferry services",
@@ -558,6 +564,7 @@ function applyLang(lang) {
   updateChartImg();
 
   if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
+  if (state.staleSeconds) setStaleNotice(state.staleSeconds);
   if (claimModal.open) populateClaimModal();
   renderTripSteps();
   render();
@@ -656,6 +663,15 @@ document.getElementById("time").value = now.toTimeString().slice(0, 5);
 
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
+const staleNoticeEl = document.getElementById("stale-notice");
+
+// results served from the server's stale fallback carry their age; disclose it
+function setStaleNotice(seconds) {
+  state.staleSeconds = seconds || 0;
+  staleNoticeEl.classList.toggle("hidden", !state.staleSeconds);
+  staleNoticeEl.textContent = state.staleSeconds
+    ? t("staleNotice", Math.max(1, Math.round(state.staleSeconds / 60))) : "";
+}
 const controlsEl = document.getElementById("controls");
 const searchBtn = document.getElementById("search");
 if (PAST_PAGE) searchBtn.dataset.i18n = "searchPast";
@@ -902,7 +918,11 @@ function searchLeg() {
     : { from: state.to, to: state.from, departure: state.returnDeparture };
 }
 
-async function fetchJourneys(pagingRef) {
+// bahn.de shedding load (a 429 behind our 502) usually clears within seconds —
+// the server swaps its session — so one delayed retry often saves the search
+const RETRYABLE = new Set([429, 502, 503, 504]);
+
+async function fetchJourneys(pagingRef, isRetry = false) {
   const win = document.getElementById("window").value;
   // the toggle is hidden in past mode: a leftover checked state must not filter
   const dticket = state.mode !== "past" && document.getElementById("dticket").checked;
@@ -915,8 +935,16 @@ async function fetchJourneys(pagingRef) {
   if (pagingRef) params.set("pagingRef", pagingRef);
   const resp = await fetch(`/api/journeys?${params}`);
   if (!resp.ok) {
+    if (RETRYABLE.has(resp.status) && !isRetry) {
+      statusEl.classList.remove("error");
+      setStatus("overloadRetry");
+      await new Promise((r) => setTimeout(r, 4500));
+      return fetchJourneys(pagingRef, true);
+    }
     const body = await resp.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${resp.status}`);
+    const err = new Error(body.detail || `HTTP ${resp.status}`);
+    err.overloaded = RETRYABLE.has(resp.status);
+    throw err;
   }
   state.windowUsed = Number(win);
   state.dticketUsed = dticket;
@@ -1061,6 +1089,7 @@ async function search() {
 async function runSearch() {
   statusEl.classList.remove("error");
   setStatus("searching");
+  setStaleNotice(0);
   resultsEl.innerHTML = "";
   controlsEl.classList.add("hidden");
   earlierBtn.classList.add("hidden");
@@ -1077,6 +1106,7 @@ async function runSearch() {
     state.journeys = usableJourneys(data.journeys || []);
     state.earlierRef = data.earlierRef || null;
     state.laterRef = data.laterRef || null;
+    setStaleNotice(data.staleSeconds || 0);
     if (state.journeys.length) setStatus(null);
     else setStatus("noResults");
     controlsEl.classList.toggle("hidden", state.journeys.length === 0);
@@ -1087,7 +1117,8 @@ async function runSearch() {
     updatePageButtons();
     render();
   } catch (e) {
-    setStatus("error", e.message);
+    if (e.overloaded) setStatus("overloadFail");
+    else setStatus("error", e.message);
     statusEl.classList.add("error");
   } finally {
     searchBtn.disabled = false;
@@ -1294,10 +1325,14 @@ async function loadPage(dir) {
       state.journeys = [...state.journeys, ...fresh];
       state.laterRef = data.laterRef || null;
     }
+    // a retry may have left its waiting message behind; results are here now
+    setStatus(null);
+    if (data.staleSeconds) setStaleNotice(data.staleSeconds);
     updatePageButtons();
     render();
   } catch (e) {
-    setStatus("error", e.message);
+    if (e.overloaded) setStatus("overloadFail");
+    else setStatus("error", e.message);
     statusEl.classList.add("error");
   } finally {
     btn.disabled = false;

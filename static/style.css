@@ -204,6 +204,15 @@ body.past-mode .refund-nav {
 .status { margin: 16px 0; font-size: 14px; color: var(--text-muted); }
 .status.error { color: var(--red); }
 
+/* degraded-results disclosure: results served from the stale fallback */
+.stale-notice {
+  margin: 16px 0; padding: 8px 12px;
+  font-size: 13.5px; color: var(--yellow);
+  background: color-mix(in srgb, var(--yellow) 8%, transparent);
+  border-left: 3px solid var(--yellow);
+  border-radius: 0 6px 6px 0;
+}
+
 .page-btn {
   background: none; border: none; cursor: pointer;
   display: flex; align-items: center; gap: 8px;
