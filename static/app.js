@@ -95,7 +95,8 @@ const I18N = {
     violinAlt: "Pünktlich bleibt pünktlich, verspätet bleibt verspätet: Züge, gruppiert nach ihrer Mai-Verspätung, zeigen im Juni dieselbe Rangfolge.",
     chartScatter: "Punktwolke",
     chartViolin: "Verteilung",
-    recentLabel: "Letzte Suchen",
+    favAdd: "Zu Favoriten hinzufügen",
+    favRemove: "Aus Favoriten entfernen",
     pickStations: "Bitte Start und Ziel aus der Vorschlagsliste wählen.",
     searching: "Suche Verbindungen…",
     noResults: "Keine Verbindungen gefunden.",
@@ -263,7 +264,8 @@ const I18N = {
     violinAlt: "Punctual stays punctual, late stays late: trains grouped by their May delay show the same ranking in June.",
     chartScatter: "Scatter",
     chartViolin: "Distribution",
-    recentLabel: "Recent searches",
+    favAdd: "Add to favourites",
+    favRemove: "Remove from favourites",
     pickStations: "Please pick origin and destination from the suggestion list.",
     searching: "Searching for connections…",
     noResults: "No connections found.",
@@ -598,6 +600,38 @@ function saveRecent(station) {
   localStorage.setItem(RECENTS_KEY, JSON.stringify(list));
 }
 
+// --- favourite stations ---
+
+const FAVORITES_KEY = "favoriteStations";
+
+function getFavorites() {
+  try {
+    return (JSON.parse(localStorage.getItem(FAVORITES_KEY)) || []).filter((s) => s?.id && s?.name);
+  } catch { return []; }
+}
+
+function isFavorite(id) {
+  return getFavorites().some((s) => s.id === id);
+}
+
+// returns the station's new state, so the caller can repaint its star
+function toggleFavorite(station) {
+  const list = getFavorites();
+  const rest = list.filter((s) => s.id !== station.id);
+  const added = rest.length === list.length;
+  localStorage.setItem(FAVORITES_KEY,
+    JSON.stringify(added ? [...list, { id: station.id, name: station.name }] : rest));
+  return added;
+}
+
+function paintStar(button, on) {
+  button.textContent = on ? "★" : "☆";
+  button.classList.toggle("on", on);
+  button.setAttribute("aria-pressed", String(on));
+  button.title = t(on ? "favRemove" : "favAdd");
+  button.setAttribute("aria-label", button.title);
+}
+
 // --- autocomplete ---
 
 function setupAutocomplete(inputId, dropdownId, key) {
@@ -605,32 +639,53 @@ function setupAutocomplete(inputId, dropdownId, key) {
   const dropdown = document.getElementById(dropdownId);
   let timer = null;
 
-  function showItems(items, recent) {
-    dropdown.innerHTML = "";
-    if (recent && items.length) {
-      const label = document.createElement("div");
-      label.className = "dropdown-label";
-      label.textContent = t("recentLabel");
-      dropdown.appendChild(label);
-    }
-    items.forEach((item) => {
-      const div = document.createElement("div");
-      div.textContent = item.name;
-      div.addEventListener("mousedown", () => {
-        state[key] = item;
-        input.value = item.name;
-        dropdown.classList.remove("open");
-      });
-      dropdown.appendChild(div);
+  function makeRow(item) {
+    const row = document.createElement("div");
+    row.className = "dropdown-item";
+
+    const name = document.createElement("span");
+    name.className = "dropdown-name";
+    name.textContent = item.name;
+    row.appendChild(name);
+
+    const star = document.createElement("button");
+    star.type = "button";
+    star.className = "fav-star";
+    paintStar(star, isFavorite(item.id));
+    // mousedown, not click: the input's blur would tear the dropdown down first
+    star.addEventListener("mousedown", (e) => {
+      e.preventDefault();   // keeps the focus — and the open dropdown — on the input
+      e.stopPropagation();  // starring a station must not also pick it
+      const nowFavorite = toggleFavorite(item);
+      paintStar(star, nowFavorite);
+      // in the empty-input view the row's rank in the list just changed
+      if (input.value.trim() === "") showSaved();
     });
+    row.appendChild(star);
+
+    row.addEventListener("mousedown", () => {
+      state[key] = item;
+      input.value = item.name;
+      dropdown.classList.remove("open");
+    });
+    return row;
+  }
+
+  function showItems(items) {
+    dropdown.innerHTML = "";
+    items.forEach((item) => dropdown.appendChild(makeRow(item)));
     dropdown.classList.toggle("open", items.length > 0);
   }
 
-  function showRecents() {
-    if (input.value.trim() === "") showItems(getRecents(), true);
+  // one list: favourites on top, then the recents that aren't already favourites
+  function showSaved() {
+    if (input.value.trim() !== "") return;
+    const favorites = getFavorites();
+    showItems([...favorites,
+      ...getRecents().filter((s) => !favorites.some((f) => f.id === s.id))]);
   }
 
-  input.addEventListener("focus", showRecents);
+  input.addEventListener("focus", showSaved);
 
   input.addEventListener("input", () => {
     state[key] = null;
@@ -638,7 +693,7 @@ function setupAutocomplete(inputId, dropdownId, key) {
     const q = input.value.trim();
     if (q.length < 2) {
       dropdown.classList.remove("open");
-      if (q === "") showRecents();
+      if (q === "") showSaved();
       return;
     }
     timer = setTimeout(async () => {
@@ -646,7 +701,7 @@ function setupAutocomplete(inputId, dropdownId, key) {
         const resp = await fetch(`/api/locations?query=${encodeURIComponent(q)}`);
         if (!resp.ok) return;
         const items = await resp.json();
-        showItems(items, false);
+        showItems(items);
       } catch { /* network hiccup: ignore */ }
     }, 250);
   });
