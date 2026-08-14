@@ -130,6 +130,9 @@ def normalize_leg(abschnitt: dict, window: int, past: bool = False, live: bool =
             "name": vm.get("mittelText") or vm.get("name"),
             "fahrtNr": vm.get("nummer"),
             "product": vm.get("produktGattung"),
+            # BEF = Beförderer, the operating company ("DB Fernverkehr AG", "FlixTrain")
+            "operator": next((z.get("value") for z in vm.get("zugattribute") or []
+                              if z.get("key") == "BEF"), None),
         },
         "origin": {"id": abschnitt.get("abfahrtsOrtExtId"), "name": abschnitt.get("abfahrtsOrt")},
         "destination": {"id": abschnitt.get("ankunftsOrtExtId"), "name": abschnitt.get("ankunftsOrt")},
@@ -278,6 +281,16 @@ def _departure_info(leg: dict, live: bool = False) -> dict | None:
     return hit if hit is not None else delays.leg_departure_on_date(train, eva, dep)
 
 
+def _flix(leg: dict) -> bool:
+    """FlixTrain runs its own tariff: a DB ticket is not valid there and the trains
+    are reservation-bound, so a passenger stranded by a missed DB connection cannot
+    board one. bahn.de lists them among the results all the same, which is why every
+    replacement connection has to drop them."""
+    line = leg["line"]
+    return ("flix" in (line.get("operator") or "").lower()
+            or str(line.get("name") or "").upper().startswith("FLX"))
+
+
 async def _replan(origin: dict, dest: dict, ready) -> dict | None:
     """Next connections origin -> dest from `ready` on, cached per request minute."""
     key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"))
@@ -313,7 +326,7 @@ async def _next_connection(origin: dict, dest: dict, ready, window: int, live: b
         for verbindung in (data or {}).get("verbindungen", []):
             rlegs = [normalize_leg(a, window, past=True, live=live) for a in verbindung.get("verbindungsAbschnitte", [])]
             rtrain = [l for l in rlegs if not l["walking"]]
-            if not rtrain:
+            if not rtrain or any(_flix(l) for l in rtrain):
                 continue
             first_dep = _planned_dt(rtrain[0], "plannedDeparture")
             if first_dep is None:
@@ -353,7 +366,7 @@ async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict
     for verbindung in (data or {}).get("verbindungen", []):
         rlegs = [normalize_leg(x, window) for x in verbindung.get("verbindungsAbschnitte", [])]
         rtrain = [l for l in rlegs if not l["walking"]]
-        if not rtrain:
+        if not rtrain or any(_flix(l) for l in rtrain):
             continue
         first_dep = _planned_dt(rtrain[0], "plannedDeparture")
         last_arr = _planned_dt(rtrain[-1], "plannedArrival")
