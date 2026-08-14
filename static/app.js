@@ -862,7 +862,9 @@ feedbackEl.querySelectorAll(".feedback-vote").forEach((btn) => {
   btn.addEventListener("click", () => {
     const vote = btn.dataset.vote;
     feedbackEl.dataset.vote = vote;
-    track("feedback", { step: "vote", vote });
+    // one event name per outcome: Umami's event list then shows the up/down split
+    // directly, without depending on its per-event properties view
+    track(`feedback-${vote}`);
     sendFeedback(vote, "");
     feedbackLead.dataset.i18n = "feedbackFollowUp";
     feedbackLead.textContent = t("feedbackFollowUp");
@@ -876,14 +878,14 @@ feedbackForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const text = feedbackInput.value.trim();
   if (text) {
-    track("feedback", { step: "text", vote: feedbackEl.dataset.vote });
+    track("feedback-text", { vote: feedbackEl.dataset.vote });
     sendFeedback(feedbackEl.dataset.vote, text);
   }
   thankFeedback();
 });
 
 document.getElementById("feedback-skip").addEventListener("click", () => {
-  track("feedback", { step: "dismiss" });
+  track("feedback-dismiss");
   setFeedbackNudge(false);
 });
 

@@ -89,15 +89,29 @@ def save(sid: str, vote: str, text: str, lang: str, context: str) -> None:
         )
 
 
+_warned_no_topic = False
+
+
 async def notify(vote: str, text: str, lang: str, context: str) -> None:
     """Push a written comment to ntfy. Never raises - a submission must not fail
-    because the notifier is unreachable, and stays a no-op when NTFY_TOPIC is unset."""
+    because the notifier is unreachable, and stays a no-op when NTFY_TOPIC is unset.
+
+    Both no-op paths say so in the log: a missing topic or a topic ntfy rejects
+    used to lose every comment silently, which is exactly the failure nobody
+    notices - the comment is still in SQLite, but the phone never buzzes.
+    """
+    global _warned_no_topic
     topic = os.environ.get("NTFY_TOPIC")
     if not topic:
+        if not _warned_no_topic:
+            _warned_no_topic = True
+            log.warning(
+                "NTFY_TOPIC is unset: feedback comments are stored but not pushed"
+            )
         return
     base = os.environ.get("NTFY_URL", "https://ntfy.sh").rstrip("/")
     try:
-        await _ntfy.post(
+        resp = await _ntfy.post(
             f"{base}/{topic}",
             content=text.encode("utf-8"),
             headers={
@@ -105,6 +119,8 @@ async def notify(vote: str, text: str, lang: str, context: str) -> None:
                 "Tags": "+1" if vote == "up" else "-1",
             },
         )
+        # a rejected topic answers 4xx without raising, so ask explicitly
+        resp.raise_for_status()
     except httpx.HTTPError as exc:
         log.warning("ntfy push failed: %s", exc)
 
