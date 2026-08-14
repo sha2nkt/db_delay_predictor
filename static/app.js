@@ -118,6 +118,7 @@ const I18N = {
     direct: "direkt",
     transfers: (n) => `${n} Umstieg${n > 1 ? "e" : ""}`,
     walk: "Fußweg",
+    walkMinutes: (n) => `${n} min`,
     train: "Zug",
     priceFrom: (price) => `ab ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Preis auf bahn.de",
@@ -284,6 +285,7 @@ const I18N = {
     direct: "direct",
     transfers: (n) => `${n} transfer${n > 1 ? "s" : ""}`,
     walk: "Walk",
+    walkMinutes: (n) => `${n} min`,
     train: "Train",
     priceFrom: (price) => `from ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Price on bahn.de",
@@ -1561,6 +1563,15 @@ function fmtTime(iso) {
   return iso ? iso.slice(11, 16) : "–";
 }
 
+// planned walk duration in whole minutes; both stamps are Berlin-local naive, so
+// parsing them in the browser's zone cancels out
+function walkMinutes(leg) {
+  if (!leg.plannedDeparture || !leg.plannedArrival) return null;
+  const mins = Math.round(
+    (new Date(leg.plannedArrival) - new Date(leg.plannedDeparture)) / 60000);
+  return mins > 0 ? mins : null;
+}
+
 function fmtDuration(seconds) {
   if (seconds == null) return "";
   const mins = Math.round(seconds / 60);
@@ -1660,7 +1671,13 @@ function buildLegRow(leg, past, struck) {
     row.classList.add("leg-walk");
     const w = document.createElement("span");
     w.className = "walk";
-    w.textContent = `${t("walk")} · ${leg.origin?.name || ""} → ${leg.destination?.name || ""}`;
+    // the walk eats into the transfer buffer, so its duration is worth naming
+    const mins = walkMinutes(leg);
+    w.textContent = [
+      t("walk"),
+      mins != null ? t("walkMinutes", mins) : null,
+      `${leg.origin?.name || ""} → ${leg.destination?.name || ""}`,
+    ].filter(Boolean).join(" · ");
     row.appendChild(w);
     return row;
   }
