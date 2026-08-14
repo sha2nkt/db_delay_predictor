@@ -198,6 +198,7 @@ const I18N = {
     pastDisclaimer: "Entschädigung nach EU-Fahrgastrechten: 25 % des Ticketpreises ab 60 min, 50 % ab 120 min Verspätung am Ziel. Auszahlung ab 4 €. Angezeigte Verspätungen basieren auf unseren aufgezeichneten Daten – maßgeblich ist die tatsächliche Ankunft.",
     installTitle: "DelayBahn als App installieren",
     installLead: "Schneller Zugriff vom Startbildschirm.",
+    installLeadDesktop: "Öffne delaybahn.com im Browser deines Handys und tippe auf „Installieren“.",
     installBtn: "Installieren",
     iosSheetTitle: "Zum Home-Bildschirm hinzufügen",
     iosSheetLead: "In Safari, in 3 Schritten:",
@@ -364,6 +365,7 @@ const I18N = {
     pastDisclaimer: "Compensation under EU passenger rights: 25% of the ticket price from 60 min, 50% from 120 min delay at your destination. Paid out from €4. Shown delays are based on our recorded data – the actual arrival is authoritative.",
     installTitle: "Install DelayBahn as an app",
     installLead: "Quick access from your home screen.",
+    installLeadDesktop: "Open delaybahn.com in your phone's browser and tap Install.",
     installBtn: "Install",
     iosSheetTitle: "Add to your home screen",
     iosSheetLead: "In Safari, in 3 steps:",
@@ -2454,9 +2456,10 @@ function renderSummary() {
 // --- install prompt (PWA awareness) ---
 // The manifest + service worker make the site installable, but browsers surface
 // that only faintly (Android: a buried menu entry) or not at all (iOS Safari).
-// A single dismissable, mobile-only banner with an Install button: on Android it
-// triggers the native install; on iOS Safari — which has no install API — the
-// button opens a bottom sheet with the manual Share -> Add to Home Screen steps.
+// A single dismissable banner with an Install button: on Chromium (Android and
+// desktop) it triggers the native install; on iOS Safari — which has no install
+// API — the button opens a bottom sheet with the manual Share -> Add to Home
+// Screen steps.
 
 (function initInstallPrompt() {
   const promptEl = document.getElementById("install-prompt");
@@ -2518,19 +2521,23 @@ function renderSummary() {
     return;
   }
 
-  // Android (mobile Chromium): the browser tells us the app is installable.
-  // Desktop is intentionally excluded — this prompt is mobile-only — and there we
-  // leave the browser's own install affordance (omnibox icon / menu) untouched.
+  // Chromium (Android and desktop): the browser tells us the app is installable.
+  // Desktop keeps its own omnibox install icon as well — preventDefault only
+  // suppresses the mobile mini-infobar, which we replace with this banner.
   const uaData = navigator.userAgentData;
   const isMobile = uaData ? uaData.mobile === true : /android|mobile/i.test(ua);
+  const leadEl = promptEl.querySelector(".install-lead");
   let deferred = null;
   window.addEventListener("beforeinstallprompt", (e) => {
-    if (!isMobile) return; // desktop: don't show our banner, keep native install
-    e.preventDefault(); // on mobile, suppress Chrome's mini-infobar; we drive it
+    e.preventDefault();
     deferred = e;
+    if (!isMobile && leadEl) { // "home screen" only makes sense on a phone
+      leadEl.dataset.i18n = "installLeadDesktop"; // keeps it in sync on lang switch
+      leadEl.textContent = t("installLeadDesktop");
+    }
     acceptBtn.classList.remove("hidden");
     show();
-    track("install", { step: "shown", platform: "android" });
+    track("install", { step: "shown", platform: isMobile ? "android" : "desktop" });
   });
   acceptBtn.addEventListener("click", async () => {
     if (!deferred) return;
