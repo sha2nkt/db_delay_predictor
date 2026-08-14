@@ -1,0 +1,872 @@
+[
+ {
+  "eva": "08103000",
+  "hafas_id": "8103000",
+  "name": "Wien Hbf"
+ },
+ {
+  "eva": "08100514",
+  "hafas_id": "8100514",
+  "name": "Wien Meidling"
+ },
+ {
+  "eva": "08196004",
+  "hafas_id": "1292001",
+  "name": "WIEN HANDELSKAI"
+ },
+ {
+  "eva": "08101227",
+  "hafas_id": "8101227",
+  "name": "Wien Matzleinsdorfer Platz"
+ },
+ {
+  "eva": "08100013",
+  "hafas_id": "8100013",
+  "name": "Linz/Donau Hbf"
+ },
+ {
+  "eva": "08100008",
+  "hafas_id": "8100008",
+  "name": "St.Pölten Hbf"
+ },
+ {
+  "eva": "08100516",
+  "hafas_id": "8100516",
+  "name": "Wiener Neustadt Hbf"
+ },
+ {
+  "eva": "08101150",
+  "hafas_id": "8101150",
+  "name": "Wien Liesing"
+ },
+ {
+  "eva": "08100002",
+  "hafas_id": "8100002",
+  "name": "Salzburg Hbf"
+ },
+ {
+  "eva": "08100108",
+  "hafas_id": "8100108",
+  "name": "Innsbruck Hbf"
+ },
+ {
+  "eva": "08100269",
+  "hafas_id": "8100269",
+  "name": "Wien Heiligenstadt"
+ },
+ {
+  "eva": "08100447",
+  "hafas_id": "8100447",
+  "name": "Wien Hütteldorf"
+ },
+ {
+  "eva": "08101230",
+  "hafas_id": "8101230",
+  "name": "Mödling"
+ },
+ {
+  "eva": "08100099",
+  "hafas_id": "8100099",
+  "name": "Wörgl Hbf"
+ },
+ {
+  "eva": "08100001",
+  "hafas_id": "8100001",
+  "name": "Kufstein"
+ },
+ {
+  "eva": "08101170",
+  "hafas_id": "8101170",
+  "name": "Wien Leopoldau"
+ },
+ {
+  "eva": "08100634",
+  "hafas_id": "8100634",
+  "name": "Wien Atzgersdorf"
+ },
+ {
+  "eva": "08100935",
+  "hafas_id": "8100935",
+  "name": "Wien Hetzendorf"
+ },
+ {
+  "eva": "08100102",
+  "hafas_id": "8100102",
+  "name": "Jenbach"
+ },
+ {
+  "eva": "08100796",
+  "hafas_id": "8100796",
+  "name": "Wien Siemensstraße"
+ },
+ {
+  "eva": "08100147",
+  "hafas_id": "8100147",
+  "name": "Villach Hbf"
+ },
+ {
+  "eva": "08100353",
+  "hafas_id": "8100353",
+  "name": "Flughafen Wien"
+ },
+ {
+  "eva": "08100450",
+  "hafas_id": "8100450",
+  "name": "Wien Penzing"
+ },
+ {
+  "eva": "08100014",
+  "hafas_id": "8100014",
+  "name": "Wels Hbf"
+ },
+ {
+  "eva": "08101163",
+  "hafas_id": "8101163",
+  "name": "Leobersdorf"
+ },
+ {
+  "eva": "08100173",
+  "hafas_id": "8100173",
+  "name": "Graz Hbf"
+ },
+ {
+  "eva": "08100698",
+  "hafas_id": "8100698",
+  "name": "Brunn-Maria Enzersdorf"
+ },
+ {
+  "eva": "08101346",
+  "hafas_id": "8101346",
+  "name": "Perchtoldsdorf"
+ },
+ {
+  "eva": "08100085",
+  "hafas_id": "8100085",
+  "name": "Klagenfurt Hbf"
+ },
+ {
+  "eva": "08100780",
+  "hafas_id": "8100780",
+  "name": "Felixdorf"
+ },
+ {
+  "eva": "08100090",
+  "hafas_id": "8100090",
+  "name": "Bregenz"
+ },
+ {
+  "eva": "08100293",
+  "hafas_id": "8100293",
+  "name": "Korneuburg"
+ },
+ {
+  "eva": "08100708",
+  "hafas_id": "8100708",
+  "name": "Bad Vöslau"
+ },
+ {
+  "eva": "08100297",
+  "hafas_id": "8100297",
+  "name": "Wien Krottenbachstraße"
+ },
+ {
+  "eva": "08100395",
+  "hafas_id": "8100395",
+  "name": "Wien Breitensee"
+ },
+ {
+  "eva": "08100512",
+  "hafas_id": "8100512",
+  "name": "Wien Ottakring"
+ },
+ {
+  "eva": "08100249",
+  "hafas_id": "8100249",
+  "name": "Wien Gersthof"
+ },
+ {
+  "eva": "08100271",
+  "hafas_id": "8100271",
+  "name": "Wien Hernals"
+ },
+ {
+  "eva": "08100441",
+  "hafas_id": "8100441",
+  "name": "Wien Oberdöbling"
+ },
+ {
+  "eva": "08100374",
+  "hafas_id": "8100374",
+  "name": "Wien Kaiserebersdorf"
+ },
+ {
+  "eva": "08100534",
+  "hafas_id": "8100534",
+  "name": "Stockerau"
+ },
+ {
+  "eva": "08100203",
+  "hafas_id": "8100203",
+  "name": "Tulln a.d.Donau"
+ },
+ {
+  "eva": "08100259",
+  "hafas_id": "8100259",
+  "name": "Schwechat"
+ },
+ {
+  "eva": "08100017",
+  "hafas_id": "8100017",
+  "name": "Attnang-Puchheim"
+ },
+ {
+  "eva": "08100003",
+  "hafas_id": "8100003",
+  "name": "Wien Westbahnhof"
+ },
+ {
+  "eva": "08100032",
+  "hafas_id": "8100032",
+  "name": "Bruck/Mur"
+ },
+ {
+  "eva": "08100245",
+  "hafas_id": "8100245",
+  "name": "Gänserndorf"
+ },
+ {
+  "eva": "08101013",
+  "hafas_id": "8101013",
+  "name": "Wien Jedlersdorf"
+ },
+ {
+  "eva": "08100721",
+  "hafas_id": "8100721",
+  "name": "Deutsch Wagram"
+ },
+ {
+  "eva": "08100063",
+  "hafas_id": "8100063",
+  "name": "Landeck-Zams"
+ },
+ {
+  "eva": "08100105",
+  "hafas_id": "8100105",
+  "name": "Hall in Tirol"
+ },
+ {
+  "eva": "08101191",
+  "hafas_id": "8101191",
+  "name": "Langenzersdorf"
+ },
+ {
+  "eva": "08100198",
+  "hafas_id": "8100198",
+  "name": "Bruck/Leitha"
+ },
+ {
+  "eva": "08100103",
+  "hafas_id": "8100103",
+  "name": "Schwaz"
+ },
+ {
+  "eva": "08101793",
+  "hafas_id": "8101793",
+  "name": "Wolkersdorf im Weinviertel"
+ },
+ {
+  "eva": "08100446",
+  "hafas_id": "8100446",
+  "name": "Wien Franz-Josefs-Bahnhof"
+ },
+ {
+  "eva": "08101937",
+  "hafas_id": "8101937",
+  "name": "Wien Spittelau"
+ },
+ {
+  "eva": "08100012",
+  "hafas_id": "8100012",
+  "name": "Amstetten NÖ"
+ },
+ {
+  "eva": "08100689",
+  "hafas_id": "8100689",
+  "name": "Bisamberg"
+ },
+ {
+  "eva": "08101588",
+  "hafas_id": "8101588",
+  "name": "Wien Strebersdorf"
+ },
+ {
+  "eva": "08102059",
+  "hafas_id": "8102059",
+  "name": "Tullnerfeld"
+ },
+ {
+  "eva": "08100109",
+  "hafas_id": "8100109",
+  "name": "Innsbruck Westbahnhof"
+ },
+ {
+  "eva": "08101556",
+  "hafas_id": "8101556",
+  "name": "Wien Grillgasse"
+ },
+ {
+  "eva": "08100044",
+  "hafas_id": "8100044",
+  "name": "Schwarzach-St.Veit"
+ },
+ {
+  "eva": "08100477",
+  "hafas_id": "8100477",
+  "name": "Rum b.Innsbruck"
+ },
+ {
+  "eva": "08100009",
+  "hafas_id": "8100009",
+  "name": "St. Valentin"
+ },
+ {
+  "eva": "08100432",
+  "hafas_id": "8100432",
+  "name": "St.Andrä-Wördern"
+ },
+ {
+  "eva": "08100460",
+  "hafas_id": "8100460",
+  "name": "Klosterneuburg Kierling"
+ },
+ {
+  "eva": "08101101",
+  "hafas_id": "8101101",
+  "name": "Klosterneuburg Weidling"
+ },
+ {
+  "eva": "08100060",
+  "hafas_id": "8100060",
+  "name": "Telfs-Pfaffenhofen"
+ },
+ {
+  "eva": "08100369",
+  "hafas_id": "8100369",
+  "name": "Gramatneusiedl"
+ },
+ {
+  "eva": "08101124",
+  "hafas_id": "8101124",
+  "name": "Leobendorf-Burg Kreuzenstein"
+ },
+ {
+  "eva": "08100134",
+  "hafas_id": "8100134",
+  "name": "Neumarkt am Wallersee"
+ },
+ {
+  "eva": "08100473",
+  "hafas_id": "8100473",
+  "name": "Bregenz Riedenburg"
+ },
+ {
+  "eva": "08100202",
+  "hafas_id": "8100202",
+  "name": "Absdorf-Hippersdorf"
+ },
+ {
+  "eva": "08196028",
+  "hafas_id": "1260107",
+  "name": "GRAZ DON BOSCO"
+ },
+ {
+  "eva": "08100042",
+  "hafas_id": "8100042",
+  "name": "Bischofshofen"
+ },
+ {
+  "eva": "08101728",
+  "hafas_id": "8101728",
+  "name": "Völs"
+ },
+ {
+  "eva": "08101578",
+  "hafas_id": "8101578",
+  "name": "Spillern"
+ },
+ {
+  "eva": "08100081",
+  "hafas_id": "8100081",
+  "name": "Velden am Wörther See"
+ },
+ {
+  "eva": "08100869",
+  "hafas_id": "8100869",
+  "name": "Gerasdorf"
+ },
+ {
+  "eva": "08101020",
+  "hafas_id": "8101020",
+  "name": "Kapellerfeld"
+ },
+ {
+  "eva": "08101498",
+  "hafas_id": "8101498",
+  "name": "Seyring"
+ },
+ {
+  "eva": "08101692",
+  "hafas_id": "8101692",
+  "name": "Tulln/Donau Stadt"
+ },
+ {
+  "eva": "08104229",
+  "hafas_id": "8104229",
+  "name": "Wien Stadlau"
+ },
+ {
+  "eva": "08101553",
+  "hafas_id": "8101553",
+  "name": "Wien Simmering"
+ },
+ {
+  "eva": "08100041",
+  "hafas_id": "8100041",
+  "name": "Golling-Abtenau"
+ },
+ {
+  "eva": "08101555",
+  "hafas_id": "8101555",
+  "name": "Wien Geiselbergstraße"
+ },
+ {
+  "eva": "08101820",
+  "hafas_id": "8101820",
+  "name": "Wien Zentralfriedhof (S-Bahn)"
+ },
+ {
+  "eva": "08100515",
+  "hafas_id": "8100515",
+  "name": "Parndorf Ort"
+ },
+ {
+  "eva": "08100092",
+  "hafas_id": "8100092",
+  "name": "Spittal-Millstätter See"
+ },
+ {
+  "eva": "08101595",
+  "hafas_id": "8101595",
+  "name": "Strasshof"
+ },
+ {
+  "eva": "08100070",
+  "hafas_id": "8100070",
+  "name": "Leoben Hbf"
+ },
+ {
+  "eva": "08100274",
+  "hafas_id": "8100274",
+  "name": "Hollabrunn"
+ },
+ {
+  "eva": "08100027",
+  "hafas_id": "8100027",
+  "name": "Payerbach-Reichenau"
+ },
+ {
+  "eva": "08100197",
+  "hafas_id": "8100197",
+  "name": "Feldkirch"
+ },
+ {
+  "eva": "08101871",
+  "hafas_id": "8101871",
+  "name": "Mannswörth"
+ },
+ {
+  "eva": "08100501",
+  "hafas_id": "8100501",
+  "name": "St. Paul im Lavanttal"
+ },
+ {
+  "eva": "08101567",
+  "hafas_id": "8101567",
+  "name": "Sollenau"
+ },
+ {
+  "eva": "08101247",
+  "hafas_id": "8101247",
+  "name": "Muckendorf-Wipfing"
+ },
+ {
+  "eva": "08101159",
+  "hafas_id": "8101159",
+  "name": "Langenlebarn"
+ },
+ {
+  "eva": "08101825",
+  "hafas_id": "8101825",
+  "name": "Zeiselmauer-Königstetten"
+ },
+ {
+  "eva": "08100043",
+  "hafas_id": "8100043",
+  "name": "St. Johann im Pongau"
+ },
+ {
+  "eva": "08101619",
+  "hafas_id": "8101619",
+  "name": "Wien Süßenbrunn"
+ },
+ {
+  "eva": "08105987",
+  "hafas_id": "8105987",
+  "name": "Innsbruck Messe"
+ },
+ {
+  "eva": "08101245",
+  "hafas_id": "8101245",
+  "name": "Mistelbach"
+ },
+ {
+  "eva": "08101290",
+  "hafas_id": "8101290",
+  "name": "Wien Nußdorf"
+ },
+ {
+  "eva": "08100062",
+  "hafas_id": "8100062",
+  "name": "Imst-Pitztal"
+ },
+ {
+  "eva": "08101277",
+  "hafas_id": "8101277",
+  "name": "Neunkirchen NÖ"
+ },
+ {
+  "eva": "08100026",
+  "hafas_id": "8100026",
+  "name": "Gloggnitz"
+ },
+ {
+  "eva": "08100591",
+  "hafas_id": "8100591",
+  "name": "Silberwald"
+ },
+ {
+  "eva": "08100867",
+  "hafas_id": "8100867",
+  "name": "Gumpoldskirchen"
+ },
+ {
+  "eva": "08100928",
+  "hafas_id": "8100928",
+  "name": "Helmahof"
+ },
+ {
+  "eva": "08100507",
+  "hafas_id": "8100507",
+  "name": "Vöcklabruck"
+ },
+ {
+  "eva": "08101489",
+  "hafas_id": "8101489",
+  "name": "St.Egyden am Steinfeld"
+ },
+ {
+  "eva": "08100587",
+  "hafas_id": "8100587",
+  "name": "Schlöglmühl"
+ },
+ {
+  "eva": "08101661",
+  "hafas_id": "8101661",
+  "name": "Ternitz"
+ },
+ {
+  "eva": "08101390",
+  "hafas_id": "8101390",
+  "name": "Pottschach"
+ },
+ {
+  "eva": "08100120",
+  "hafas_id": "8100120",
+  "name": "Götzis"
+ },
+ {
+  "eva": "08101650",
+  "hafas_id": "8101650",
+  "name": "Tullnerbach-Pressbaum"
+ },
+ {
+  "eva": "08101033",
+  "hafas_id": "8101033",
+  "name": "Kottingbrunn"
+ },
+ {
+  "eva": "08100150",
+  "hafas_id": "8100150",
+  "name": "Selzthal"
+ },
+ {
+  "eva": "08100846",
+  "hafas_id": "8100846",
+  "name": "Guntramsdorf-Thallern"
+ },
+ {
+  "eva": "08101352",
+  "hafas_id": "8101352",
+  "name": "Pfaffstätten"
+ },
+ {
+  "eva": "08100101",
+  "hafas_id": "8100101",
+  "name": "Brixlegg"
+ },
+ {
+  "eva": "08100465",
+  "hafas_id": "8100465",
+  "name": "Rattenberg-Kramsach"
+ },
+ {
+  "eva": "08100100",
+  "hafas_id": "8100100",
+  "name": "Kundl"
+ },
+ {
+  "eva": "08100488",
+  "hafas_id": "8100488",
+  "name": "Münster-Wiesing"
+ },
+ {
+  "eva": "08101404",
+  "hafas_id": "8101404",
+  "name": "Purkersdorf b.Wien Zentrum"
+ },
+ {
+  "eva": "08100295",
+  "hafas_id": "8100295",
+  "name": "Krems an der Donau"
+ },
+ {
+  "eva": "08102045",
+  "hafas_id": "8102045",
+  "name": "Salzburg Taxham Europark"
+ },
+ {
+  "eva": "08100426",
+  "hafas_id": "8100426",
+  "name": "Seekirchen am Wallersee"
+ },
+ {
+  "eva": "08102052",
+  "hafas_id": "8102052",
+  "name": "Salzburg Mülln-Altstadt"
+ },
+ {
+  "eva": "08101664",
+  "hafas_id": "8101664",
+  "name": "Theresienfeld"
+ },
+ {
+  "eva": "08100272",
+  "hafas_id": "8100272",
+  "name": "Herzogenburg"
+ },
+ {
+  "eva": "08100049",
+  "hafas_id": "8100049",
+  "name": "Saalfelden"
+ },
+ {
+  "eva": "08100093",
+  "hafas_id": "8100093",
+  "name": "Mallnitz-Obervellach"
+ },
+ {
+  "eva": "08100006",
+  "hafas_id": "8100006",
+  "name": "Pöchlarn"
+ },
+ {
+  "eva": "08101381",
+  "hafas_id": "8101381",
+  "name": "Pressbaum"
+ },
+ {
+  "eva": "08102105",
+  "hafas_id": "8102105",
+  "name": "Hall in Tirol-Thaur"
+ },
+ {
+  "eva": "08100749",
+  "hafas_id": "8100749",
+  "name": "Eichgraben-Altlengbach"
+ },
+ {
+  "eva": "08100019",
+  "hafas_id": "8100019",
+  "name": "Straßwalchen"
+ },
+ {
+  "eva": "08100197",
+  "hafas_id": "8100197",
+  "name": "Feldkirch"
+ },
+ {
+  "eva": "08101398",
+  "hafas_id": "8101398",
+  "name": "Graz Puntigam"
+ },
+ {
+  "eva": "08102888",
+  "hafas_id": "8102888",
+  "name": "Wien Aspern Nord"
+ },
+ {
+  "eva": "08100080",
+  "hafas_id": "8100080",
+  "name": "Pörtschach am Wörther See"
+ },
+ {
+  "eva": "08101204",
+  "hafas_id": "8101204",
+  "name": "Marchtrenk"
+ },
+ {
+  "eva": "08100264",
+  "hafas_id": "8100264",
+  "name": "Hadersdorf/Kamp"
+ },
+ {
+  "eva": "08100524",
+  "hafas_id": "8100524",
+  "name": "Pill-Vomperbach"
+ },
+ {
+  "eva": "08100323",
+  "hafas_id": "8100323",
+  "name": "Terfens-Weer"
+ },
+ {
+  "eva": "08100310",
+  "hafas_id": "8100310",
+  "name": "Stans bei Schwaz"
+ },
+ {
+  "eva": "08100337",
+  "hafas_id": "8100337",
+  "name": "Volders-Baumkirchen"
+ },
+ {
+  "eva": "08100104",
+  "hafas_id": "8100104",
+  "name": "Fritzens-Wattens"
+ },
+ {
+  "eva": "08101950",
+  "hafas_id": "8101950",
+  "name": "Bregenz Hafen"
+ },
+ {
+  "eva": "08100483",
+  "hafas_id": "8100483",
+  "name": "Schaftenau"
+ },
+ {
+  "eva": "08101791",
+  "hafas_id": "8101791",
+  "name": "Wiener Neustadt Nord"
+ },
+ {
+  "eva": "08100048",
+  "hafas_id": "8100048",
+  "name": "Zell am See"
+ },
+ {
+  "eva": "08100029",
+  "hafas_id": "8100029",
+  "name": "Mürzzuschlag"
+ },
+ {
+  "eva": "08100035",
+  "hafas_id": "8100035",
+  "name": "Leibnitz"
+ },
+ {
+  "eva": "08100466",
+  "hafas_id": "8100466",
+  "name": "Marchegg"
+ },
+ {
+  "eva": "08173192",
+  "hafas_id": "1250109",
+  "name": "Salzburg (A) Süd Bahnhst (Salzachweg)"
+ },
+ {
+  "eva": "08100040",
+  "hafas_id": "8100040",
+  "name": "Hallein"
+ },
+ {
+  "eva": "08100122",
+  "hafas_id": "8100122",
+  "name": "Dornbirn"
+ },
+ {
+  "eva": "08100235",
+  "hafas_id": "8100235",
+  "name": "Fischamend"
+ },
+ {
+  "eva": "08101918",
+  "hafas_id": "8101918",
+  "name": "Kaindorf/Sulm"
+ },
+ {
+  "eva": "08100122",
+  "hafas_id": "8100122",
+  "name": "Dornbirn"
+ },
+ {
+  "eva": "08100451",
+  "hafas_id": "8100451",
+  "name": "Zirl"
+ },
+ {
+  "eva": "08102053",
+  "hafas_id": "8102053",
+  "name": "Oberhofen im Inntal"
+ },
+ {
+  "eva": "08100795",
+  "hafas_id": "8100795",
+  "name": "Flaurling"
+ },
+ {
+  "eva": "08101111",
+  "hafas_id": "8101111",
+  "name": "Ladendorf"
+ },
+ {
+  "eva": "08100986",
+  "hafas_id": "8100986",
+  "name": "Hatting in Tirol"
+ },
+ {
+  "eva": "08101038",
+  "hafas_id": "8101038",
+  "name": "Kematen in Tirol"
+ },
+ {
+  "eva": "08100050",
+  "hafas_id": "8100050",
+  "name": "Maishofen-Saalbach"
+ },
+ {
+  "eva": "08101007",
+  "hafas_id": "8101007",
+  "name": "Inzing/Inn"
+ }
+]

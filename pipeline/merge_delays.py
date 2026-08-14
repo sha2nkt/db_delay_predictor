@@ -26,6 +26,7 @@ OPTIONAL_COLUMNS = {"reason_code": "INTEGER"}
 # (e.g. IRIS carries foreign border stops like Basel SBB that CH data also has)
 SOURCES = [
     ("DE", "de/delays.parquet", "080%"),
+    ("AT", "at/days/*.parquet", "081%"),
     ("CH", "ch/days/*.parquet", "085%"),
     ("FR", "fr/days/*.parquet", "087%"),
 ]
@@ -82,7 +83,7 @@ def main():
     os.replace(tmp, out)
     print(f"Saved {out} and {db_out}")
     duckdb.sql(f"""
-        SELECT CASE substr(eva, 2, 2) WHEN '80' THEN 'DE' WHEN '85' THEN 'CH' WHEN '87' THEN 'FR' ELSE substr(eva, 2, 2) END AS country,
+        SELECT CASE substr(eva, 2, 2) WHEN '80' THEN 'DE' WHEN '81' THEN 'AT' WHEN '85' THEN 'CH' WHEN '87' THEN 'FR' ELSE substr(eva, 2, 2) END AS country,
                count(*) AS rows_, count(DISTINCT CAST(arrival_planned_time AS DATE)) AS days_
         FROM '{out}' GROUP BY country ORDER BY country
     """).show()
