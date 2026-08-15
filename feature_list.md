@@ -44,6 +44,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Swiss delay coverage | done | official istdaten v2 daily files; 31-day history from day one; all operators feeding SBB customer info (SBB/BLS/RhB/SOB verified) |
 | French delay coverage | done | SNCF GTFS-RT poller + 35-day mirror backfill; TGV/Ouigo/TER/Intercités; "actual" = last realtime projection before arrival |
 | Austrian delay coverage | done | ÖBB HAFAS (Scotty) board poller over the ~200 busiest stations (RJ/RJX/IC/EC/NJ/REX/CJX/R/S); "actual" = last realtime projection before arrival |
+| Italian delay coverage | done | ViaggiaTreno run tracking: 254 hub boards discover runs, `andamentoTreno` yields all stops per run (FR/FA/IC/ICN/EC/REG and more); actuals are RFI detections |
 
 ## Data pipeline
 
@@ -121,6 +122,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 - France: Trenitalia France and other non-SNCF operators are absent from the feed; "actual" times are the last realtime projection, not measured; poller downtime creates permanent holes for those hours.
 - Switzerland: GESCHAETZT (estimated) actuals are accepted alongside REAL; foreign stops of international trains carry no Swiss actuals (each country's own source covers its own stations).
 - Austria: only the ~200 busiest stations are polled (long-tail halts show "keine Daten"); "actual" times are the last HAFAS realtime projection, not measured; poller downtime creates permanent holes for those hours; the board interface is unofficial and could change without notice.
+- Italy: runs that never touch one of the 254 discovery hubs are missed; trains changing number mid-run (haCambiNumero) are keyed under the discovered number only; Trenord data in ViaggiaTreno is thin; ~840 minor halts have no bahn.de EVA and are skipped; poller downtime creates permanent holes; the ViaggiaTreno interface is unofficial (no open-data license) and could change without notice.
 - Compensation checker: reaches back only as far as the live parquet (~30 days) while DB accepts claims up to 1 year; monthly archives are not wired up yet. The recent end is covered live, so the gap is at the far end only.
 - Live same-day lookups are German only (IRIS has no CH/FR stops) and need `DB_API_KEY`/`DB_CLIENT_ID`; without credentials the date picker stops at the parquet's last day, exactly as before. German S-Bahn legs match by line label ("S5") since 2026-08-02 — nearest run of that line within the time-of-day tolerance, which for a headway service is the intended proxy, not an exact-run match.
 - Simulation assumes a rational passenger taking the earliest-arriving catchable connection; replacement legs without delay data count as on time; the DB claim page lists only journeys booked in that bahn.de account (form fallback linked).

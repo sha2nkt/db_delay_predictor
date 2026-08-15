@@ -1,0 +1,9794 @@
+{
+ "S00001": {
+  "eva": "08302314",
+  "name": "Villadossola"
+ },
+ "S00002": {
+  "eva": "08301908",
+  "name": "Pallanzeno"
+ },
+ "S00003": {
+  "eva": "08300932",
+  "name": "Piedimulera"
+ },
+ "S00004": {
+  "eva": "08301961",
+  "name": "Pieve Vergonte"
+ },
+ "S00006": {
+  "eva": "08302441",
+  "name": "Ornavasso"
+ },
+ "S00007": {
+  "eva": "08300957",
+  "name": "Gravellona Toce"
+ },
+ "S00008": {
+  "eva": "08301828",
+  "name": "Omegna-Crusinallo"
+ },
+ "S00010": {
+  "eva": "08301829",
+  "name": "Omegna"
+ },
+ "S00011": {
+  "eva": "08301887",
+  "name": "Pettenasco"
+ },
+ "S00012": {
+  "eva": "08300659",
+  "name": "Orta-Miasino"
+ },
+ "S00014": {
+  "eva": "08301273",
+  "name": "Bolzano Novarese"
+ },
+ "S00015": {
+  "eva": "08300660",
+  "name": "Gozzano"
+ },
+ "S00016": {
+  "eva": "08300013",
+  "name": "Borgomanero"
+ },
+ "S00017": {
+  "eva": "08301339",
+  "name": "Cressa-Fontaneto"
+ },
+ "S00018": {
+  "eva": "08300661",
+  "name": "Suno"
+ },
+ "S00019": {
+  "eva": "08301739",
+  "name": "Momo"
+ },
+ "S00020": {
+  "eva": "08301448",
+  "name": "Caltignaga"
+ },
+ "S00021": {
+  "eva": "08300942",
+  "name": "Vignale"
+ },
+ "S00022": {
+  "eva": "08302297",
+  "name": "Vaprio d’Agogna"
+ },
+ "S00023": {
+  "eva": "08303057",
+  "name": "Novara Nord"
+ },
+ "S00030": {
+  "eva": "08301542",
+  "name": "Garbagna"
+ },
+ "S00031": {
+  "eva": "08302319",
+  "name": "Vespolate"
+ },
+ "S00032": {
+  "eva": "08301220",
+  "name": "Borgo Lavezzaro"
+ },
+ "S00033": {
+  "eva": "08301129",
+  "name": "Albonese"
+ },
+ "S00034": {
+  "eva": "08300023",
+  "name": "Mortara"
+ },
+ "S00035": {
+  "eva": "08300522",
+  "name": "Torino Porta Susa"
+ },
+ "S00036": {
+  "eva": "08301827",
+  "name": "Olevano"
+ },
+ "S00037": {
+  "eva": "08302343",
+  "name": "Valle Lomellina"
+ },
+ "S00038": {
+  "eva": "08302063",
+  "name": "Sartirana"
+ },
+ "S00039": {
+  "eva": "08300356",
+  "name": "Torreberetti"
+ },
+ "S00041": {
+  "eva": "08300031",
+  "name": "Valenza"
+ },
+ "S00042": {
+  "eva": "08302339",
+  "name": "Valmadonna"
+ },
+ "S00053": {
+  "eva": "08300026",
+  "name": "Rovasenda"
+ },
+ "S00059": {
+  "eva": "08381587",
+  "name": "Grugliasco"
+ },
+ "S00060": {
+  "eva": "08303939",
+  "name": "Torino Rebaudengo Fossata"
+ },
+ "S00070": {
+  "eva": "08300005",
+  "name": "Biella San Paolo"
+ },
+ "S00071": {
+  "eva": "08301290",
+  "name": "Candelo"
+ },
+ "S00072": {
+  "eva": "08302056",
+  "name": "Sandigliano"
+ },
+ "S00073": {
+  "eva": "08302317",
+  "name": "Vergnasco"
+ },
+ "S00074": {
+  "eva": "08302065",
+  "name": "Salussola"
+ },
+ "S00075": {
+  "eva": "08320075",
+  "name": "Agognate"
+ },
+ "S00082": {
+  "eva": "08323061",
+  "name": "Pinerolo Olimpica"
+ },
+ "S00084": {
+  "eva": "08310084",
+  "name": "Venaria Reale Rigola Stadio"
+ },
+ "S00085": {
+  "eva": "08310085",
+  "name": "Venaria Reale Reggia"
+ },
+ "S00086": {
+  "eva": "08310086",
+  "name": "Borgaro"
+ },
+ "S00087": {
+  "eva": "08310087",
+  "name": "Caselle Torinese"
+ },
+ "S00088": {
+  "eva": "08310088",
+  "name": "Torino Aeroporto di Caselle"
+ },
+ "S00089": {
+  "eva": "08310089",
+  "name": "San Maurizio Canavese"
+ },
+ "S00090": {
+  "eva": "08310090",
+  "name": "Cirie"
+ },
+ "S00091": {
+  "eva": "08310091",
+  "name": "Nole"
+ },
+ "S00092": {
+  "eva": "08310092",
+  "name": "Villanova Canavese-Grosso"
+ },
+ "S00093": {
+  "eva": "08320093",
+  "name": "Mathi"
+ },
+ "S00094": {
+  "eva": "08310094",
+  "name": "Balangero"
+ },
+ "S00095": {
+  "eva": "08310095",
+  "name": "Lanzo Torinese"
+ },
+ "S00096": {
+  "eva": "08310096",
+  "name": "Germagnano"
+ },
+ "S00097": {
+  "eva": "08320097",
+  "name": "Torino Grosseto"
+ },
+ "S00100": {
+  "eva": "08300663",
+  "name": "Varallo Sesia"
+ },
+ "S00102": {
+  "eva": "08300664",
+  "name": "Quarona"
+ },
+ "S00104": {
+  "eva": "08300665",
+  "name": "Borgosesia"
+ },
+ "S00106": {
+  "eva": "08301558",
+  "name": "Grignasco"
+ },
+ "S00108": {
+  "eva": "08301942",
+  "name": "Prato Sesia"
+ },
+ "S00109": {
+  "eva": "08300025",
+  "name": "Romagnano Sesia"
+ },
+ "S00110": {
+  "eva": "08301562",
+  "name": "Ghemme"
+ },
+ "S00111": {
+  "eva": "08302122",
+  "name": "Sizzano"
+ },
+ "S00112": {
+  "eva": "08301496",
+  "name": "Fara"
+ },
+ "S00113": {
+  "eva": "08301078",
+  "name": "Briona"
+ },
+ "S00130": {
+  "eva": "08300024",
+  "name": "Pre Saint Didier"
+ },
+ "S00131": {
+  "eva": "08301793",
+  "name": "Morgex"
+ },
+ "S00132": {
+  "eva": "08301642",
+  "name": "La Salle"
+ },
+ "S00133": {
+  "eva": "08301169",
+  "name": "Avise"
+ },
+ "S00134": {
+  "eva": "08301160",
+  "name": "Arvier"
+ },
+ "S00135": {
+  "eva": "08302352",
+  "name": "Villeneuve"
+ },
+ "S00136": {
+  "eva": "08302186",
+  "name": "Sarre"
+ },
+ "S00137": {
+  "eva": "08300012",
+  "name": "Aosta"
+ },
+ "S00140": {
+  "eva": "08301819",
+  "name": "Nus"
+ },
+ "S00142": {
+  "eva": "08300508",
+  "name": "Chatillon-Saint Vincent"
+ },
+ "S00143": {
+  "eva": "08378364",
+  "name": "Aosta Istituto"
+ },
+ "S00145": {
+  "eva": "08300391",
+  "name": "Verres"
+ },
+ "S00146": {
+  "eva": "08340987",
+  "name": "Aosta Viale Europa"
+ },
+ "S00147": {
+  "eva": "08301599",
+  "name": "Hone-Bard"
+ },
+ "S00148": {
+  "eva": "08301485",
+  "name": "Donnaz"
+ },
+ "S00149": {
+  "eva": "08300507",
+  "name": "Pont Saint Martin"
+ },
+ "S00152": {
+  "eva": "08300655",
+  "name": "Borgofranco"
+ },
+ "S00154": {
+  "eva": "08300021",
+  "name": "Ivrea"
+ },
+ "S00155": {
+  "eva": "08302211",
+  "name": "Strambino"
+ },
+ "S00156": {
+  "eva": "08301677",
+  "name": "Mercenasco"
+ },
+ "S00157": {
+  "eva": "08301306",
+  "name": "Candia Canavese"
+ },
+ "S00158": {
+  "eva": "08301375",
+  "name": "Caluso"
+ },
+ "S00159": {
+  "eva": "08302023",
+  "name": "Rodallo"
+ },
+ "S00160": {
+  "eva": "08301781",
+  "name": "Montanaro"
+ },
+ "S00161": {
+  "eva": "08301102",
+  "name": "Saint Pierre"
+ },
+ "S00162": {
+  "eva": "08301473",
+  "name": "Derby"
+ },
+ "S00170": {
+  "eva": "08302357",
+  "name": "Verolengo"
+ },
+ "S00171": {
+  "eva": "08301248",
+  "name": "Borgo Revel"
+ },
+ "S00172": {
+  "eva": "08301429",
+  "name": "Crescentino"
+ },
+ "S00174": {
+  "eva": "08301521",
+  "name": "Fontanetto Po"
+ },
+ "S00175": {
+  "eva": "08301859",
+  "name": "Palazzolo Vercellese"
+ },
+ "S00176": {
+  "eva": "08302291",
+  "name": "Trino Vercellese"
+ },
+ "S00177": {
+  "eva": "08301768",
+  "name": "Morano sul Po"
+ },
+ "S00178": {
+  "eva": "08301181",
+  "name": "Balzola"
+ },
+ "S00203": {
+  "eva": "08300582",
+  "name": "Beaulard"
+ },
+ "S00204": {
+  "eva": "08300010",
+  "name": "Oulx-Cesana-Clavière-Sestrières"
+ },
+ "S00205": {
+  "eva": "08300934",
+  "name": "Salbertrand"
+ },
+ "S00206": {
+  "eva": "08300931",
+  "name": "Chiomonte"
+ },
+ "S00207": {
+  "eva": "08300933",
+  "name": "Meana"
+ },
+ "S00208": {
+  "eva": "08300006",
+  "name": "Bussoleno"
+ },
+ "S00209": {
+  "eva": "08301237",
+  "name": "Bruzolo di Susa"
+ },
+ "S00210": {
+  "eva": "08301226",
+  "name": "Borgone"
+ },
+ "S00211": {
+  "eva": "08302061",
+  "name": "Sant’Antonino-Vaie"
+ },
+ "S00212": {
+  "eva": "08300879",
+  "name": "Condove-Chiusa San Michele"
+ },
+ "S00213": {
+  "eva": "08302060",
+  "name": "Sant’Ambrogio"
+ },
+ "S00214": {
+  "eva": "08300583",
+  "name": "Avigliana"
+ },
+ "S00215": {
+  "eva": "08302021",
+  "name": "Rosta"
+ },
+ "S00216": {
+  "eva": "08300584",
+  "name": "Alpignano"
+ },
+ "S00217": {
+  "eva": "08300585",
+  "name": "Collegno"
+ },
+ "S00219": {
+  "eva": "08300001",
+  "name": "Torino Porta Nuova"
+ },
+ "S00228": {
+  "eva": "08300514",
+  "name": "Torino Stura"
+ },
+ "S00229": {
+  "eva": "08300935",
+  "name": "Settimo Torinese"
+ },
+ "S00231": {
+  "eva": "08301238",
+  "name": "Brandizzo"
+ },
+ "S00232": {
+  "eva": "08300019",
+  "name": "Chivasso"
+ },
+ "S00233": {
+  "eva": "08300938",
+  "name": "Castelrosso"
+ },
+ "S00234": {
+  "eva": "08302265",
+  "name": "Torrazza Piemonte"
+ },
+ "S00235": {
+  "eva": "08302059",
+  "name": "Saluggia"
+ },
+ "S00236": {
+  "eva": "08302054",
+  "name": "Sant’Antonino di Saluggia"
+ },
+ "S00237": {
+  "eva": "08300513",
+  "name": "Livorno Ferraris"
+ },
+ "S00238": {
+  "eva": "08301210",
+  "name": "Bianze"
+ },
+ "S00239": {
+  "eva": "08302279",
+  "name": "Tronzano"
+ },
+ "S00240": {
+  "eva": "08300028",
+  "name": "Santhia"
+ },
+ "S00243": {
+  "eva": "08302121",
+  "name": "San Germano Vercellese"
+ },
+ "S00245": {
+  "eva": "08300008",
+  "name": "Vercelli"
+ },
+ "S00246": {
+  "eva": "08301268",
+  "name": "Borgo Vercelli"
+ },
+ "S00248": {
+  "eva": "08300007",
+  "name": "Novara"
+ },
+ "S00260": {
+  "eva": "08300591",
+  "name": "Susa"
+ },
+ "S00271": {
+  "eva": "08300662",
+  "name": "Palestro"
+ },
+ "S00272": {
+  "eva": "08301979",
+  "name": "Robbio"
+ },
+ "S00273": {
+  "eva": "08301807",
+  "name": "Nicorvo"
+ },
+ "S00274": {
+  "eva": "08301088",
+  "name": "Gambolo-Remondo"
+ },
+ "S00275": {
+  "eva": "08302277",
+  "name": "Tromello"
+ },
+ "S00276": {
+  "eva": "08301571",
+  "name": "Garlasco"
+ },
+ "S00277": {
+  "eva": "08301547",
+  "name": "Gropello Cairoli"
+ },
+ "S00278": {
+  "eva": "08302338",
+  "name": "Villanova d'Ardenghi"
+ },
+ "S00279": {
+  "eva": "08300940",
+  "name": "Cava Carbonara"
+ },
+ "S00314": {
+  "eva": "08300654",
+  "name": "Casale Monferrato"
+ },
+ "S00315": {
+  "eva": "08301256",
+  "name": "Borgo San Martino"
+ },
+ "S00316": {
+  "eva": "08301570",
+  "name": "Giarole"
+ },
+ "S00333": {
+  "eva": "08310333",
+  "name": "Candia Lomellina"
+ },
+ "S00347": {
+  "eva": "08310347",
+  "name": "Isola d'Asti"
+ },
+ "S00348": {
+  "eva": "08310348",
+  "name": "Costigliole(Mottadi)"
+ },
+ "S00400": {
+  "eva": "08302225",
+  "name": "Sairano-Zinasco"
+ },
+ "S00401": {
+  "eva": "08300946",
+  "name": "Zinasco Nuovo"
+ },
+ "S00402": {
+  "eva": "08301852",
+  "name": "Pieve Albignola"
+ },
+ "S00403": {
+  "eva": "08302229",
+  "name": "Sannazzaro"
+ },
+ "S00404": {
+  "eva": "08301513",
+  "name": "Ferrera Lomellina"
+ },
+ "S00405": {
+  "eva": "08301637",
+  "name": "Lomello"
+ },
+ "S00406": {
+  "eva": "08301688",
+  "name": "Mede"
+ },
+ "S00408": {
+  "eva": "08302785",
+  "name": "Sairano"
+ },
+ "S00452": {
+  "eva": "08300516",
+  "name": "Torino Lingotto"
+ },
+ "S00453": {
+  "eva": "08301740",
+  "name": "Moncalieri"
+ },
+ "S00455": {
+  "eva": "08300030",
+  "name": "Trofarello"
+ },
+ "S00456": {
+  "eva": "08301289",
+  "name": "Cambiano-Santena"
+ },
+ "S00457": {
+  "eva": "08301886",
+  "name": "Pessione"
+ },
+ "S00458": {
+  "eva": "08302300",
+  "name": "Villanova d'Asti"
+ },
+ "S00459": {
+  "eva": "08302331",
+  "name": "Villafranca-Cantarana"
+ },
+ "S00460": {
+  "eva": "08301180",
+  "name": "Baldichieri-Tigliole"
+ },
+ "S00461": {
+  "eva": "08302091",
+  "name": "San Damiano d’Asti"
+ },
+ "S00462": {
+  "eva": "08300003",
+  "name": "Asti"
+ },
+ "S00463": {
+  "eva": "08302174",
+  "name": "San Paolo Solbrito"
+ },
+ "S00465": {
+  "eva": "08301283",
+  "name": "Castello d’Annone"
+ },
+ "S00466": {
+  "eva": "08300941",
+  "name": "Rocchetta Tanaro-Cerro"
+ },
+ "S00468": {
+  "eva": "08301507",
+  "name": "Felizzano"
+ },
+ "S00469": {
+  "eva": "08302167",
+  "name": "Solero"
+ },
+ "S00470": {
+  "eva": "08300002",
+  "name": "Alessandria"
+ },
+ "S00500": {
+  "eva": "08301353",
+  "name": "Chieri"
+ },
+ "S00510": {
+  "eva": "08301098",
+  "name": "Moncalieri Sangone"
+ },
+ "S00511": {
+  "eva": "08301805",
+  "name": "Nichelino"
+ },
+ "S00512": {
+  "eva": "08301079",
+  "name": "Candiolo"
+ },
+ "S00513": {
+  "eva": "08301811",
+  "name": "None"
+ },
+ "S00514": {
+  "eva": "08300644",
+  "name": "Airasca"
+ },
+ "S00515": {
+  "eva": "08301880",
+  "name": "Piscina di Pinerolo"
+ },
+ "S00517": {
+  "eva": "08300523",
+  "name": "Pinerolo"
+ },
+ "S00600": {
+  "eva": "08302367",
+  "name": "Villastellone"
+ },
+ "S00601": {
+  "eva": "08300015",
+  "name": "Carmagnola"
+ },
+ "S00602": {
+  "eva": "08301975",
+  "name": "Racconigi"
+ },
+ "S00603": {
+  "eva": "08300017",
+  "name": "Cavallermaggiore"
+ },
+ "S00604": {
+  "eva": "08300009",
+  "name": "Savigliano"
+ },
+ "S00606": {
+  "eva": "08300020",
+  "name": "Fossano"
+ },
+ "S00608": {
+  "eva": "08300375",
+  "name": "Centallo"
+ },
+ "S00610": {
+  "eva": "08300016",
+  "name": "Cuneo"
+ },
+ "S00613": {
+  "eva": "08300364",
+  "name": "Borgo San Dalmazzo"
+ },
+ "S00614": {
+  "eva": "08301989",
+  "name": "Roccavione"
+ },
+ "S00615": {
+  "eva": "08302022",
+  "name": "Robilante"
+ },
+ "S00616": {
+  "eva": "08300390",
+  "name": "Vernante"
+ },
+ "S00617": {
+  "eva": "08300381",
+  "name": "Limone"
+ },
+ "S00730": {
+  "eva": "08302151",
+  "name": "Sommariva del Bosco"
+ },
+ "S00731": {
+  "eva": "08302058",
+  "name": "Sanfre"
+ },
+ "S00732": {
+  "eva": "08301178",
+  "name": "Bandito"
+ },
+ "S00742": {
+  "eva": "08300018",
+  "name": "Ceva"
+ },
+ "S00743": {
+  "eva": "08302132",
+  "name": "Sale Langhe"
+ },
+ "S00744": {
+  "eva": "08300642",
+  "name": "Saliceto"
+ },
+ "S00745": {
+  "eva": "08301331",
+  "name": "Cengio"
+ },
+ "S00801": {
+  "eva": "08301705",
+  "name": "Mongardino"
+ },
+ "S00802": {
+  "eva": "08302302",
+  "name": "Vigliano d’Asti"
+ },
+ "S00803": {
+  "eva": "08301779",
+  "name": "Montegrosso"
+ },
+ "S00804": {
+  "eva": "08301112",
+  "name": "Agliano-Castelnuovo Calcea"
+ },
+ "S00807": {
+  "eva": "08301274",
+  "name": "Bazzana"
+ },
+ "S00808": {
+  "eva": "08301668",
+  "name": "Mombaruzzo"
+ },
+ "S00809": {
+  "eva": "08301105",
+  "name": "Alice Belcolle"
+ },
+ "S00820": {
+  "eva": "08301750",
+  "name": "Madonna del Pilone"
+ },
+ "S00821": {
+  "eva": "08300014",
+  "name": "Bra"
+ },
+ "S00822": {
+  "eva": "08302371",
+  "name": "Santa Vittoria"
+ },
+ "S00823": {
+  "eva": "08301669",
+  "name": "Monticello d’Alba"
+ },
+ "S00824": {
+  "eva": "08301791",
+  "name": "Mussotto"
+ },
+ "S00825": {
+  "eva": "08300653",
+  "name": "Alba"
+ },
+ "S00827": {
+  "eva": "08300827",
+  "name": "Neive"
+ },
+ "S00828": {
+  "eva": "08310828",
+  "name": "Castagnole D.Lanze"
+ },
+ "S00834": {
+  "eva": "08300865",
+  "name": "Nizza Monferrato"
+ },
+ "S00842": {
+  "eva": "08301928",
+  "name": "Pocapaglia"
+ },
+ "S00860": {
+  "eva": "08301242",
+  "name": "Borgoratto"
+ },
+ "S00862": {
+  "eva": "08302102",
+  "name": "Sezzadio"
+ },
+ "S00864": {
+  "eva": "08301435",
+  "name": "Cassine"
+ },
+ "S00866": {
+  "eva": "08302195",
+  "name": "Strevi"
+ },
+ "S00867": {
+  "eva": "08300656",
+  "name": "Acqui Terme"
+ },
+ "S00869": {
+  "eva": "08302258",
+  "name": "Terzo-Montabone"
+ },
+ "S00870": {
+  "eva": "08301213",
+  "name": "Bistagno"
+ },
+ "S00871": {
+  "eva": "08301954",
+  "name": "Ponti"
+ },
+ "S00872": {
+  "eva": "08301685",
+  "name": "Montechiaro Denice"
+ },
+ "S00873": {
+  "eva": "08301754",
+  "name": "Mombaldone-Roccaverano"
+ },
+ "S00874": {
+  "eva": "08302179",
+  "name": "Spigno"
+ },
+ "S00875": {
+  "eva": "08301753",
+  "name": "Merana"
+ },
+ "S00876": {
+  "eva": "08301095",
+  "name": "Piana"
+ },
+ "S00877": {
+  "eva": "08301471",
+  "name": "Dego"
+ },
+ "S00878": {
+  "eva": "08301980",
+  "name": "Rocchetta Cairo"
+ },
+ "S00879": {
+  "eva": "08301288",
+  "name": "Cairo Montenotte"
+ },
+ "S00880": {
+  "eva": "08303722",
+  "name": "Volpiano"
+ },
+ "S00881": {
+  "eva": "08352389",
+  "name": "San Benigno Canavese"
+ },
+ "S00882": {
+  "eva": "08303724",
+  "name": "Bosconero"
+ },
+ "S00883": {
+  "eva": "08373452",
+  "name": "Feletto"
+ },
+ "S00884": {
+  "eva": "08303731",
+  "name": "Rivarolo Canavese"
+ },
+ "S00950": {
+  "eva": "08302238",
+  "name": "Trinita-Bene Vagienna"
+ },
+ "S00951": {
+  "eva": "08301676",
+  "name": "Magliano-Crava-Morozzo"
+ },
+ "S00952": {
+  "eva": "08300022",
+  "name": "Mondovì"
+ },
+ "S00953": {
+  "eva": "08302363",
+  "name": "Vicoforte-San Michele"
+ },
+ "S00954": {
+  "eva": "08301644",
+  "name": "Lesegno"
+ },
+ "S00971": {
+  "eva": "08301292",
+  "name": "Carpignano Sesia"
+ },
+ "S00972": {
+  "eva": "08301431",
+  "name": "Casaleggio"
+ },
+ "S00973": {
+  "eva": "08301440",
+  "name": "Cossato"
+ },
+ "S00974": {
+  "eva": "08301560",
+  "name": "Ghislarengo"
+ },
+ "S00976": {
+  "eva": "08301804",
+  "name": "Nibbia"
+ },
+ "S00977": {
+  "eva": "08302328",
+  "name": "Vigliano-Candelo"
+ },
+ "S00978": {
+  "eva": "08302125",
+  "name": "Sillavengo"
+ },
+ "S00980": {
+  "eva": "08301479",
+  "name": "Dormelletto Paese"
+ },
+ "S00981": {
+  "eva": "08300603",
+  "name": "Borgo Ticino"
+ },
+ "S00982": {
+  "eva": "08300604",
+  "name": "Varallo Pombia"
+ },
+ "S00983": {
+  "eva": "08301661",
+  "name": "Marano Ticino"
+ },
+ "S00984": {
+  "eva": "08300011",
+  "name": "Oleggio"
+ },
+ "S00985": {
+  "eva": "08301200",
+  "name": "Bellinzago"
+ },
+ "S01002": {
+  "eva": "08303074",
+  "name": "Edolo"
+ },
+ "S01003": {
+  "eva": "08300057",
+  "name": "Domodossola"
+ },
+ "S01005": {
+  "eva": "08303066",
+  "name": "Breno"
+ },
+ "S01006": {
+  "eva": "08303073",
+  "name": "Darfo-Corna"
+ },
+ "S01008": {
+  "eva": "08300592",
+  "name": "Vogogna Ossola"
+ },
+ "S01009": {
+  "eva": "08300965",
+  "name": "Premosello-Chiovenda"
+ },
+ "S01010": {
+  "eva": "08300955",
+  "name": "Cuzzago"
+ },
+ "S01012": {
+  "eva": "08300593",
+  "name": "Mergozzo"
+ },
+ "S01013": {
+  "eva": "08300070",
+  "name": "Verbania-Pallanza"
+ },
+ "S01014": {
+  "eva": "08303087",
+  "name": "Pisogne"
+ },
+ "S01015": {
+  "eva": "08300051",
+  "name": "Baveno"
+ },
+ "S01016": {
+  "eva": "08300068",
+  "name": "Stresa"
+ },
+ "S01017": {
+  "eva": "08300594",
+  "name": "Belgirate"
+ },
+ "S01018": {
+  "eva": "08300595",
+  "name": "Lesa"
+ },
+ "S01019": {
+  "eva": "08301691",
+  "name": "Meina"
+ },
+ "S01020": {
+  "eva": "08300041",
+  "name": "Arona"
+ },
+ "S01021": {
+  "eva": "08303924",
+  "name": "Iseo"
+ },
+ "S01022": {
+  "eva": "08321022",
+  "name": "Milano Tibaldi-Universita' Bocconi"
+ },
+ "S01025": {
+  "eva": "08301475",
+  "name": "Dormelletto"
+ },
+ "S01026": {
+  "eva": "08300067",
+  "name": "Sesto Calende"
+ },
+ "S01027": {
+  "eva": "08300596",
+  "name": "Vergiate"
+ },
+ "S01028": {
+  "eva": "08300484",
+  "name": "Somma Lombardo"
+ },
+ "S01029": {
+  "eva": "08301438",
+  "name": "Casorate Sempione"
+ },
+ "S01030": {
+  "eva": "08300058",
+  "name": "Gallarate"
+ },
+ "S01031": {
+  "eva": "08300043",
+  "name": "Busto Arsizio"
+ },
+ "S01032": {
+  "eva": "08347140",
+  "name": "Milano Romolo"
+ },
+ "S01033": {
+  "eva": "08300510",
+  "name": "Legnano"
+ },
+ "S01034": {
+  "eva": "08301293",
+  "name": "Canegrate"
+ },
+ "S01035": {
+  "eva": "08300962",
+  "name": "Parabiago"
+ },
+ "S01036": {
+  "eva": "08302301",
+  "name": "Vanzago-Pogliano"
+ },
+ "S01037": {
+  "eva": "08300065",
+  "name": "Rho"
+ },
+ "S01039": {
+  "eva": "08309660",
+  "name": "Rho-Fiera Milano"
+ },
+ "S01040": {
+  "eva": "08300597",
+  "name": "Magenta"
+ },
+ "S01041": {
+  "eva": "08301399",
+  "name": "Corbetta-Santo Stefano Ticino"
+ },
+ "S01042": {
+  "eva": "08302335",
+  "name": "Vittuone-Arluno"
+ },
+ "S01058": {
+  "eva": "08306151",
+  "name": "Pregnana Milanese"
+ },
+ "S01059": {
+  "eva": "08397555",
+  "name": "Albairate"
+ },
+ "S01060": {
+  "eva": "08301910",
+  "name": "Parona Lomellina"
+ },
+ "S01061": {
+  "eva": "08300071",
+  "name": "Vigevano"
+ },
+ "S01062": {
+  "eva": "08301104",
+  "name": "Abbiategrasso"
+ },
+ "S01063": {
+  "eva": "08301538",
+  "name": "Gaggiano"
+ },
+ "S01064": {
+  "eva": "08301400",
+  "name": "Corsico"
+ },
+ "S01065": {
+  "eva": "08302293",
+  "name": "Trezzano sul Naviglio"
+ },
+ "S01066": {
+  "eva": "08302988",
+  "name": "Milano Cadorna"
+ },
+ "S01067": {
+  "eva": "08303950",
+  "name": "Milano Domodossola"
+ },
+ "S01069": {
+  "eva": "08303059",
+  "name": "Quarto Oggiaro"
+ },
+ "S01070": {
+  "eva": "08303013",
+  "name": "Novate Milanese"
+ },
+ "S01071": {
+  "eva": "08303014",
+  "name": "Bollate Centro"
+ },
+ "S01072": {
+  "eva": "08303015",
+  "name": "Bollate Traversagna"
+ },
+ "S01073": {
+  "eva": "08303951",
+  "name": "Garbagnate Parco Delle Groane"
+ },
+ "S01074": {
+  "eva": "08303016",
+  "name": "Garbagnate Milanese"
+ },
+ "S01075": {
+  "eva": "08303060",
+  "name": "Cesate"
+ },
+ "S01076": {
+  "eva": "08303017",
+  "name": "Caronno Pertusella"
+ },
+ "S01077": {
+  "eva": "08303496",
+  "name": "Saronno Sud"
+ },
+ "S01078": {
+  "eva": "08302990",
+  "name": "Milano Affori"
+ },
+ "S01079": {
+  "eva": "08302991",
+  "name": "Milano Bruzzano"
+ },
+ "S01080": {
+  "eva": "08301080",
+  "name": "Cormano-Brusuglio"
+ },
+ "S01082": {
+  "eva": "08302994",
+  "name": "Paderno Dugnano"
+ },
+ "S01083": {
+  "eva": "08302995",
+  "name": "Palazzolo Milanese"
+ },
+ "S01084": {
+  "eva": "08302996",
+  "name": "Varedo"
+ },
+ "S01085": {
+  "eva": "08302997",
+  "name": "Bovisio Masciago-Mombello"
+ },
+ "S01086": {
+  "eva": "08302998",
+  "name": "Cesano Maderno"
+ },
+ "S01087": {
+  "eva": "08303000",
+  "name": "Meda"
+ },
+ "S01088": {
+  "eva": "08303001",
+  "name": "Cabiate"
+ },
+ "S01089": {
+  "eva": "08303002",
+  "name": "Mariano Comense"
+ },
+ "S01091": {
+  "eva": "08303003",
+  "name": "Carugo-Giussano"
+ },
+ "S01092": {
+  "eva": "08303004",
+  "name": "Arosio"
+ },
+ "S01093": {
+  "eva": "08303005",
+  "name": "Inverigo"
+ },
+ "S01094": {
+  "eva": "08303006",
+  "name": "Lambrugo-Lurago"
+ },
+ "S01096": {
+  "eva": "08303007",
+  "name": "Erba"
+ },
+ "S01097": {
+  "eva": "08303009",
+  "name": "Pontelambro-Castelmarte"
+ },
+ "S01098": {
+  "eva": "08303010",
+  "name": "Caslino d'Erba"
+ },
+ "S01099": {
+  "eva": "08303011",
+  "name": "Canzo"
+ },
+ "S01101": {
+  "eva": "08303012",
+  "name": "Asso"
+ },
+ "S01104": {
+  "eva": "08303952",
+  "name": "Pieve Emanuele"
+ },
+ "S01109": {
+  "eva": "08303953",
+  "name": "Cormano-Cusano Milanino"
+ },
+ "S01110": {
+  "eva": "08300914",
+  "name": "Pino-Tronzano"
+ },
+ "S01111": {
+  "eva": "08301581",
+  "name": "Colmegna"
+ },
+ "S01112": {
+  "eva": "08337934",
+  "name": "Cesano Boscone"
+ },
+ "S01113": {
+  "eva": "08300061",
+  "name": "Luino"
+ },
+ "S01116": {
+  "eva": "08300605",
+  "name": "Porto Valtravaglia"
+ },
+ "S01117": {
+  "eva": "08301286",
+  "name": "Calde"
+ },
+ "S01118": {
+  "eva": "08300606",
+  "name": "Laveno Mombello"
+ },
+ "S01120": {
+  "eva": "08301623",
+  "name": "Leggiuno-Monvalle"
+ },
+ "S01121": {
+  "eva": "08300607",
+  "name": "Ispra"
+ },
+ "S01122": {
+  "eva": "08302230",
+  "name": "Taino-Angera"
+ },
+ "S01123": {
+  "eva": "08301446",
+  "name": "Castelletto Ticino"
+ },
+ "S01124": {
+  "eva": "08301964",
+  "name": "Porto Varallo Pombia"
+ },
+ "S01125": {
+  "eva": "08301920",
+  "name": "Pombia"
+ },
+ "S01135": {
+  "eva": "08303049",
+  "name": "Rescaldina"
+ },
+ "S01136": {
+  "eva": "08303050",
+  "name": "Castellanza"
+ },
+ "S01137": {
+  "eva": "08303051",
+  "name": "Busto Arsizio Nord"
+ },
+ "S01138": {
+  "eva": "08319371",
+  "name": "Ferno"
+ },
+ "S01139": {
+  "eva": "08303905",
+  "name": "Malpensa Aeroporto T1"
+ },
+ "S01140": {
+  "eva": "08302163",
+  "name": "Sangiano"
+ },
+ "S01141": {
+  "eva": "08300667",
+  "name": "Besozzo"
+ },
+ "S01142": {
+  "eva": "08302237",
+  "name": "Travedona-Biandronno"
+ },
+ "S01143": {
+  "eva": "08302290",
+  "name": "Ternate-Varano Borghi"
+ },
+ "S01144": {
+  "eva": "08301675",
+  "name": "Mornago-Cimbro"
+ },
+ "S01145": {
+  "eva": "08300668",
+  "name": "Besnate"
+ },
+ "S01146": {
+  "eva": "08320005",
+  "name": "Malpensa Aeroporto T2"
+ },
+ "S01200": {
+  "eva": "08300472",
+  "name": "Porto Ceresio"
+ },
+ "S01202": {
+  "eva": "08301269",
+  "name": "Bisuschio-Viggiu"
+ },
+ "S01203": {
+  "eva": "08301116",
+  "name": "Arcisate"
+ },
+ "S01204": {
+  "eva": "08301609",
+  "name": "Induno-Olona"
+ },
+ "S01205": {
+  "eva": "08300050",
+  "name": "Varese"
+ },
+ "S01206": {
+  "eva": "08301206",
+  "name": "Cantello-Gaggiolo"
+ },
+ "S01207": {
+  "eva": "08300889",
+  "name": "Gazzada-Schianno-Morazzone"
+ },
+ "S01208": {
+  "eva": "08300669",
+  "name": "Castronno"
+ },
+ "S01209": {
+  "eva": "08300874",
+  "name": "Albizzate-Solbiate Arno"
+ },
+ "S01210": {
+  "eva": "08301403",
+  "name": "Cavaria-Oggiona-Ierago"
+ },
+ "S01307": {
+  "eva": "08300056",
+  "name": "Como San Giovanni"
+ },
+ "S01308": {
+  "eva": "08303046",
+  "name": "Como Camerlata"
+ },
+ "S01310": {
+  "eva": "08300950",
+  "name": "Albate-Camerlata"
+ },
+ "S01312": {
+  "eva": "08301456",
+  "name": "Cucciago"
+ },
+ "S01313": {
+  "eva": "08301310",
+  "name": "Cantu-Cermenate"
+ },
+ "S01315": {
+  "eva": "08301155",
+  "name": "Carimate"
+ },
+ "S01316": {
+  "eva": "08301367",
+  "name": "Camnago-Lentate"
+ },
+ "S01318": {
+  "eva": "08300066",
+  "name": "Seregno"
+ },
+ "S01320": {
+  "eva": "08300608",
+  "name": "Desio"
+ },
+ "S01321": {
+  "eva": "08300958",
+  "name": "Lissone-Muggiò"
+ },
+ "S01322": {
+  "eva": "08300063",
+  "name": "Monza"
+ },
+ "S01325": {
+  "eva": "08300866",
+  "name": "Sesto San Giovanni"
+ },
+ "S01326": {
+  "eva": "08300416",
+  "name": "Milano Greco Pirelli"
+ },
+ "S01400": {
+  "eva": "08300670",
+  "name": "Chiavenna"
+ },
+ "S01401": {
+  "eva": "08302087",
+  "name": "San Cassiano Valchiavenna"
+ },
+ "S01402": {
+  "eva": "08302168",
+  "name": "Samolaco"
+ },
+ "S01403": {
+  "eva": "08301810",
+  "name": "Novate Mezzola"
+ },
+ "S01404": {
+  "eva": "08302308",
+  "name": "Verceia"
+ },
+ "S01405": {
+  "eva": "08301483",
+  "name": "Dubino"
+ },
+ "S01406": {
+  "eva": "08301094",
+  "name": "Piona"
+ },
+ "S01407": {
+  "eva": "08301478",
+  "name": "Dorio"
+ },
+ "S01408": {
+  "eva": "08301484",
+  "name": "Dervio"
+ },
+ "S01409": {
+  "eva": "08300363",
+  "name": "Bellano-Tartavalle Terme"
+ },
+ "S01411": {
+  "eva": "08300389",
+  "name": "Varenna-Esino-Perledo"
+ },
+ "S01412": {
+  "eva": "08301511",
+  "name": "Fiumelatte"
+ },
+ "S01413": {
+  "eva": "08301639",
+  "name": "Lierna"
+ },
+ "S01414": {
+  "eva": "08301825",
+  "name": "Olcio"
+ },
+ "S01415": {
+  "eva": "08301683",
+  "name": "Mandello del Lario"
+ },
+ "S01416": {
+  "eva": "08301119",
+  "name": "Abbadia Lariana"
+ },
+ "S01417": {
+  "eva": "08301870",
+  "name": "Prata Camportaccio"
+ },
+ "S01420": {
+  "eva": "08300055",
+  "name": "Colico"
+ },
+ "S01422": {
+  "eva": "08301472",
+  "name": "Delebio"
+ },
+ "S01424": {
+  "eva": "08301407",
+  "name": "Cosio-Traona"
+ },
+ "S01425": {
+  "eva": "08300064",
+  "name": "Morbegno"
+ },
+ "S01426": {
+  "eva": "08302257",
+  "name": "Talamona"
+ },
+ "S01427": {
+  "eva": "08301134",
+  "name": "Ardenno-Masino"
+ },
+ "S01428": {
+  "eva": "08302176",
+  "name": "S.Pietro Berbenno"
+ },
+ "S01429": {
+  "eva": "08301436",
+  "name": "Castione Andevenno"
+ },
+ "S01430": {
+  "eva": "08300485",
+  "name": "Sondrio"
+ },
+ "S01433": {
+  "eva": "08301956",
+  "name": "Poggiridenti-Tresiv."
+ },
+ "S01434": {
+  "eva": "08301963",
+  "name": "Ponte in Valtellina"
+ },
+ "S01435": {
+  "eva": "08301355",
+  "name": "Chiuro"
+ },
+ "S01436": {
+  "eva": "08302119",
+  "name": "S.Giacomo di Teglio"
+ },
+ "S01437": {
+  "eva": "08302269",
+  "name": "Tresenda-Aprica-Teglio"
+ },
+ "S01438": {
+  "eva": "08301215",
+  "name": "Bianzone"
+ },
+ "S01439": {
+  "eva": "08302316",
+  "name": "Villa di Tirano"
+ },
+ "S01440": {
+  "eva": "08300033",
+  "name": "Tirano"
+ },
+ "S01450": {
+  "eva": "08301108",
+  "name": "Albate Trecallo"
+ },
+ "S01451": {
+  "eva": "08300952",
+  "name": "Cantu"
+ },
+ "S01452": {
+  "eva": "08301175",
+  "name": "Brenna-Alzate"
+ },
+ "S01453": {
+  "eva": "08300666",
+  "name": "Anzano del Parco"
+ },
+ "S01454": {
+  "eva": "08300902",
+  "name": "Merone"
+ },
+ "S01456": {
+  "eva": "08301708",
+  "name": "Moiana"
+ },
+ "S01457": {
+  "eva": "08301421",
+  "name": "Casletto-Rogeno"
+ },
+ "S01458": {
+  "eva": "08300961",
+  "name": "Molteno"
+ },
+ "S01460": {
+  "eva": "08301822",
+  "name": "Oggiono"
+ },
+ "S01461": {
+  "eva": "08302055",
+  "name": "Sala al Barro-Galbiate"
+ },
+ "S01462": {
+  "eva": "08301363",
+  "name": "Civate"
+ },
+ "S01463": {
+  "eva": "08302347",
+  "name": "Valmadrera"
+ },
+ "S01480": {
+  "eva": "08301797",
+  "name": "Monza Sobborghi"
+ },
+ "S01481": {
+  "eva": "08302360",
+  "name": "Villasanta"
+ },
+ "S01482": {
+  "eva": "08301260",
+  "name": "Buttafava"
+ },
+ "S01483": {
+  "eva": "08301218",
+  "name": "Biassono-Lesmo"
+ },
+ "S01484": {
+  "eva": "08301678",
+  "name": "Macherio-Canonica"
+ },
+ "S01485": {
+  "eva": "08302268",
+  "name": "Triuggio-Ponte Albiate"
+ },
+ "S01486": {
+  "eva": "08301315",
+  "name": "Carate-Calo"
+ },
+ "S01487": {
+  "eva": "08302359",
+  "name": "Villa Raverio"
+ },
+ "S01488": {
+  "eva": "08301198",
+  "name": "Besana"
+ },
+ "S01489": {
+  "eva": "08302050",
+  "name": "Renate-Veduggio"
+ },
+ "S01490": {
+  "eva": "08301391",
+  "name": "Cassago-Nibionno-Bulciago"
+ },
+ "S01491": {
+  "eva": "08301388",
+  "name": "Costa Masnaga"
+ },
+ "S01492": {
+  "eva": "08303954",
+  "name": "Milano Forlanini"
+ },
+ "S01500": {
+  "eva": "08301680",
+  "name": "Macherio-Sovico"
+ },
+ "S01501": {
+  "eva": "08301635",
+  "name": "Lesmo"
+ },
+ "S01502": {
+  "eva": "08301936",
+  "name": "Paderno-Robbiate"
+ },
+ "S01503": {
+  "eva": "08301294",
+  "name": "Calusco"
+ },
+ "S01504": {
+  "eva": "08302278",
+  "name": "Terno"
+ },
+ "S01510": {
+  "eva": "08301152",
+  "name": "Arcore"
+ },
+ "S01511": {
+  "eva": "08300045",
+  "name": "Carnate-Usmate"
+ },
+ "S01512": {
+  "eva": "08301840",
+  "name": "Osnago"
+ },
+ "S01513": {
+  "eva": "08301382",
+  "name": "Cernusco-Merate"
+ },
+ "S01514": {
+  "eva": "08301820",
+  "name": "Olgiate-Calco-Brivio"
+ },
+ "S01515": {
+  "eva": "08301159",
+  "name": "Airuno"
+ },
+ "S01520": {
+  "eva": "08300059",
+  "name": "Lecco"
+ },
+ "S01522": {
+  "eva": "08301621",
+  "name": "Lecco Maggianico"
+ },
+ "S01523": {
+  "eva": "08302362",
+  "name": "Vercurago-San Girolamo"
+ },
+ "S01524": {
+  "eva": "08300044",
+  "name": "Calolziocorte-Olginate"
+ },
+ "S01525": {
+  "eva": "08301307",
+  "name": "Cisano-Caprino Bergamasco"
+ },
+ "S01526": {
+  "eva": "08301952",
+  "name": "Pontida"
+ },
+ "S01527": {
+  "eva": "08301138",
+  "name": "Ambivere-Mapello"
+ },
+ "S01528": {
+  "eva": "08300964",
+  "name": "Ponte San Pietro"
+ },
+ "S01529": {
+  "eva": "08300040",
+  "name": "Bergamo"
+ },
+ "S01530": {
+  "eva": "08301533",
+  "name": "Bergamo Ospedale"
+ },
+ "S01533": {
+  "eva": "08302190",
+  "name": "Seriate"
+ },
+ "S01534": {
+  "eva": "08301165",
+  "name": "Albano Sant’Alessandro"
+ },
+ "S01535": {
+  "eva": "08301703",
+  "name": "Montello-Gorlago"
+ },
+ "S01536": {
+  "eva": "08300675",
+  "name": "Chiuduno"
+ },
+ "S01537": {
+  "eva": "08300676",
+  "name": "Grumello del Monte"
+ },
+ "S01538": {
+  "eva": "08300956",
+  "name": "Palazzolo sull’Oglio"
+ },
+ "S01539": {
+  "eva": "08301368",
+  "name": "Cologne"
+ },
+ "S01540": {
+  "eva": "08301311",
+  "name": "Coccaglio"
+ },
+ "S01600": {
+  "eva": "08300598",
+  "name": "Verdello-Dalmine"
+ },
+ "S01601": {
+  "eva": "08302254",
+  "name": "Treviglio Ovest"
+ },
+ "S01602": {
+  "eva": "08300671",
+  "name": "Caravaggio"
+ },
+ "S01603": {
+  "eva": "08301411",
+  "name": "Capralba"
+ },
+ "S01604": {
+  "eva": "08301460",
+  "name": "Casaletto Vaprio"
+ },
+ "S01605": {
+  "eva": "08301332",
+  "name": "Crema"
+ },
+ "S01606": {
+  "eva": "08300672",
+  "name": "Castelleone"
+ },
+ "S01607": {
+  "eva": "08300673",
+  "name": "Soresina"
+ },
+ "S01608": {
+  "eva": "08378025",
+  "name": "Arcene"
+ },
+ "S01609": {
+  "eva": "08301304",
+  "name": "Casalbuttano"
+ },
+ "S01610": {
+  "eva": "08302805",
+  "name": "Madignano"
+ },
+ "S01611": {
+  "eva": "08384684",
+  "name": "Levate"
+ },
+ "S01612": {
+  "eva": "08323360",
+  "name": "Stezzano"
+ },
+ "S01624": {
+  "eva": "08367816",
+  "name": "San Donato Milanese"
+ },
+ "S01630": {
+  "eva": "08300461",
+  "name": "Milano San Cristoforo"
+ },
+ "S01631": {
+  "eva": "08300504",
+  "name": "Milano Porta Genova"
+ },
+ "S01632": {
+  "eva": "08300960",
+  "name": "Milano Porta Romana"
+ },
+ "S01633": {
+  "eva": "08300417",
+  "name": "Milano Porta Vittoria"
+ },
+ "S01639": {
+  "eva": "08342517",
+  "name": "Milano Villapizzone"
+ },
+ "S01640": {
+  "eva": "08300414",
+  "name": "Milano Certosa"
+ },
+ "S01642": {
+  "eva": "08300959",
+  "name": "Milano Bovisa Politecnico"
+ },
+ "S01643": {
+  "eva": "08389074",
+  "name": "Milano Lancetti"
+ },
+ "S01645": {
+  "eva": "08300047",
+  "name": "Milano Porta Garibaldi"
+ },
+ "S01647": {
+  "eva": "08389075",
+  "name": "Milano Porta Garibaldi Passante"
+ },
+ "S01648": {
+  "eva": "08389076",
+  "name": "Milano Repubblica"
+ },
+ "S01649": {
+  "eva": "08389077",
+  "name": "Milano Porta Venezia"
+ },
+ "S01650": {
+  "eva": "08303933",
+  "name": "Milano Dateo"
+ },
+ "S01700": {
+  "eva": "08300046",
+  "name": "Milano Centrale"
+ },
+ "S01701": {
+  "eva": "08300062",
+  "name": "Milano Lambrate"
+ },
+ "S01703": {
+  "eva": "08301897",
+  "name": "Pioltello-Limito"
+ },
+ "S01704": {
+  "eva": "08302323",
+  "name": "Vignate"
+ },
+ "S01705": {
+  "eva": "08301692",
+  "name": "Melzo"
+ },
+ "S01706": {
+  "eva": "08302273",
+  "name": "Trecella"
+ },
+ "S01707": {
+  "eva": "08301318",
+  "name": "Cassano d’Adda"
+ },
+ "S01708": {
+  "eva": "08300069",
+  "name": "Treviglio"
+ },
+ "S01709": {
+  "eva": "08302329",
+  "name": "Vidalengo"
+ },
+ "S01710": {
+  "eva": "08301735",
+  "name": "Morengo-Bariano"
+ },
+ "S01711": {
+  "eva": "08302025",
+  "name": "Romano"
+ },
+ "S01712": {
+  "eva": "08300599",
+  "name": "Calcio"
+ },
+ "S01713": {
+  "eva": "08300530",
+  "name": "Chiari"
+ },
+ "S01714": {
+  "eva": "08300533",
+  "name": "Rovato"
+ },
+ "S01715": {
+  "eva": "08366705",
+  "name": "Segrate"
+ },
+ "S01716": {
+  "eva": "08301842",
+  "name": "Ospitaletto-Travagliato"
+ },
+ "S01717": {
+  "eva": "08300048",
+  "name": "Brescia"
+ },
+ "S01722": {
+  "eva": "08389945",
+  "name": "Pozzuolo Martesana"
+ },
+ "S01724": {
+  "eva": "08303019",
+  "name": "Gerenzano-Turate"
+ },
+ "S01725": {
+  "eva": "08303020",
+  "name": "Cislago"
+ },
+ "S01726": {
+  "eva": "08303021",
+  "name": "Mozzate"
+ },
+ "S01727": {
+  "eva": "08303037",
+  "name": "Locate Varesino-Carbonate"
+ },
+ "S01728": {
+  "eva": "08303022",
+  "name": "Abbiate Guazzone"
+ },
+ "S01729": {
+  "eva": "08303023",
+  "name": "Tradate"
+ },
+ "S01734": {
+  "eva": "08303024",
+  "name": "Venegono Inferiore"
+ },
+ "S01735": {
+  "eva": "08303025",
+  "name": "Venegono Superiore-Castiglione"
+ },
+ "S01736": {
+  "eva": "08303026",
+  "name": "Vedano Olona"
+ },
+ "S01737": {
+  "eva": "08303027",
+  "name": "Malnate"
+ },
+ "S01738": {
+  "eva": "08303028",
+  "name": "Varese Nord"
+ },
+ "S01739": {
+  "eva": "08303029",
+  "name": "Varese-Casbeno"
+ },
+ "S01740": {
+  "eva": "08303030",
+  "name": "Morosolo-Casciago"
+ },
+ "S01741": {
+  "eva": "08303031",
+  "name": "Barasso-Comerio"
+ },
+ "S01742": {
+  "eva": "08303032",
+  "name": "Gavirate"
+ },
+ "S01743": {
+  "eva": "08303495",
+  "name": "Gavirate-Verbano"
+ },
+ "S01744": {
+  "eva": "08303033",
+  "name": "Cocquio-Trevisago"
+ },
+ "S01745": {
+  "eva": "08303034",
+  "name": "Gemonio"
+ },
+ "S01746": {
+  "eva": "08303035",
+  "name": "Cittiglio"
+ },
+ "S01747": {
+  "eva": "08303036",
+  "name": "Laveno Mombello Nord"
+ },
+ "S01748": {
+  "eva": "08303056",
+  "name": "Galliate"
+ },
+ "S01751": {
+  "eva": "08303054",
+  "name": "Turbigo"
+ },
+ "S01752": {
+  "eva": "08303053",
+  "name": "Castano Primo"
+ },
+ "S01753": {
+  "eva": "08303052",
+  "name": "Vanzaghello-Magnago"
+ },
+ "S01755": {
+  "eva": "08303038",
+  "name": "Rovello Porro"
+ },
+ "S01756": {
+  "eva": "08303039",
+  "name": "Rovellasca-Manera"
+ },
+ "S01757": {
+  "eva": "08303040",
+  "name": "Lomazzo"
+ },
+ "S01758": {
+  "eva": "08303041",
+  "name": "Caslino al Piano"
+ },
+ "S01759": {
+  "eva": "08303042",
+  "name": "Cadorago"
+ },
+ "S01760": {
+  "eva": "08303043",
+  "name": "Fino Mornasco"
+ },
+ "S01761": {
+  "eva": "08303044",
+  "name": "Portichetto-Luisago"
+ },
+ "S01762": {
+  "eva": "08303045",
+  "name": "Grandate-Breccia"
+ },
+ "S01763": {
+  "eva": "08303046",
+  "name": "Como Nord Camerlata"
+ },
+ "S01764": {
+  "eva": "08303047",
+  "name": "Como Borghi"
+ },
+ "S01765": {
+  "eva": "08303048",
+  "name": "Como Lago"
+ },
+ "S01766": {
+  "eva": "08303091",
+  "name": "Sonico"
+ },
+ "S01767": {
+  "eva": "08303078",
+  "name": "Malonno"
+ },
+ "S01769": {
+  "eva": "08303069",
+  "name": "Cedegolo"
+ },
+ "S01771": {
+  "eva": "08303067",
+  "name": "Capo di Ponte"
+ },
+ "S01772": {
+  "eva": "08303070",
+  "name": "Ceto-Cerveno"
+ },
+ "S01774": {
+  "eva": "08303071",
+  "name": "Cividate Malegno"
+ },
+ "S01775": {
+  "eva": "08303072",
+  "name": "Cogno-Esine"
+ },
+ "S01776": {
+  "eva": "08303085",
+  "name": "Pian di Borno"
+ },
+ "S01778": {
+  "eva": "08303062",
+  "name": "Boario Terrme"
+ },
+ "S01780": {
+  "eva": "08303084",
+  "name": "Piancamuno-Gratacasolo"
+ },
+ "S01781": {
+  "eva": "08303093",
+  "name": "Toline"
+ },
+ "S01782": {
+  "eva": "08303913",
+  "name": "Vello(I)"
+ },
+ "S01783": {
+  "eva": "08303080",
+  "name": "Marone-Zone"
+ },
+ "S01784": {
+  "eva": "08303089",
+  "name": "Sale-Marasino"
+ },
+ "S01785": {
+  "eva": "08303092",
+  "name": "Sulzano"
+ },
+ "S01786": {
+  "eva": "08303086",
+  "name": "Pilzone"
+ },
+ "S01787": {
+  "eva": "08303088",
+  "name": "Provaglio-Timoline"
+ },
+ "S01788": {
+  "eva": "08303063",
+  "name": "Borgonato Adro"
+ },
+ "S01789": {
+  "eva": "08303065",
+  "name": "Bornato Calino"
+ },
+ "S01790": {
+  "eva": "08303955",
+  "name": "Cazzago S. Martino"
+ },
+ "S01791": {
+  "eva": "08383200",
+  "name": "Rovato Citta"
+ },
+ "S01792": {
+  "eva": "08303956",
+  "name": "Rovato Borgo"
+ },
+ "S01793": {
+  "eva": "08303083",
+  "name": "Passirano"
+ },
+ "S01794": {
+  "eva": "08311794",
+  "name": "Paderno Franciacorta"
+ },
+ "S01795": {
+  "eva": "08303068",
+  "name": "Castegnato"
+ },
+ "S01797": {
+  "eva": "08303064",
+  "name": "Borgo S.Giovanni"
+ },
+ "S01801": {
+  "eva": "08300609",
+  "name": "Locate Triulzi"
+ },
+ "S01802": {
+  "eva": "08302342",
+  "name": "Villamaggiore"
+ },
+ "S01803": {
+  "eva": "08301333",
+  "name": "Certosa di Pavia"
+ },
+ "S01804": {
+  "eva": "08301378",
+  "name": "S. Martino-Cava"
+ },
+ "S01805": {
+  "eva": "08300954",
+  "name": "Bressana Bottarone"
+ },
+ "S01806": {
+  "eva": "08301650",
+  "name": "Lungavilla"
+ },
+ "S01807": {
+  "eva": "08300492",
+  "name": "Voghera"
+ },
+ "S01809": {
+  "eva": "08300526",
+  "name": "Pontecurone"
+ },
+ "S01810": {
+  "eva": "08300029",
+  "name": "Tortona"
+ },
+ "S01820": {
+  "eva": "08300418",
+  "name": "Milano Rogoredo"
+ },
+ "S01821": {
+  "eva": "08302116",
+  "name": "San Giuliano Milanese"
+ },
+ "S01822": {
+  "eva": "08301690",
+  "name": "Melegnano"
+ },
+ "S01823": {
+  "eva": "08302227",
+  "name": "San Zenone al Lambro"
+ },
+ "S01824": {
+  "eva": "08302235",
+  "name": "Tavazzano"
+ },
+ "S01825": {
+  "eva": "08300060",
+  "name": "Lodi"
+ },
+ "S01826": {
+  "eva": "08302095",
+  "name": "Secugnago"
+ },
+ "S01827": {
+  "eva": "08300953",
+  "name": "Casalpusterlengo"
+ },
+ "S01828": {
+  "eva": "08300054",
+  "name": "Codogno"
+ },
+ "S01829": {
+  "eva": "08302198",
+  "name": "Santo Stefano Lodigiano"
+ },
+ "S01830": {
+  "eva": "08301217",
+  "name": "Borgo Lombardo"
+ },
+ "S01840": {
+  "eva": "08301782",
+  "name": "Montirone"
+ },
+ "S01841": {
+  "eva": "08301561",
+  "name": "Ghedi"
+ },
+ "S01842": {
+  "eva": "08302304",
+  "name": "Viadana Bresciana"
+ },
+ "S01843": {
+  "eva": "08301376",
+  "name": "Calvisano"
+ },
+ "S01844": {
+  "eva": "08302350",
+  "name": "Visano"
+ },
+ "S01845": {
+  "eva": "08300678",
+  "name": "Remedello Sopra"
+ },
+ "S01846": {
+  "eva": "08302040",
+  "name": "Remedello Sotto"
+ },
+ "S01847": {
+  "eva": "08301164",
+  "name": "Asola"
+ },
+ "S01848": {
+  "eva": "08301823",
+  "name": "Canneto sull'Oglio"
+ },
+ "S01849": {
+  "eva": "08302123",
+  "name": "San Giovanni in Croce"
+ },
+ "S01850": {
+  "eva": "08300679",
+  "name": "Casalmaggiore"
+ },
+ "S01851": {
+  "eva": "08301796",
+  "name": "Mezzani-Rondani"
+ },
+ "S01852": {
+  "eva": "08301372",
+  "name": "Colorno"
+ },
+ "S01860": {
+  "eva": "08300049",
+  "name": "Pavia"
+ },
+ "S01861": {
+  "eva": "08300963",
+  "name": "Pavia Porta Garibaldi"
+ },
+ "S01862": {
+  "eva": "08301763",
+  "name": "Motta San Damiano"
+ },
+ "S01863": {
+  "eva": "08301110",
+  "name": "Albuzzano"
+ },
+ "S01864": {
+  "eva": "08301205",
+  "name": "Belgioioso"
+ },
+ "S01865": {
+  "eva": "08301086",
+  "name": "Corteolona"
+ },
+ "S01866": {
+  "eva": "08302075",
+  "name": "Santa Cristina e Bissone"
+ },
+ "S01867": {
+  "eva": "08301713",
+  "name": "Miradolo Terme"
+ },
+ "S01868": {
+  "eva": "08301352",
+  "name": "Chignolo Po"
+ },
+ "S01869": {
+  "eva": "08301620",
+  "name": "Lambrinia"
+ },
+ "S01870": {
+  "eva": "08301826",
+  "name": "Orio Litta"
+ },
+ "S01871": {
+  "eva": "08301839",
+  "name": "Ospedaletto Lodigiano"
+ },
+ "S01900": {
+  "eva": "08300677",
+  "name": "San Zeno-Folzano"
+ },
+ "S01901": {
+  "eva": "08301230",
+  "name": "Bagnolo Mella"
+ },
+ "S01902": {
+  "eva": "08301665",
+  "name": "Manerbio"
+ },
+ "S01903": {
+  "eva": "08300680",
+  "name": "Verolanuova"
+ },
+ "S01904": {
+  "eva": "08302031",
+  "name": "Robecco-Pontevico"
+ },
+ "S01905": {
+  "eva": "08300674",
+  "name": "Olmeneta"
+ },
+ "S01910": {
+  "eva": "08301715",
+  "name": "Maleo"
+ },
+ "S01911": {
+  "eva": "08301970",
+  "name": "Pizzighettone"
+ },
+ "S01912": {
+  "eva": "08301873",
+  "name": "Ponte d'Adda"
+ },
+ "S01913": {
+  "eva": "08301115",
+  "name": "Acquanegra Cremonese"
+ },
+ "S01914": {
+  "eva": "08301454",
+  "name": "Cava Tigozzi"
+ },
+ "S01915": {
+  "eva": "08300532",
+  "name": "Cremona"
+ },
+ "S01916": {
+  "eva": "08302348",
+  "name": "Villetta Malagnino"
+ },
+ "S01917": {
+  "eva": "08301584",
+  "name": "Gazzo-Pieve San Giacomo"
+ },
+ "S01918": {
+  "eva": "08302250",
+  "name": "Torre De’ Picenardi"
+ },
+ "S01919": {
+  "eva": "08300581",
+  "name": "Piadena"
+ },
+ "S01920": {
+  "eva": "08300681",
+  "name": "Bozzolo"
+ },
+ "S01921": {
+  "eva": "08301655",
+  "name": "Marcaria"
+ },
+ "S01922": {
+  "eva": "08301841",
+  "name": "Ospitaletto Mantovano"
+ },
+ "S01923": {
+  "eva": "08301312",
+  "name": "Castellucchio"
+ },
+ "S01924": {
+  "eva": "08302149",
+  "name": "San Michele in Bosco"
+ },
+ "S01925": {
+  "eva": "08302999",
+  "name": "Seveso"
+ },
+ "S01927": {
+  "eva": "08303958",
+  "name": "Ceriano Laghetto-Groane"
+ },
+ "S01929": {
+  "eva": "08303959",
+  "name": "Seveso-Baruccana"
+ },
+ "S01930": {
+  "eva": "08301171",
+  "name": "Bressana Argine"
+ },
+ "S01931": {
+  "eva": "08301899",
+  "name": "Pinarolo Po"
+ },
+ "S01932": {
+  "eva": "08301173",
+  "name": "Barbianello"
+ },
+ "S01933": {
+  "eva": "08303018",
+  "name": "Saronno"
+ },
+ "S01934": {
+  "eva": "08303960",
+  "name": "Ceriano Laghetto-Solaro"
+ },
+ "S01940": {
+  "eva": "08302180",
+  "name": "Spinetta"
+ },
+ "S01941": {
+  "eva": "08302117",
+  "name": "San Giuliano Piemonte"
+ },
+ "S01942": {
+  "eva": "08301343",
+  "name": "Casteggio"
+ },
+ "S01943": {
+  "eva": "08302115",
+  "name": "Santa Giuletta"
+ },
+ "S01944": {
+  "eva": "08300042",
+  "name": "Broni"
+ },
+ "S01945": {
+  "eva": "08300383",
+  "name": "Stradella"
+ },
+ "S01947": {
+  "eva": "08300396",
+  "name": "Arena Po"
+ },
+ "S01948": {
+  "eva": "08300372",
+  "name": "Castel San Giovanni"
+ },
+ "S01949": {
+  "eva": "08302157",
+  "name": "Sarmato"
+ },
+ "S01950": {
+  "eva": "08302027",
+  "name": "Rottofreno"
+ },
+ "S01951": {
+  "eva": "08302160",
+  "name": "San Nicolo"
+ },
+ "S01960": {
+  "eva": "08301038",
+  "name": "Castelvetro"
+ },
+ "S01961": {
+  "eva": "08302175",
+  "name": "San Giuliano Piacentino"
+ },
+ "S01962": {
+  "eva": "08302315",
+  "name": "Villanova d’Arda"
+ },
+ "S01963": {
+  "eva": "08301259",
+  "name": "Busseto"
+ },
+ "S01964": {
+  "eva": "08301324",
+  "name": "Castione dei Marchesi"
+ },
+ "S01970": {
+  "eva": "08301428",
+  "name": "Caorso"
+ },
+ "S01971": {
+  "eva": "08301775",
+  "name": "Monticelli d’Ongina"
+ },
+ "S02001": {
+  "eva": "08300092",
+  "name": "Brennero/Brenner"
+ },
+ "S02003": {
+  "eva": "08306005",
+  "name": "Trento Santa Chiara"
+ },
+ "S02005": {
+  "eva": "08300091",
+  "name": "Colle Isarco/Gossensass"
+ },
+ "S02006": {
+  "eva": "08300121",
+  "name": "Vipiteno/Sterzing"
+ },
+ "S02007": {
+  "eva": "08300534",
+  "name": "Campo di Trens/Freienfeld"
+ },
+ "S02011": {
+  "eva": "08300089",
+  "name": "Fortezza/Franzensfeste"
+ },
+ "S02013": {
+  "eva": "08370225",
+  "name": "Trento San Bartolameo"
+ },
+ "S02014": {
+  "eva": "08300076",
+  "name": "Bressanone/Brixen"
+ },
+ "S02016": {
+  "eva": "08396239",
+  "name": "San Lorenzo / St. Lorenzen"
+ },
+ "S02017": {
+  "eva": "08300078",
+  "name": "Chiusa/Klausen"
+ },
+ "S02018": {
+  "eva": "08303941",
+  "name": "Brunico Nord/Bruneck Nord"
+ },
+ "S02019": {
+  "eva": "08367679",
+  "name": "Levata"
+ },
+ "S02020": {
+  "eva": "08300125",
+  "name": "Ponte Gardena/Waidbruck"
+ },
+ "S02021": {
+  "eva": "08303940",
+  "name": "Borgochiesanuova"
+ },
+ "S02026": {
+  "eva": "08300084",
+  "name": "Bolzano/Bozen"
+ },
+ "S02029": {
+  "eva": "08301615",
+  "name": "Laives Leifers"
+ },
+ "S02030": {
+  "eva": "08301245",
+  "name": "Bronzolo/Branzoll"
+ },
+ "S02031": {
+  "eva": "08300123",
+  "name": "Ora/Auer"
+ },
+ "S02032": {
+  "eva": "08301491",
+  "name": "Egna-Termeno/Neumarkt-Tramin"
+ },
+ "S02033": {
+  "eva": "08301723",
+  "name": "Magre-Cortaccia/Margreid-Kurtatsch"
+ },
+ "S02034": {
+  "eva": "08302197",
+  "name": "Salorno/Salurn"
+ },
+ "S02035": {
+  "eva": "08300102",
+  "name": "Mezzocorona"
+ },
+ "S02037": {
+  "eva": "08301617",
+  "name": "Lavis"
+ },
+ "S02038": {
+  "eva": "08300101",
+  "name": "Trento"
+ },
+ "S02044": {
+  "eva": "08300113",
+  "name": "Rovereto"
+ },
+ "S02046": {
+  "eva": "08300620",
+  "name": "Mori"
+ },
+ "S02047": {
+  "eva": "08312047",
+  "name": "Calliano"
+ },
+ "S02048": {
+  "eva": "08300621",
+  "name": "Serravalle all’Adige"
+ },
+ "S02049": {
+  "eva": "08300350",
+  "name": "Ala"
+ },
+ "S02050": {
+  "eva": "08301168",
+  "name": "Avio"
+ },
+ "S02051": {
+  "eva": "08301250",
+  "name": "Borghetto sull’Adige"
+ },
+ "S02052": {
+  "eva": "08301885",
+  "name": "Peri"
+ },
+ "S02053": {
+  "eva": "08301474",
+  "name": "Dolce"
+ },
+ "S02055": {
+  "eva": "08300578",
+  "name": "Domegliara-Sant’Ambrogio"
+ },
+ "S02059": {
+  "eva": "08303945",
+  "name": "Casanova Kaiserau"
+ },
+ "S02060": {
+  "eva": "08372315",
+  "name": "Perca/Percha"
+ },
+ "S02082": {
+  "eva": "08301914",
+  "name": "Ponte San Marco-Calcinato"
+ },
+ "S02083": {
+  "eva": "08301638",
+  "name": "Lonato"
+ },
+ "S02084": {
+  "eva": "08300106",
+  "name": "Desenzano del Garda/Sirmione"
+ },
+ "S02088": {
+  "eva": "08300124",
+  "name": "Peschiera del Garda"
+ },
+ "S02093": {
+  "eva": "08300877",
+  "name": "Castelnuovo del Garda"
+ },
+ "S02102": {
+  "eva": "08300428",
+  "name": "Rio di Pusteria"
+ },
+ "S02103": {
+  "eva": "08300520",
+  "name": "Vandoies/Vintl"
+ },
+ "S02105": {
+  "eva": "08300401",
+  "name": "Casteldarne/Ehrenburg"
+ },
+ "S02107": {
+  "eva": "08300077",
+  "name": "Brunico/Bruneck"
+ },
+ "S02110": {
+  "eva": "08300443",
+  "name": "Valdaora-Anterselva Olang-Antholz"
+ },
+ "S02111": {
+  "eva": "08300421",
+  "name": "Monguelfo-Casies Welsberg-Gsies"
+ },
+ "S02112": {
+  "eva": "08300449",
+  "name": "Villabassa-Braies Niederdorf-Prags"
+ },
+ "S02113": {
+  "eva": "08300104",
+  "name": "Dobbiaco/Toblach"
+ },
+ "S02114": {
+  "eva": "08300114",
+  "name": "San Candido/Innichen"
+ },
+ "S02115": {
+  "eva": "08300499",
+  "name": "Versciaco-Elmo/Vierschach-Helm"
+ },
+ "S02140": {
+  "eva": "08300696",
+  "name": "Schio"
+ },
+ "S02141": {
+  "eva": "08302788",
+  "name": "Anconetta"
+ },
+ "S02142": {
+  "eva": "08300695",
+  "name": "Marano Vicentino"
+ },
+ "S02143": {
+  "eva": "08300694",
+  "name": "Thiene"
+ },
+ "S02145": {
+  "eva": "08302346",
+  "name": "Villaverla-Montecchio"
+ },
+ "S02146": {
+  "eva": "08300693",
+  "name": "Dueville"
+ },
+ "S02147": {
+  "eva": "08301466",
+  "name": "Cavazzale"
+ },
+ "S02200": {
+  "eva": "08362035",
+  "name": "Malles Venosta, Stazione"
+ },
+ "S02201": {
+  "eva": "08342780",
+  "name": "Sluderno-Glorenza Schluderns-Glurns"
+ },
+ "S02202": {
+  "eva": "08333885",
+  "name": "Spondigna-Prato/Spondinig-Prad"
+ },
+ "S02203": {
+  "eva": "08373924",
+  "name": "Oris/Eyrs"
+ },
+ "S02204": {
+  "eva": "08331186",
+  "name": "Lasa/Laas"
+ },
+ "S02205": {
+  "eva": "08300483",
+  "name": "Silandro/Schlanders"
+ },
+ "S02206": {
+  "eva": "08384407",
+  "name": "Coldrano-Martello Goldrain-Martell"
+ },
+ "S02207": {
+  "eva": "08396872",
+  "name": "Laces/Latsch"
+ },
+ "S02208": {
+  "eva": "08351352",
+  "name": "Castelbello/Kastelbell"
+ },
+ "S02209": {
+  "eva": "08349369",
+  "name": "Ciardes/Tschars"
+ },
+ "S02211": {
+  "eva": "08300087",
+  "name": "Naturno/Naturns"
+ },
+ "S02212": {
+  "eva": "08339595",
+  "name": "Plaus"
+ },
+ "S02213": {
+  "eva": "08393776",
+  "name": "Tel/Töll"
+ },
+ "S02214": {
+  "eva": "08337972",
+  "name": "Marlengo/Marling"
+ },
+ "S02215": {
+  "eva": "08384968",
+  "name": "Lagundo/Algund"
+ },
+ "S02216": {
+  "eva": "08300097",
+  "name": "Merano/Meran"
+ },
+ "S02217": {
+  "eva": "08300501",
+  "name": "Merano-Maia Bassa/Meran-Untermais"
+ },
+ "S02218": {
+  "eva": "08300536",
+  "name": "Gargazzone/Gargazon"
+ },
+ "S02219": {
+  "eva": "08300122",
+  "name": "Lana-Postal/Lana-Burgstall"
+ },
+ "S02222": {
+  "eva": "08300490",
+  "name": "Vilpiano-Nalles/Vilpian-Nals"
+ },
+ "S02223": {
+  "eva": "08300129",
+  "name": "Terlano-Andriano Terlan-Andrian"
+ },
+ "S02224": {
+  "eva": "08300539",
+  "name": "Settequerce/Siebeneich"
+ },
+ "S02225": {
+  "eva": "08300128",
+  "name": "Ponte d’Adige/Sigmundskron"
+ },
+ "S02226": {
+  "eva": "08301251",
+  "name": "Bolzano Sud/Bozen Süd"
+ },
+ "S02300": {
+  "eva": "08302337",
+  "name": "Villazzano"
+ },
+ "S02301": {
+  "eva": "08302782",
+  "name": "Povo-Mesiano"
+ },
+ "S02305": {
+  "eva": "08300471",
+  "name": "Pergine"
+ },
+ "S02306": {
+  "eva": "08301128",
+  "name": "San Cristoforo al Lago-Ischia"
+ },
+ "S02307": {
+  "eva": "08301424",
+  "name": "Calceranica"
+ },
+ "S02308": {
+  "eva": "08301325",
+  "name": "Caldonazzo"
+ },
+ "S02309": {
+  "eva": "08300099",
+  "name": "Levico Terme"
+ },
+ "S02312": {
+  "eva": "08300579",
+  "name": "Roncegno Bagni-Marter"
+ },
+ "S02313": {
+  "eva": "08300701",
+  "name": "Borgo Valsugana Centro"
+ },
+ "S02314": {
+  "eva": "08300702",
+  "name": "Borgo Valsugana Est"
+ },
+ "S02315": {
+  "eva": "08302193",
+  "name": "Strigno"
+ },
+ "S02317": {
+  "eva": "08301591",
+  "name": "Grigno"
+ },
+ "S02318": {
+  "eva": "08302248",
+  "name": "Tezze di Grigno"
+ },
+ "S02319": {
+  "eva": "08300112",
+  "name": "Primolano"
+ },
+ "S02330": {
+  "eva": "08300685",
+  "name": "Dossobuono"
+ },
+ "S02331": {
+  "eva": "08300928",
+  "name": "Villafranca di Verona"
+ },
+ "S02332": {
+  "eva": "08301744",
+  "name": "Mozzecane"
+ },
+ "S02333": {
+  "eva": "08302049",
+  "name": "Roverbella"
+ },
+ "S02334": {
+  "eva": "08302158",
+  "name": "Sant’Antonio Mantovano"
+ },
+ "S02336": {
+  "eva": "08300541",
+  "name": "Mantova"
+ },
+ "S02337": {
+  "eva": "08302018",
+  "name": "Romanore"
+ },
+ "S02340": {
+  "eva": "08302218",
+  "name": "Suzzara"
+ },
+ "S02343": {
+  "eva": "08301905",
+  "name": "Palidano"
+ },
+ "S02344": {
+  "eva": "08301588",
+  "name": "Gonzaga-Reggiolo"
+ },
+ "S02345": {
+  "eva": "08302356",
+  "name": "Villanova di Reggiolo"
+ },
+ "S02346": {
+  "eva": "08302020",
+  "name": "Rolo-Novi-Fabbrico"
+ },
+ "S02349": {
+  "eva": "08300717",
+  "name": "Carpi"
+ },
+ "S02363": {
+  "eva": "08301271",
+  "name": "Bovolone"
+ },
+ "S02364": {
+  "eva": "08300966",
+  "name": "Cerea"
+ },
+ "S02366": {
+  "eva": "08300682",
+  "name": "Legnago"
+ },
+ "S02367": {
+  "eva": "08300686",
+  "name": "Villabartolomea"
+ },
+ "S02368": {
+  "eva": "08300687",
+  "name": "Castagnaro"
+ },
+ "S02370": {
+  "eva": "08300688",
+  "name": "Badia Polesine"
+ },
+ "S02373": {
+  "eva": "08300689",
+  "name": "Lendinara"
+ },
+ "S02374": {
+  "eva": "08301525",
+  "name": "Fratta"
+ },
+ "S02375": {
+  "eva": "08301087",
+  "name": "Costa"
+ },
+ "S02380": {
+  "eva": "08301698",
+  "name": "Mantova Frassine"
+ },
+ "S02381": {
+  "eva": "08301549",
+  "name": "Gazzo di Bigarello"
+ },
+ "S02382": {
+  "eva": "08301366",
+  "name": "Castel d’Ario"
+ },
+ "S02383": {
+  "eva": "08301223",
+  "name": "Bonferraro"
+ },
+ "S02384": {
+  "eva": "08302120",
+  "name": "Sanguinetto"
+ },
+ "S02390": {
+  "eva": "08301255",
+  "name": "Boschi Sant’Anna"
+ },
+ "S02391": {
+  "eva": "08301270",
+  "name": "Bevilacqua"
+ },
+ "S02392": {
+  "eva": "08300683",
+  "name": "Montagnana"
+ },
+ "S02394": {
+  "eva": "08302143",
+  "name": "Saletto"
+ },
+ "S02395": {
+  "eva": "08301821",
+  "name": "Ospedaletto Euganeo"
+ },
+ "S02396": {
+  "eva": "08300684",
+  "name": "Este"
+ },
+ "S02430": {
+  "eva": "08300120",
+  "name": "Verona Porta Nuova"
+ },
+ "S02433": {
+  "eva": "08300969",
+  "name": "Verona Porta Vescovo"
+ },
+ "S02435": {
+  "eva": "08301652",
+  "name": "San Martino Buonalbergo"
+ },
+ "S02437": {
+  "eva": "08301323",
+  "name": "Caldiero"
+ },
+ "S02440": {
+  "eva": "08300919",
+  "name": "San Bonifacio"
+ },
+ "S02441": {
+  "eva": "08300601",
+  "name": "Lonigo"
+ },
+ "S02443": {
+  "eva": "08301743",
+  "name": "Montebello"
+ },
+ "S02444": {
+  "eva": "08301131",
+  "name": "Altavilla-Tavernelle"
+ },
+ "S02446": {
+  "eva": "08300126",
+  "name": "Vicenza"
+ },
+ "S02500": {
+  "eva": "08300703",
+  "name": "Cismon del Grappa"
+ },
+ "S02501": {
+  "eva": "08302187",
+  "name": "San Marino (Valbrenta)"
+ },
+ "S02502": {
+  "eva": "08300704",
+  "name": "Carpane-Valstagna"
+ },
+ "S02503": {
+  "eva": "08300705",
+  "name": "San Nazario"
+ },
+ "S02504": {
+  "eva": "08300706",
+  "name": "Solagna"
+ },
+ "S02506": {
+  "eva": "08302133",
+  "name": "Cassola"
+ },
+ "S02507": {
+  "eva": "08301346",
+  "name": "Castello di Godego"
+ },
+ "S02508": {
+  "eva": "08301976",
+  "name": "Resana"
+ },
+ "S02509": {
+  "eva": "08301921",
+  "name": "Piombino Dese"
+ },
+ "S02510": {
+  "eva": "08300709",
+  "name": "Noale-Scorze"
+ },
+ "S02511": {
+  "eva": "08302228",
+  "name": "Salzano-Robegano"
+ },
+ "S02512": {
+  "eva": "08301684",
+  "name": "Maerne di Martellago"
+ },
+ "S02514": {
+  "eva": "08360337",
+  "name": "Trebaseleghe"
+ },
+ "S02516": {
+  "eva": "08309419",
+  "name": "Spinea"
+ },
+ "S02517": {
+  "eva": "08396626",
+  "name": "Venezia Mestre Ospedale"
+ },
+ "S02520": {
+  "eva": "08300075",
+  "name": "Bassano del Grappa"
+ },
+ "S02521": {
+  "eva": "08300707",
+  "name": "Rosa"
+ },
+ "S02522": {
+  "eva": "08300708",
+  "name": "Rossano Veneto"
+ },
+ "S02523": {
+  "eva": "08302312",
+  "name": "Villa del Conte"
+ },
+ "S02524": {
+  "eva": "08301504",
+  "name": "Fratte Centro"
+ },
+ "S02525": {
+  "eva": "08300079",
+  "name": "Camposampiero"
+ },
+ "S02526": {
+  "eva": "08300890",
+  "name": "San Giorgio delle Pertiche"
+ },
+ "S02527": {
+  "eva": "08301058",
+  "name": "Campodarsego"
+ },
+ "S02528": {
+  "eva": "08301074",
+  "name": "Vigodarzere"
+ },
+ "S02531": {
+  "eva": "08301896",
+  "name": "San Pietro in Gu"
+ },
+ "S02532": {
+  "eva": "08301319",
+  "name": "Carmignano di Brenta"
+ },
+ "S02534": {
+  "eva": "08300887",
+  "name": "Fontaniva"
+ },
+ "S02535": {
+  "eva": "08300697",
+  "name": "Cittadella"
+ },
+ "S02536": {
+  "eva": "08300698",
+  "name": "San Martino di Lupari"
+ },
+ "S02537": {
+  "eva": "08300081",
+  "name": "Castelfranco Veneto"
+ },
+ "S02538": {
+  "eva": "08300699",
+  "name": "Albaredo"
+ },
+ "S02539": {
+  "eva": "08301612",
+  "name": "Istrana"
+ },
+ "S02540": {
+  "eva": "08300700",
+  "name": "Paese"
+ },
+ "S02541": {
+  "eva": "08301598",
+  "name": "Galliera Veneta-Tombolo"
+ },
+ "S02550": {
+  "eva": "08300476",
+  "name": "Calalzo-Pieve di Cadore-Cortina"
+ },
+ "S02553": {
+  "eva": "08300036",
+  "name": "Perarolo di Cadore"
+ },
+ "S02554": {
+  "eva": "08301069",
+  "name": "Ospitale di Cadore"
+ },
+ "S02556": {
+  "eva": "08300073",
+  "name": "Longarone-Zoldo"
+ },
+ "S02557": {
+  "eva": "08300710",
+  "name": "Fae-Fortogna"
+ },
+ "S02558": {
+  "eva": "08300109",
+  "name": "Ponte Nelle Alpi-Polpet"
+ },
+ "S02559": {
+  "eva": "08300085",
+  "name": "Belluno"
+ },
+ "S02560": {
+  "eva": "08300072",
+  "name": "Sedico-Bribano"
+ },
+ "S02562": {
+  "eva": "08300711",
+  "name": "Santa Giustina-Cesio"
+ },
+ "S02563": {
+  "eva": "08300712",
+  "name": "Busche-Lentiai-Mel"
+ },
+ "S02564": {
+  "eva": "08300088",
+  "name": "Feltre"
+ },
+ "S02565": {
+  "eva": "08300713",
+  "name": "Quero-Vas"
+ },
+ "S02566": {
+  "eva": "08300131",
+  "name": "Alano-Fener-Valdobbiadene"
+ },
+ "S02567": {
+  "eva": "08300872",
+  "name": "Pederobba-Cavaso-Possagno"
+ },
+ "S02568": {
+  "eva": "08301067",
+  "name": "Levada"
+ },
+ "S02569": {
+  "eva": "08300714",
+  "name": "Cornuda"
+ },
+ "S02570": {
+  "eva": "08300105",
+  "name": "Montebelluna"
+ },
+ "S02575": {
+  "eva": "08300716",
+  "name": "Fanzolo"
+ },
+ "S02578": {
+  "eva": "08301624",
+  "name": "Lerino"
+ },
+ "S02579": {
+  "eva": "08300602",
+  "name": "Grisignano di Zocco"
+ },
+ "S02580": {
+  "eva": "08301694",
+  "name": "Mestrino"
+ },
+ "S02581": {
+  "eva": "08300098",
+  "name": "Padova"
+ },
+ "S02586": {
+  "eva": "08302333",
+  "name": "Vigonza-Pianiga"
+ },
+ "S02587": {
+  "eva": "08301477",
+  "name": "Dolo"
+ },
+ "S02588": {
+  "eva": "08301721",
+  "name": "Mira-Mirano"
+ },
+ "S02589": {
+  "eva": "08300093",
+  "name": "Venezia Mestre"
+ },
+ "S02592": {
+  "eva": "08302355",
+  "name": "Venezia Porto Marghera"
+ },
+ "S02593": {
+  "eva": "08300094",
+  "name": "Venezia Santa Lucia"
+ },
+ "S02594": {
+  "eva": "08302956",
+  "name": "Venezia Marittima"
+ },
+ "S02595": {
+  "eva": "08303949",
+  "name": "Busa di Vigonza"
+ },
+ "S02598": {
+  "eva": "08302598",
+  "name": "Piove di Sacco"
+ },
+ "S02600": {
+  "eva": "08300715",
+  "name": "Trevignano-Signoressa"
+ },
+ "S02601": {
+  "eva": "08301925",
+  "name": "Postioma"
+ },
+ "S02602": {
+  "eva": "08300908",
+  "name": "Paese-Castagnole"
+ },
+ "S02660": {
+  "eva": "08300439",
+  "name": "San Vito al Tagliamento"
+ },
+ "S02661": {
+  "eva": "08300881",
+  "name": "Cordovado-Sesto"
+ },
+ "S02662": {
+  "eva": "08302292",
+  "name": "Teglio Veneto"
+ },
+ "S02663": {
+  "eva": "08301632",
+  "name": "Lison"
+ },
+ "S02664": {
+  "eva": "08300638",
+  "name": "San Stino di Livenza"
+ },
+ "S02665": {
+  "eva": "08301330",
+  "name": "Ceggia"
+ },
+ "S02666": {
+  "eva": "08300116",
+  "name": "San Donà di Piave-Jesolo"
+ },
+ "S02667": {
+  "eva": "08301505",
+  "name": "Fossalta di Piave"
+ },
+ "S02668": {
+  "eva": "08301693",
+  "name": "Meolo"
+ },
+ "S02670": {
+  "eva": "08300637",
+  "name": "Quarto d’Altino"
+ },
+ "S02672": {
+  "eva": "08300968",
+  "name": "Venezia Carpenedo"
+ },
+ "S02673": {
+  "eva": "08351381",
+  "name": "Gaggio Porta Est"
+ },
+ "S02674": {
+  "eva": "08312674",
+  "name": "Venezia Mestre Olimpia"
+ },
+ "S02700": {
+  "eva": "08300629",
+  "name": "Cusano"
+ },
+ "S02701": {
+  "eva": "08300110",
+  "name": "Pordenone"
+ },
+ "S02702": {
+  "eva": "08300630",
+  "name": "Fontanafredda"
+ },
+ "S02703": {
+  "eva": "08300118",
+  "name": "Sacile"
+ },
+ "S02704": {
+  "eva": "08300631",
+  "name": "Orsago"
+ },
+ "S02705": {
+  "eva": "08300632",
+  "name": "Pianzano"
+ },
+ "S02706": {
+  "eva": "08300086",
+  "name": "Conegliano"
+ },
+ "S02708": {
+  "eva": "08300633",
+  "name": "Susegana"
+ },
+ "S02709": {
+  "eva": "08300634",
+  "name": "Spresiano"
+ },
+ "S02710": {
+  "eva": "08300635",
+  "name": "Lancenigo"
+ },
+ "S02712": {
+  "eva": "08300130",
+  "name": "Treviso Centrale"
+ },
+ "S02713": {
+  "eva": "08318090",
+  "name": "San Trovaso"
+ },
+ "S02715": {
+  "eva": "08301938",
+  "name": "Preganziol"
+ },
+ "S02717": {
+  "eva": "08300636",
+  "name": "Mogliano Veneto"
+ },
+ "S02719": {
+  "eva": "08302719",
+  "name": "Venezia Mestre Gazzera"
+ },
+ "S02732": {
+  "eva": "08302106",
+  "name": "Soffratta"
+ },
+ "S02733": {
+  "eva": "08300395",
+  "name": "Vittorio Veneto"
+ },
+ "S02735": {
+  "eva": "08302207",
+  "name": "Santa Croce del Lago"
+ },
+ "S02736": {
+  "eva": "08302181",
+  "name": "Stazione per l’Alpago"
+ },
+ "S02760": {
+  "eva": "08302414",
+  "name": "Olmi Spercenigo"
+ },
+ "S02761": {
+  "eva": "08302069",
+  "name": "San Biagio di Callalta"
+ },
+ "S02762": {
+  "eva": "08301498",
+  "name": "Fagare"
+ },
+ "S02763": {
+  "eva": "08300718",
+  "name": "Ponte di Piave"
+ },
+ "S02765": {
+  "eva": "08300719",
+  "name": "Oderzo"
+ },
+ "S02766": {
+  "eva": "08301577",
+  "name": "Gorgo al Monticano"
+ },
+ "S02767": {
+  "eva": "08300720",
+  "name": "Motta di Livenza"
+ },
+ "S02768": {
+  "eva": "08301889",
+  "name": "Pramaggiore Blessaglia"
+ },
+ "S02769": {
+  "eva": "08300721",
+  "name": "Annone Veneto"
+ },
+ "S02830": {
+  "eva": "08300080",
+  "name": "Casarsa"
+ },
+ "S02831": {
+  "eva": "08300628",
+  "name": "Codroipo"
+ },
+ "S02832": {
+  "eva": "08301179",
+  "name": "Basiliano"
+ },
+ "S02833": {
+  "eva": "08312833",
+  "name": "Venezia Mestre Porta Ovest"
+ },
+ "S02834": {
+  "eva": "08312834",
+  "name": "Oriago"
+ },
+ "S02835": {
+  "eva": "08312835",
+  "name": "Mira Buse"
+ },
+ "S02836": {
+  "eva": "08312836",
+  "name": "Casello 11"
+ },
+ "S02837": {
+  "eva": "08312837",
+  "name": "Campagnalupia-Camponogara"
+ },
+ "S02838": {
+  "eva": "08302838",
+  "name": "Casello 8"
+ },
+ "S02840": {
+  "eva": "08302840",
+  "name": "Campolongo Maggiore"
+ },
+ "S02841": {
+  "eva": "08302841",
+  "name": "Arzergrande"
+ },
+ "S02843": {
+  "eva": "08302843",
+  "name": "Pontelongo Fermata"
+ },
+ "S02845": {
+  "eva": "08302845",
+  "name": "Cona Veneta"
+ },
+ "S02847": {
+  "eva": "08302847",
+  "name": "Cavarzere Centro"
+ },
+ "S03006": {
+  "eva": "08302294",
+  "name": "Ugovizza-Valbruna"
+ },
+ "S03010": {
+  "eva": "08300108",
+  "name": "Pontebba"
+ },
+ "S03015": {
+  "eva": "08303915",
+  "name": "Tarvisio Boscoverde"
+ },
+ "S03016": {
+  "eva": "08300074",
+  "name": "Carnia"
+ },
+ "S03018": {
+  "eva": "08300625",
+  "name": "Venzone"
+ },
+ "S03019": {
+  "eva": "08300090",
+  "name": "Gemona del Friuli"
+ },
+ "S03021": {
+  "eva": "08300626",
+  "name": "Artegna"
+ },
+ "S03022": {
+  "eva": "08300627",
+  "name": "Tarcento"
+ },
+ "S03023": {
+  "eva": "08302862",
+  "name": "Tricesimo San Pelagio"
+ },
+ "S03026": {
+  "eva": "08300115",
+  "name": "Udine"
+ },
+ "S03029": {
+  "eva": "08301261",
+  "name": "Buttrio"
+ },
+ "S03030": {
+  "eva": "08301662",
+  "name": "Manzano"
+ },
+ "S03031": {
+  "eva": "08302111",
+  "name": "San Giovanni al Natisone"
+ },
+ "S03053": {
+  "eva": "08300723",
+  "name": "Cornino"
+ },
+ "S03054": {
+  "eva": "08301501",
+  "name": "Forgaria-Bagni Anduins"
+ },
+ "S03055": {
+  "eva": "08300724",
+  "name": "Pinzano"
+ },
+ "S03081": {
+  "eva": "08300725",
+  "name": "Travesio"
+ },
+ "S03082": {
+  "eva": "08300726",
+  "name": "Meduno"
+ },
+ "S03083": {
+  "eva": "08300886",
+  "name": "Fanna-Cavasso"
+ },
+ "S03084": {
+  "eva": "08300727",
+  "name": "Maniago"
+ },
+ "S03085": {
+  "eva": "08300905",
+  "name": "Montereale Valcellina"
+ },
+ "S03087": {
+  "eva": "08300729",
+  "name": "Aviano"
+ },
+ "S03088": {
+  "eva": "08301233",
+  "name": "Budoia-Polcenigo"
+ },
+ "S03089": {
+  "eva": "08302142",
+  "name": "Sacile-San Liberale"
+ },
+ "S03120": {
+  "eva": "08302038",
+  "name": "Risano"
+ },
+ "S03121": {
+  "eva": "08302150",
+  "name": "Santa Maria la Longa"
+ },
+ "S03122": {
+  "eva": "08300967",
+  "name": "Palmanova"
+ },
+ "S03123": {
+  "eva": "08301176",
+  "name": "Bagnaria Arsa"
+ },
+ "S03124": {
+  "eva": "08302204",
+  "name": "Santo Stefano Udinese"
+ },
+ "S03125": {
+  "eva": "08301648",
+  "name": "Lumignacco"
+ },
+ "S03150": {
+  "eva": "08302212",
+  "name": "Strassoldo"
+ },
+ "S03151": {
+  "eva": "08302101",
+  "name": "Sevegliano"
+ },
+ "S03199": {
+  "eva": "08368886",
+  "name": "San Giovanni di Casarsa"
+ },
+ "S03200": {
+  "eva": "08300111",
+  "name": "Portogruaro-Caorle"
+ },
+ "S03202": {
+  "eva": "08300100",
+  "name": "Latisana-Lignano-Bibione"
+ },
+ "S03203": {
+  "eva": "08300910",
+  "name": "Palazzolo dello Stella"
+ },
+ "S03204": {
+  "eva": "08300898",
+  "name": "Muzzana del Turgnano"
+ },
+ "S03205": {
+  "eva": "08300117",
+  "name": "San Giorgio di Nogaro"
+ },
+ "S03206": {
+  "eva": "08302289",
+  "name": "Torviscosa"
+ },
+ "S03207": {
+  "eva": "08300095",
+  "name": "Cervignano-Aquileia-Grado"
+ },
+ "S03213": {
+  "eva": "08303213",
+  "name": "Trieste Airport"
+ },
+ "S03300": {
+  "eva": "08300535",
+  "name": "Cormons"
+ },
+ "S03301": {
+  "eva": "08301417",
+  "name": "Capriva"
+ },
+ "S03302": {
+  "eva": "08301761",
+  "name": "Mossa"
+ },
+ "S03304": {
+  "eva": "08300096",
+  "name": "Gorizia Centrale"
+ },
+ "S03307": {
+  "eva": "08302112",
+  "name": "Sagrado"
+ },
+ "S03308": {
+  "eva": "08301996",
+  "name": "Redipuglia"
+ },
+ "S03309": {
+  "eva": "08301993",
+  "name": "Ronchi dei Legionari Nord"
+ },
+ "S03310": {
+  "eva": "08300103",
+  "name": "Monfalcone"
+ },
+ "S03311": {
+  "eva": "08301712",
+  "name": "Miramare"
+ },
+ "S03312": {
+  "eva": "08302220",
+  "name": "Sistiana-Visogliano"
+ },
+ "S03313": {
+  "eva": "08301190",
+  "name": "Bivio d’Aurisina"
+ },
+ "S03317": {
+  "eva": "08300107",
+  "name": "Trieste Centrale"
+ },
+ "S03466": {
+  "eva": "08300392",
+  "name": "Villa Opicina"
+ },
+ "S04100": {
+  "eva": "08302364",
+  "name": "Visone"
+ },
+ "S04101": {
+  "eva": "08301871",
+  "name": "Prasco-Cremolino"
+ },
+ "S04102": {
+  "eva": "08301738",
+  "name": "Molare"
+ },
+ "S04103": {
+  "eva": "08300987",
+  "name": "Ovada"
+ },
+ "S04104": {
+  "eva": "08302039",
+  "name": "Rossiglione"
+ },
+ "S04105": {
+  "eva": "08301083",
+  "name": "Campo Ligure-Masone"
+ },
+ "S04106": {
+  "eva": "08301689",
+  "name": "Mele"
+ },
+ "S04107": {
+  "eva": "08300974",
+  "name": "Genova Acquasanta"
+ },
+ "S04108": {
+  "eva": "08300977",
+  "name": "Genova Granara"
+ },
+ "S04109": {
+  "eva": "08300975",
+  "name": "Genova Borzoli"
+ },
+ "S04110": {
+  "eva": "08302768",
+  "name": "Genova Costa di Sestri Ponente"
+ },
+ "S04200": {
+  "eva": "08301526",
+  "name": "Frugarolo-Boscomarengo"
+ },
+ "S04203": {
+  "eva": "08300163",
+  "name": "Novi Ligure"
+ },
+ "S04206": {
+  "eva": "08302099",
+  "name": "Serravalle Scrivia"
+ },
+ "S04207": {
+  "eva": "08300134",
+  "name": "Arquata Scrivia"
+ },
+ "S04208": {
+  "eva": "08302006",
+  "name": "Rigoroso"
+ },
+ "S04209": {
+  "eva": "08301894",
+  "name": "Pietrabissara"
+ },
+ "S04210": {
+  "eva": "08301600",
+  "name": "Isola del Cantone"
+ },
+ "S04211": {
+  "eva": "08300164",
+  "name": "Ronco Scrivia"
+ },
+ "S04212": {
+  "eva": "08301711",
+  "name": "Mignanego"
+ },
+ "S04214": {
+  "eva": "08301231",
+  "name": "Borgo Fornari per Voltaggio"
+ },
+ "S04215": {
+  "eva": "08301267",
+  "name": "Busalla"
+ },
+ "S04216": {
+  "eva": "08301900",
+  "name": "Piano Orizzontale dei Giovi"
+ },
+ "S04217": {
+  "eva": "08300979",
+  "name": "Genova Pontedecimo"
+ },
+ "S04218": {
+  "eva": "08300992",
+  "name": "Genova Bolzaneto"
+ },
+ "S04219": {
+  "eva": "08300983",
+  "name": "Genova Rivarolo"
+ },
+ "S04220": {
+  "eva": "08300158",
+  "name": "Genova Sampierdarena"
+ },
+ "S04222": {
+  "eva": "08304222",
+  "name": "Genova San Biagio"
+ },
+ "S04223": {
+  "eva": "08304223",
+  "name": "Genova Via di Francia"
+ },
+ "S04330": {
+  "eva": "08301968",
+  "name": "Pozzolo Formigaro"
+ },
+ "S04480": {
+  "eva": "08300467",
+  "name": "Olivetta San Michele"
+ },
+ "S04481": {
+  "eva": "08300358",
+  "name": "Airole"
+ },
+ "S04482": {
+  "eva": "08301199",
+  "name": "Bevera"
+ },
+ "S04501": {
+  "eva": "08300146",
+  "name": "Ventimiglia"
+ },
+ "S04502": {
+  "eva": "08300614",
+  "name": "Vallecrosia"
+ },
+ "S04503": {
+  "eva": "08300136",
+  "name": "Bordighera"
+ },
+ "S04505": {
+  "eva": "08300182",
+  "name": "Sanremo"
+ },
+ "S04506": {
+  "eva": "08300176",
+  "name": "Taggia Arma"
+ },
+ "S04512": {
+  "eva": "08300945",
+  "name": "Cervo-San Bartolomeo"
+ },
+ "S04514": {
+  "eva": "08300410",
+  "name": "Laigueglia"
+ },
+ "S04515": {
+  "eva": "08300133",
+  "name": "Alassio"
+ },
+ "S04516": {
+  "eva": "08300132",
+  "name": "Albenga"
+ },
+ "S04517": {
+  "eva": "08300613",
+  "name": "Ceriale"
+ },
+ "S04518": {
+  "eva": "08301258",
+  "name": "Borghetto Santo Spirito"
+ },
+ "S04519": {
+  "eva": "08300160",
+  "name": "Loano"
+ },
+ "S04520": {
+  "eva": "08300035",
+  "name": "Pietra Ligure"
+ },
+ "S04521": {
+  "eva": "08300612",
+  "name": "Borgio Verezzi"
+ },
+ "S04522": {
+  "eva": "08300144",
+  "name": "Finale Ligure Marina"
+ },
+ "S04523": {
+  "eva": "08304523",
+  "name": "Imperia"
+ },
+ "S04524": {
+  "eva": "08304524",
+  "name": "Diano"
+ },
+ "S04525": {
+  "eva": "08300525",
+  "name": "Andora"
+ },
+ "S04526": {
+  "eva": "08300271",
+  "name": "Spotorno-Noli"
+ },
+ "S04527": {
+  "eva": "08301974",
+  "name": "Quiliano-Vado Ligure"
+ },
+ "S04529": {
+  "eva": "08301107",
+  "name": "Albisola"
+ },
+ "S04530": {
+  "eva": "08300402",
+  "name": "Celle Ligure"
+ },
+ "S04531": {
+  "eva": "08300444",
+  "name": "Varazze"
+ },
+ "S04532": {
+  "eva": "08301402",
+  "name": "Cogoleto"
+ },
+ "S04533": {
+  "eva": "08300611",
+  "name": "Arenzano"
+ },
+ "S04534": {
+  "eva": "08300984",
+  "name": "Genova Voltri"
+ },
+ "S04535": {
+  "eva": "08300980",
+  "name": "Genova Pra"
+ },
+ "S04536": {
+  "eva": "08300978",
+  "name": "Genova Pegli"
+ },
+ "S04537": {
+  "eva": "08300408",
+  "name": "Genova Sestri Ponente"
+ },
+ "S04538": {
+  "eva": "08300976",
+  "name": "Genova Cornigliano"
+ },
+ "S04540": {
+  "eva": "08302789",
+  "name": "Genova Vesima"
+ },
+ "S04700": {
+  "eva": "08300153",
+  "name": "Genova Piazza Principe"
+ },
+ "S04701": {
+  "eva": "08306200",
+  "name": "Genova Piazza Principe Sotterranea"
+ },
+ "S04702": {
+  "eva": "08300152",
+  "name": "Genova Brignole"
+ },
+ "S04703": {
+  "eva": "08301594",
+  "name": "Genova Sturla"
+ },
+ "S04704": {
+  "eva": "08300981",
+  "name": "Genova Quarto dei Mille"
+ },
+ "S04705": {
+  "eva": "08300982",
+  "name": "Genova Quinto al Mare"
+ },
+ "S04707": {
+  "eva": "08300147",
+  "name": "Genova Nervi"
+ },
+ "S04709": {
+  "eva": "08301228",
+  "name": "Bogliasco"
+ },
+ "S04710": {
+  "eva": "08301957",
+  "name": "Pontetto"
+ },
+ "S04711": {
+  "eva": "08301903",
+  "name": "Pieve Ligure"
+ },
+ "S04712": {
+  "eva": "08302172",
+  "name": "Sori"
+ },
+ "S04713": {
+  "eva": "08301787",
+  "name": "Mulinetti"
+ },
+ "S04714": {
+  "eva": "08300543",
+  "name": "Recco"
+ },
+ "S04716": {
+  "eva": "08300138",
+  "name": "Camogli-San Fruttuoso"
+ },
+ "S04718": {
+  "eva": "08300168",
+  "name": "Santa Margherita Ligure-Portofino"
+ },
+ "S04720": {
+  "eva": "08300178",
+  "name": "Rapallo"
+ },
+ "S04721": {
+  "eva": "08300994",
+  "name": "Zoagli"
+ },
+ "S04722": {
+  "eva": "08300143",
+  "name": "Chiavari"
+ },
+ "S04723": {
+  "eva": "08300542",
+  "name": "Lavagna"
+ },
+ "S04724": {
+  "eva": "08300586",
+  "name": "Cavi"
+ },
+ "S04725": {
+  "eva": "08300174",
+  "name": "Sestri Levante"
+ },
+ "S04726": {
+  "eva": "08302012",
+  "name": "Riva Trigoso"
+ },
+ "S04727": {
+  "eva": "08300546",
+  "name": "Moneglia"
+ },
+ "S04728": {
+  "eva": "08300545",
+  "name": "Deiva Marina"
+ },
+ "S04729": {
+  "eva": "08301524",
+  "name": "Framura"
+ },
+ "S04730": {
+  "eva": "08300544",
+  "name": "Bonassola"
+ },
+ "S04731": {
+  "eva": "08300159",
+  "name": "Levanto"
+ },
+ "S04732": {
+  "eva": "08300183",
+  "name": "Monterosso"
+ },
+ "S04733": {
+  "eva": "08302318",
+  "name": "Vernazza"
+ },
+ "S04734": {
+  "eva": "08301406",
+  "name": "Corniglia"
+ },
+ "S04735": {
+  "eva": "08301658",
+  "name": "Manarola"
+ },
+ "S04736": {
+  "eva": "08300547",
+  "name": "Riomaggiore"
+ },
+ "S04801": {
+  "eva": "08300185",
+  "name": "Savona"
+ },
+ "S04802": {
+  "eva": "08302213",
+  "name": "Santuario"
+ },
+ "S04803": {
+  "eva": "08302732",
+  "name": "Bragno"
+ },
+ "S04804": {
+  "eva": "08301508",
+  "name": "Ferrania"
+ },
+ "S04805": {
+  "eva": "08300027",
+  "name": "San Giuseppe di Cairo"
+ },
+ "S04810": {
+  "eva": "08301077",
+  "name": "Altare"
+ },
+ "S05000": {
+  "eva": "08300230",
+  "name": "Piacenza"
+ },
+ "S05005": {
+  "eva": "08301919",
+  "name": "Pontenure"
+ },
+ "S05006": {
+  "eva": "08301322",
+  "name": "Cadeo"
+ },
+ "S05007": {
+  "eva": "08300235",
+  "name": "Fiorenzuola"
+ },
+ "S05009": {
+  "eva": "08300200",
+  "name": "Fidenza"
+ },
+ "S05010": {
+  "eva": "08305010",
+  "name": "Calderara-Bargellino"
+ },
+ "S05011": {
+  "eva": "08305011",
+  "name": "Vaio Ospedale"
+ },
+ "S05012": {
+  "eva": "08301445",
+  "name": "Castelguelfo"
+ },
+ "S05014": {
+  "eva": "08300215",
+  "name": "Parma"
+ },
+ "S05021": {
+  "eva": "08300922",
+  "name": "Sant’Ilario d’Enza"
+ },
+ "S05023": {
+  "eva": "08300220",
+  "name": "Reggio Emilia"
+ },
+ "S05031": {
+  "eva": "08302045",
+  "name": "Rubiera"
+ },
+ "S05032": {
+  "eva": "08300214",
+  "name": "Modena"
+ },
+ "S05037": {
+  "eva": "08301337",
+  "name": "Castelfranco Emilia"
+ },
+ "S05039": {
+  "eva": "08302062",
+  "name": "Samoggia"
+ },
+ "S05043": {
+  "eva": "08300217",
+  "name": "Bologna Centrale"
+ },
+ "S05049": {
+  "eva": "08305049",
+  "name": "San Lazzaro di Savena"
+ },
+ "S05052": {
+  "eva": "08302358",
+  "name": "Varignana"
+ },
+ "S05053": {
+  "eva": "08301452",
+  "name": "Castel San Pietro Terme"
+ },
+ "S05054": {
+  "eva": "08300204",
+  "name": "Imola"
+ },
+ "S05055": {
+  "eva": "08305055",
+  "name": "Ozzano"
+ },
+ "S05056": {
+  "eva": "08300191",
+  "name": "Castel Bolognese- Riolo Terme"
+ },
+ "S05057": {
+  "eva": "08361210",
+  "name": "Rimini Fiera"
+ },
+ "S05058": {
+  "eva": "08300199",
+  "name": "Faenza"
+ },
+ "S05059": {
+  "eva": "08300213",
+  "name": "Forlì"
+ },
+ "S05065": {
+  "eva": "08301008",
+  "name": "Forlimpopoli-Bertinoro"
+ },
+ "S05066": {
+  "eva": "08300193",
+  "name": "Cesena"
+ },
+ "S05067": {
+  "eva": "08301546",
+  "name": "Gambettola"
+ },
+ "S05068": {
+  "eva": "08300868",
+  "name": "Savignano sul Rubicone"
+ },
+ "S05069": {
+  "eva": "08301156",
+  "name": "Santarcangelo di Romagna"
+ },
+ "S05071": {
+  "eva": "08300221",
+  "name": "Rimini"
+ },
+ "S05081": {
+  "eva": "08305081",
+  "name": "Bologna San Vitale"
+ },
+ "S05090": {
+  "eva": "08300550",
+  "name": "Salsomaggiore Terme"
+ },
+ "S05100": {
+  "eva": "08300997",
+  "name": "Bologna Borgo Panigale"
+ },
+ "S05101": {
+  "eva": "08301326",
+  "name": "Casalecchio di Reno"
+ },
+ "S05102": {
+  "eva": "08314428",
+  "name": "Casteldebole"
+ },
+ "S05103": {
+  "eva": "08301916",
+  "name": "Pontecchio Marconi"
+ },
+ "S05104": {
+  "eva": "08302148",
+  "name": "Sasso Marconi"
+ },
+ "S05105": {
+  "eva": "08301794",
+  "name": "Marzabotto"
+ },
+ "S05106": {
+  "eva": "08301949",
+  "name": "Pioppe di Salvaro"
+ },
+ "S05107": {
+  "eva": "08300738",
+  "name": "Vergato"
+ },
+ "S05108": {
+  "eva": "08302013",
+  "name": "Riola"
+ },
+ "S05109": {
+  "eva": "08302137",
+  "name": "Silla"
+ },
+ "S05110": {
+  "eva": "08300913",
+  "name": "Porretta Terme"
+ },
+ "S05111": {
+  "eva": "08346369",
+  "name": "Casalecchio Garibaldi"
+ },
+ "S05112": {
+  "eva": "08300739",
+  "name": "Molino del Pallone"
+ },
+ "S05113": {
+  "eva": "08300740",
+  "name": "Pracchia"
+ },
+ "S05114": {
+  "eva": "08305114",
+  "name": "Pian di Venola"
+ },
+ "S05115": {
+  "eva": "08300741",
+  "name": "Corbezzi"
+ },
+ "S05116": {
+  "eva": "08300742",
+  "name": "Piteccio"
+ },
+ "S05118": {
+  "eva": "08301729",
+  "name": "San Momme"
+ },
+ "S05119": {
+  "eva": "08301216",
+  "name": "Biagioni Lagacci"
+ },
+ "S05120": {
+  "eva": "08301419",
+  "name": "Carbona"
+ },
+ "S05121": {
+  "eva": "08301636",
+  "name": "Lama di Reno"
+ },
+ "S05122": {
+  "eva": "08301085",
+  "name": "Castagno"
+ },
+ "S05123": {
+  "eva": "08301881",
+  "name": "Ponte della Venturina"
+ },
+ "S05130": {
+  "eva": "08300996",
+  "name": "Bologna San Ruffillo"
+ },
+ "S05131": {
+  "eva": "08301854",
+  "name": "Pianoro"
+ },
+ "S05132": {
+  "eva": "08301798",
+  "name": "Monzuno-Vado"
+ },
+ "S05133": {
+  "eva": "08301590",
+  "name": "Grizzana"
+ },
+ "S05134": {
+  "eva": "08302067",
+  "name": "San Benedetto Sambro-Castiglione Pepoli"
+ },
+ "S05135": {
+  "eva": "08300615",
+  "name": "Vernio-Montepiano-Cantagallo"
+ },
+ "S05136": {
+  "eva": "08302299",
+  "name": "Vaiano"
+ },
+ "S05138": {
+  "eva": "08305138",
+  "name": "Rastignano"
+ },
+ "S05139": {
+  "eva": "08305139",
+  "name": "Musiano Pian di Macina"
+ },
+ "S05140": {
+  "eva": "08305140",
+  "name": "Bologna Mazzini"
+ },
+ "S05151": {
+  "eva": "08301926",
+  "name": "Pistoia Ovest"
+ },
+ "S05152": {
+  "eva": "08301224",
+  "name": "Borgonuovo"
+ },
+ "S05195": {
+  "eva": "08329210",
+  "name": "Reggio Emilia Mediopadana"
+ },
+ "S05254": {
+  "eva": "08305254",
+  "name": "Reggio Emilia AV Mediopadana"
+ },
+ "S05268": {
+  "eva": "08305268",
+  "name": "Quattro Ville"
+ },
+ "S05301": {
+  "eva": "08301002",
+  "name": "Buttapietra"
+ },
+ "S05302": {
+  "eva": "08392019",
+  "name": "Osteria Nuova"
+ },
+ "S05304": {
+  "eva": "08300222",
+  "name": "Ostiglia"
+ },
+ "S05307": {
+  "eva": "08300231",
+  "name": "Isola della Scala"
+ },
+ "S05308": {
+  "eva": "08300127",
+  "name": "Poggio Rusco"
+ },
+ "S05310": {
+  "eva": "08300233",
+  "name": "Nogara"
+ },
+ "S05311": {
+  "eva": "08300210",
+  "name": "Mirandola"
+ },
+ "S05313": {
+  "eva": "08300435",
+  "name": "San Felice sul Panaro"
+ },
+ "S05314": {
+  "eva": "08301414",
+  "name": "Camposanto"
+ },
+ "S05316": {
+  "eva": "08300083",
+  "name": "Crevalcore"
+ },
+ "S05319": {
+  "eva": "08300229",
+  "name": "San Giovanni in Persiceto"
+ },
+ "S05386": {
+  "eva": "08301146",
+  "name": "Anzola dell’Emilia"
+ },
+ "S05411": {
+  "eva": "08302090",
+  "name": "Sant’Anna di Chioggia"
+ },
+ "S05417": {
+  "eva": "08301344",
+  "name": "Ceregnano"
+ },
+ "S05418": {
+  "eva": "08301616",
+  "name": "Lama"
+ },
+ "S05419": {
+  "eva": "08301174",
+  "name": "Baricetta"
+ },
+ "S05420": {
+  "eva": "08300690",
+  "name": "Adria"
+ },
+ "S05423": {
+  "eva": "08300691",
+  "name": "Loreo"
+ },
+ "S05424": {
+  "eva": "08302037",
+  "name": "Rosolina"
+ },
+ "S05425": {
+  "eva": "08301461",
+  "name": "Cavanella d’Adige"
+ },
+ "S05428": {
+  "eva": "08300692",
+  "name": "Chioggia"
+ },
+ "S05700": {
+  "eva": "08300556",
+  "name": "Abano"
+ },
+ "S05701": {
+  "eva": "08300521",
+  "name": "Terme Euganee-Abano-Montegrotto"
+ },
+ "S05702": {
+  "eva": "08300554",
+  "name": "Battaglia Terme"
+ },
+ "S05703": {
+  "eva": "08300232",
+  "name": "Monselice"
+ },
+ "S05704": {
+  "eva": "08302096",
+  "name": "Sant’Elena-Este"
+ },
+ "S05705": {
+  "eva": "08302206",
+  "name": "Stanghella"
+ },
+ "S05706": {
+  "eva": "08300238",
+  "name": "Rovigo"
+ },
+ "S05707": {
+  "eva": "08301157",
+  "name": "Arqua"
+ },
+ "S05708": {
+  "eva": "08300639",
+  "name": "Polesella"
+ },
+ "S05709": {
+  "eva": "08301425",
+  "name": "Canaro"
+ },
+ "S05710": {
+  "eva": "08300640",
+  "name": "Occhiobello"
+ },
+ "S05711": {
+  "eva": "08301892",
+  "name": "Pontelagoscuro"
+ },
+ "S05712": {
+  "eva": "08300209",
+  "name": "Ferrara"
+ },
+ "S05719": {
+  "eva": "08301392",
+  "name": "Coronella"
+ },
+ "S05720": {
+  "eva": "08300911",
+  "name": "Poggio-Renatico"
+ },
+ "S05721": {
+  "eva": "08301574",
+  "name": "Galliera"
+ },
+ "S05722": {
+  "eva": "08302177",
+  "name": "San Pietro in Casale"
+ },
+ "S05723": {
+  "eva": "08301550",
+  "name": "San Giorgio di Piano"
+ },
+ "S05724": {
+  "eva": "08301447",
+  "name": "Castelmaggiore"
+ },
+ "S05725": {
+  "eva": "08300995",
+  "name": "Bologna Corticella"
+ },
+ "S05726": {
+  "eva": "08343509",
+  "name": "Funo Centergross"
+ },
+ "S05800": {
+  "eva": "08301539",
+  "name": "Gaibanella"
+ },
+ "S05801": {
+  "eva": "08301771",
+  "name": "Montesanto"
+ },
+ "S05802": {
+  "eva": "08300473",
+  "name": "Portomaggiore"
+ },
+ "S05804": {
+  "eva": "08301154",
+  "name": "Argenta"
+ },
+ "S05805": {
+  "eva": "08302072",
+  "name": "San Biagio"
+ },
+ "S05806": {
+  "eva": "08300206",
+  "name": "Lavezzola"
+ },
+ "S05807": {
+  "eva": "08300761",
+  "name": "Voltana"
+ },
+ "S05808": {
+  "eva": "08301127",
+  "name": "Alfonsine"
+ },
+ "S05810": {
+  "eva": "08301799",
+  "name": "Mezzano"
+ },
+ "S05811": {
+  "eva": "08300219",
+  "name": "Ravenna"
+ },
+ "S05812": {
+  "eva": "08301433",
+  "name": "Classe"
+ },
+ "S05813": {
+  "eva": "08301622",
+  "name": "Lido di Classe-Lido di Savio"
+ },
+ "S05814": {
+  "eva": "08300403",
+  "name": "Cervia-Milano Marittima"
+ },
+ "S05815": {
+  "eva": "08300194",
+  "name": "Cesenatico"
+ },
+ "S05816": {
+  "eva": "08300405",
+  "name": "Gatteo a Mare"
+ },
+ "S05817": {
+  "eva": "08300189",
+  "name": "Bellaria"
+ },
+ "S05818": {
+  "eva": "08300203",
+  "name": "Igea Marina"
+ },
+ "S05819": {
+  "eva": "08300427",
+  "name": "Rimini Torre Pedrera"
+ },
+ "S05820": {
+  "eva": "08300506",
+  "name": "Rimini Viserba"
+ },
+ "S05900": {
+  "eva": "08302191",
+  "name": "Solarolo"
+ },
+ "S05902": {
+  "eva": "08300762",
+  "name": "Bagnacavallo"
+ },
+ "S05903": {
+  "eva": "08301001",
+  "name": "Russi"
+ },
+ "S05904": {
+  "eva": "08301582",
+  "name": "Godo"
+ },
+ "S05905": {
+  "eva": "08301239",
+  "name": "Barbiano"
+ },
+ "S05950": {
+  "eva": "08301394",
+  "name": "Conselice"
+ },
+ "S05951": {
+  "eva": "08300208",
+  "name": "Lugo"
+ },
+ "S05952": {
+  "eva": "08301717",
+  "name": "Massalombarda"
+ },
+ "S05953": {
+  "eva": "08302184",
+  "name": "San Patrizio"
+ },
+ "S05954": {
+  "eva": "08302064",
+  "name": "Sant’Agata sul Santerno"
+ },
+ "S05955": {
+  "eva": "08300999",
+  "name": "Granarolo Faentino"
+ },
+ "S05956": {
+  "eva": "08300998",
+  "name": "Cotignola"
+ },
+ "S05975": {
+  "eva": "08307436",
+  "name": "Bazzano (Abruzzo)"
+ },
+ "S06000": {
+  "eva": "08300156",
+  "name": "La Spezia Centrale"
+ },
+ "S06001": {
+  "eva": "08304132",
+  "name": "Lastra a Signa"
+ },
+ "S06003": {
+  "eva": "08301649",
+  "name": "Luni"
+ },
+ "S06004": {
+  "eva": "08300985",
+  "name": "La Spezia Migliarina"
+ },
+ "S06005": {
+  "eva": "08300141",
+  "name": "Carrara Avenza"
+ },
+ "S06006": {
+  "eva": "08301149",
+  "name": "Arcola"
+ },
+ "S06007": {
+  "eva": "08300173",
+  "name": "Sarzana"
+ },
+ "S06009": {
+  "eva": "08300162",
+  "name": "Massa Centro"
+ },
+ "S06011": {
+  "eva": "08300404",
+  "name": "Forte dei Marmi-Seravezza-Querceta"
+ },
+ "S06012": {
+  "eva": "08300181",
+  "name": "Pietrasanta"
+ },
+ "S06013": {
+  "eva": "08306013",
+  "name": "Aulla Lunigiana"
+ },
+ "S06015": {
+  "eva": "08302266",
+  "name": "Torre del Lago Puccini"
+ },
+ "S06017": {
+  "eva": "08302310",
+  "name": "Vicarello"
+ },
+ "S06018": {
+  "eva": "08300972",
+  "name": "Collesalvetti"
+ },
+ "S06021": {
+  "eva": "08301516",
+  "name": "Fauglia-Lorenzana"
+ },
+ "S06022": {
+  "eva": "08300747",
+  "name": "Orciano"
+ },
+ "S06023": {
+  "eva": "08302210",
+  "name": "Santa Luce"
+ },
+ "S06024": {
+  "eva": "08301389",
+  "name": "Castellina Marittima"
+ },
+ "S06025": {
+  "eva": "08300991",
+  "name": "Vada"
+ },
+ "S06026": {
+  "eva": "08300142",
+  "name": "Cecina"
+ },
+ "S06028": {
+  "eva": "08301229",
+  "name": "Bolgheri"
+ },
+ "S06029": {
+  "eva": "08301309",
+  "name": "Castagneto Carducci-Donoratico"
+ },
+ "S06030": {
+  "eva": "08300172",
+  "name": "San Vincenzo"
+ },
+ "S06031": {
+  "eva": "08300139",
+  "name": "Campiglia Marittima"
+ },
+ "S06032": {
+  "eva": "08302330",
+  "name": "Vignale-Riotorto"
+ },
+ "S06033": {
+  "eva": "08300145",
+  "name": "Follonica"
+ },
+ "S06035": {
+  "eva": "08302074",
+  "name": "Scarlino"
+ },
+ "S06036": {
+  "eva": "08300588",
+  "name": "Gavorrano"
+ },
+ "S06038": {
+  "eva": "08300988",
+  "name": "Montepescali"
+ },
+ "S06039": {
+  "eva": "08300150",
+  "name": "Grosseto"
+ },
+ "S06040": {
+  "eva": "08300140",
+  "name": "Viareggio"
+ },
+ "S06043": {
+  "eva": "08300971",
+  "name": "Camaiore Lido-Capezzano"
+ },
+ "S06044": {
+  "eva": "08301285",
+  "name": "Cà di Boschetti"
+ },
+ "S06101": {
+  "eva": "08300735",
+  "name": "Noceto"
+ },
+ "S06102": {
+  "eva": "08301734",
+  "name": "Medesano"
+ },
+ "S06150": {
+  "eva": "08302307",
+  "name": "Vicofertile"
+ },
+ "S06151": {
+  "eva": "08301369",
+  "name": "Collecchio"
+ },
+ "S06152": {
+  "eva": "08301849",
+  "name": "Ozzano Taro"
+ },
+ "S06153": {
+  "eva": "08300201",
+  "name": "Fornovo"
+ },
+ "S06154": {
+  "eva": "08301451",
+  "name": "Citerna Taro"
+ },
+ "S06156": {
+  "eva": "08302140",
+  "name": "Solignano"
+ },
+ "S06158": {
+  "eva": "08301189",
+  "name": "Berceto"
+ },
+ "S06160": {
+  "eva": "08301832",
+  "name": "Ostia Parmense"
+ },
+ "S06161": {
+  "eva": "08300137",
+  "name": "Borgo Val di Taro"
+ },
+ "S06163": {
+  "eva": "08300184",
+  "name": "Pontremoli"
+ },
+ "S06164": {
+  "eva": "08302083",
+  "name": "Scorcetoli"
+ },
+ "S06165": {
+  "eva": "08300736",
+  "name": "Filattiera"
+ },
+ "S06166": {
+  "eva": "08300393",
+  "name": "Villafranca-Bagnone"
+ },
+ "S06170": {
+  "eva": "08300171",
+  "name": "Santo Stefano di Magra"
+ },
+ "S06171": {
+  "eva": "08300587",
+  "name": "Vezzano Ligure"
+ },
+ "S06222": {
+  "eva": "08300888",
+  "name": "Fivizzano-Rometta-Soliera"
+ },
+ "S06223": {
+  "eva": "08301510",
+  "name": "Fivizzano-Gassano"
+ },
+ "S06224": {
+  "eva": "08301557",
+  "name": "Gragnola"
+ },
+ "S06225": {
+  "eva": "08301724",
+  "name": "Monzone-Monte dei Bianchi-Isolano"
+ },
+ "S06226": {
+  "eva": "08301492",
+  "name": "Equi Terme"
+ },
+ "S06227": {
+  "eva": "08301747",
+  "name": "Minucciano-Pieve-Casola"
+ },
+ "S06300": {
+  "eva": "08300882",
+  "name": "Castelnuovo di Garfagnana"
+ },
+ "S06301": {
+  "eva": "08300885",
+  "name": "Fosciandora-Ceserana"
+ },
+ "S06302": {
+  "eva": "08301374",
+  "name": "Castelvecchio Pascoli"
+ },
+ "S06303": {
+  "eva": "08301202",
+  "name": "Barga-Gallicano"
+ },
+ "S06304": {
+  "eva": "08300750",
+  "name": "Fornaci di Barga"
+ },
+ "S06306": {
+  "eva": "08300751",
+  "name": "Ghivizzano-Coreglia"
+ },
+ "S06308": {
+  "eva": "08300752",
+  "name": "Bagni di Lucca"
+ },
+ "S06309": {
+  "eva": "08301222",
+  "name": "Borgo a Mozzano"
+ },
+ "S06310": {
+  "eva": "08301480",
+  "name": "Diecimo-Pescaglia"
+ },
+ "S06312": {
+  "eva": "08301915",
+  "name": "Ponte a Moriano"
+ },
+ "S06313": {
+  "eva": "08302222",
+  "name": "San Pietro a Vico"
+ },
+ "S06322": {
+  "eva": "08302366",
+  "name": "Villetta San Romano"
+ },
+ "S06323": {
+  "eva": "08300915",
+  "name": "Poggio-Careggine-Vagli"
+ },
+ "S06324": {
+  "eva": "08301342",
+  "name": "Camporgiano"
+ },
+ "S06325": {
+  "eva": "08300749",
+  "name": "Piazza al Serchio"
+ },
+ "S06350": {
+  "eva": "08301762",
+  "name": "Massarosa-Bozzano"
+ },
+ "S06351": {
+  "eva": "08301814",
+  "name": "Nozzano"
+ },
+ "S06400": {
+  "eva": "08301567",
+  "name": "San Giuliano Terme"
+ },
+ "S06401": {
+  "eva": "08302005",
+  "name": "Rigoli"
+ },
+ "S06402": {
+  "eva": "08302001",
+  "name": "Ripafratta"
+ },
+ "S06404": {
+  "eva": "08300161",
+  "name": "Lucca"
+ },
+ "S06405": {
+  "eva": "08302239",
+  "name": "Tassignano-Capannori"
+ },
+ "S06406": {
+  "eva": "08301862",
+  "name": "Porcari"
+ },
+ "S06407": {
+  "eva": "08300743",
+  "name": "Altopascio"
+ },
+ "S06408": {
+  "eva": "08301783",
+  "name": "Montecarlo-San Salvatore"
+ },
+ "S06409": {
+  "eva": "08300744",
+  "name": "Pescia"
+ },
+ "S06410": {
+  "eva": "08301182",
+  "name": "Borgo a Buggiano"
+ },
+ "S06411": {
+  "eva": "08300463",
+  "name": "Montecatini Terme-Monsummano"
+ },
+ "S06412": {
+  "eva": "08301769",
+  "name": "Montecatini Centro"
+ },
+ "S06413": {
+  "eva": "08302223",
+  "name": "Serravalle Pistoiese"
+ },
+ "S06414": {
+  "eva": "08300166",
+  "name": "Pistoia"
+ },
+ "S06415": {
+  "eva": "08301716",
+  "name": "Montale-Agliana"
+ },
+ "S06416": {
+  "eva": "08300170",
+  "name": "Prato Centrale"
+ },
+ "S06417": {
+  "eva": "08301377",
+  "name": "Calenzano"
+ },
+ "S06418": {
+  "eva": "08302103",
+  "name": "Sesto Fiorentino"
+ },
+ "S06419": {
+  "eva": "08301503",
+  "name": "Firenze Castello"
+ },
+ "S06420": {
+  "eva": "08300497",
+  "name": "Firenze Rifredi"
+ },
+ "S06421": {
+  "eva": "08300151",
+  "name": "Firenze Santa Maria Novella"
+ },
+ "S06422": {
+  "eva": "08301934",
+  "name": "Prato Porta al Serraglio"
+ },
+ "S06423": {
+  "eva": "08301935",
+  "name": "Pratignone"
+ },
+ "S06424": {
+  "eva": "08301604",
+  "name": "Il Neto"
+ },
+ "S06425": {
+  "eva": "08302377",
+  "name": "Zambra"
+ },
+ "S06426": {
+  "eva": "08306426",
+  "name": "Prato Borgonuovo"
+ },
+ "S06430": {
+  "eva": "08301531",
+  "name": "Firenze Statuto"
+ },
+ "S06450": {
+  "eva": "08301855",
+  "name": "Pisa Aeroporto"
+ },
+ "S06500": {
+  "eva": "08300169",
+  "name": "Pisa Centrale"
+ },
+ "S06501": {
+  "eva": "08300990",
+  "name": "Pisa San Rossore"
+ },
+ "S06502": {
+  "eva": "08301802",
+  "name": "Navacchio"
+ },
+ "S06504": {
+  "eva": "08302108",
+  "name": "San Frediano a Settimo"
+ },
+ "S06505": {
+  "eva": "08301007",
+  "name": "Cascina"
+ },
+ "S06506": {
+  "eva": "08300167",
+  "name": "Pontedera-Casciana Terme"
+ },
+ "S06508": {
+  "eva": "08301006",
+  "name": "San Romano-Montopoli-Santa Croce"
+ },
+ "S06509": {
+  "eva": "08301005",
+  "name": "San Miniato-Fucecchio"
+ },
+ "S06510": {
+  "eva": "08300498",
+  "name": "Empoli"
+ },
+ "S06511": {
+  "eva": "08301004",
+  "name": "Montelupo-Capraia"
+ },
+ "S06513": {
+  "eva": "08300237",
+  "name": "Signa"
+ },
+ "S06514": {
+  "eva": "08301191",
+  "name": "San Donnino"
+ },
+ "S06516": {
+  "eva": "08338974",
+  "name": "Le Piagge"
+ },
+ "S06518": {
+  "eva": "08306518",
+  "name": "Firenze Porta a Prato"
+ },
+ "S06602": {
+  "eva": "08300369",
+  "name": "Vaglia"
+ },
+ "S06603": {
+  "eva": "08302810",
+  "name": "San Piero a Sieve"
+ },
+ "S06604": {
+  "eva": "08300867",
+  "name": "Borgo San Lorenzo"
+ },
+ "S06606": {
+  "eva": "08302041",
+  "name": "Ronta"
+ },
+ "S06607": {
+  "eva": "08301426",
+  "name": "Crespino del Lamone"
+ },
+ "S06610": {
+  "eva": "08301751",
+  "name": "Marradi-Palazzuolo sul Senio"
+ },
+ "S06611": {
+  "eva": "08301212",
+  "name": "Biforco"
+ },
+ "S06612": {
+  "eva": "08301878",
+  "name": "Popolano di Marradi"
+ },
+ "S06613": {
+  "eva": "08302155",
+  "name": "San Martino in Gattara"
+ },
+ "S06614": {
+  "eva": "08301204",
+  "name": "Brisighella"
+ },
+ "S06615": {
+  "eva": "08302086",
+  "name": "San Cassiano"
+ },
+ "S06617": {
+  "eva": "08301100",
+  "name": "Strada Casale"
+ },
+ "S06618": {
+  "eva": "08301520",
+  "name": "Fognano"
+ },
+ "S06659": {
+  "eva": "08300377",
+  "name": "Campomigliaio"
+ },
+ "S06700": {
+  "eva": "08302305",
+  "name": "Vicchio"
+ },
+ "S06701": {
+  "eva": "08300973",
+  "name": "Dicomano"
+ },
+ "S06702": {
+  "eva": "08301401",
+  "name": "Contea-Londa"
+ },
+ "S06703": {
+  "eva": "08302047",
+  "name": "Rufina"
+ },
+ "S06704": {
+  "eva": "08301219",
+  "name": "Borgo San Lorenzo-Rimorelli"
+ },
+ "S06705": {
+  "eva": "08302737",
+  "name": "Scopeti"
+ },
+ "S06725": {
+  "eva": "08300157",
+  "name": "Livorno Centrale"
+ },
+ "S06727": {
+  "eva": "08301139",
+  "name": "Antignano"
+ },
+ "S06728": {
+  "eva": "08301971",
+  "name": "Quercianella-Sonnino"
+ },
+ "S06729": {
+  "eva": "08300374",
+  "name": "Castiglioncello"
+ },
+ "S06730": {
+  "eva": "08300354",
+  "name": "Rosignano"
+ },
+ "S06750": {
+  "eva": "08302010",
+  "name": "Riparbella"
+ },
+ "S06751": {
+  "eva": "08301327",
+  "name": "Casino di Terra"
+ },
+ "S06752": {
+  "eva": "08301891",
+  "name": "Ponte Ginori"
+ },
+ "S06753": {
+  "eva": "08300748",
+  "name": "Volterra Saline-Pomarance"
+ },
+ "S06770": {
+  "eva": "08300165",
+  "name": "Piombino"
+ },
+ "S06773": {
+  "eva": "08300753",
+  "name": "Populonia"
+ },
+ "S06775": {
+  "eva": "08300496",
+  "name": "Piombino Marittima"
+ },
+ "S06801": {
+  "eva": "08301585",
+  "name": "Granaiolo"
+ },
+ "S06802": {
+  "eva": "08301340",
+  "name": "Castelfiorentino"
+ },
+ "S06803": {
+  "eva": "08300745",
+  "name": "Certaldo"
+ },
+ "S06805": {
+  "eva": "08300912",
+  "name": "Poggibonsi-San Gimignano"
+ },
+ "S06806": {
+  "eva": "08301194",
+  "name": "Barberino di Val d’Elsa"
+ },
+ "S06807": {
+  "eva": "08301882",
+  "name": "Ponte a Elsa"
+ },
+ "S06808": {
+  "eva": "08301358",
+  "name": "Castellina in Chianti-Monteriggioni"
+ },
+ "S06809": {
+  "eva": "08300175",
+  "name": "Siena"
+ },
+ "S06811": {
+  "eva": "08301151",
+  "name": "Arbia"
+ },
+ "S06812": {
+  "eva": "08301299",
+  "name": "Castelnuovo Berardenga"
+ },
+ "S06813": {
+  "eva": "08300970",
+  "name": "Asciano"
+ },
+ "S06820": {
+  "eva": "08300986",
+  "name": "Monte Antico"
+ },
+ "S06822": {
+  "eva": "08301450",
+  "name": "Civitella-Paganico"
+ },
+ "S06823": {
+  "eva": "08301986",
+  "name": "Roccastrada"
+ },
+ "S06824": {
+  "eva": "08302076",
+  "name": "Sticciano"
+ },
+ "S06825": {
+  "eva": "08301137",
+  "name": "Asciano-Monte Oliveto Maggiore"
+ },
+ "S06826": {
+  "eva": "08301193",
+  "name": "Badesse"
+ },
+ "S06850": {
+  "eva": "08301977",
+  "name": "Rapolano Terme"
+ },
+ "S06852": {
+  "eva": "08302127",
+  "name": "Sinalunga"
+ },
+ "S06854": {
+  "eva": "08302251",
+  "name": "Torrita di Siena"
+ },
+ "S06855": {
+  "eva": "08300746",
+  "name": "Montepulciano"
+ },
+ "S06869": {
+  "eva": "08301857",
+  "name": "Ponte a Tressa"
+ },
+ "S06871": {
+  "eva": "08301091",
+  "name": "Monteroni d’Arbia"
+ },
+ "S06874": {
+  "eva": "08301265",
+  "name": "Buonconvento"
+ },
+ "S06876": {
+  "eva": "08301758",
+  "name": "Murlo"
+ },
+ "S06900": {
+  "eva": "08300180",
+  "name": "Firenze Campo di Marte"
+ },
+ "S06901": {
+  "eva": "08302795",
+  "name": "Firenze Rovezzano"
+ },
+ "S06902": {
+  "eva": "08301405",
+  "name": "Compiobbi"
+ },
+ "S06903": {
+  "eva": "08302124",
+  "name": "Sieci"
+ },
+ "S06904": {
+  "eva": "08300989",
+  "name": "Pontassieve"
+ },
+ "S06905": {
+  "eva": "08300616",
+  "name": "Sant’Ellero"
+ },
+ "S06906": {
+  "eva": "08302034",
+  "name": "Rignano Sull’Arno-Reggello"
+ },
+ "S06907": {
+  "eva": "08301606",
+  "name": "Incisa"
+ },
+ "S06908": {
+  "eva": "08301537",
+  "name": "Figline Valdarno"
+ },
+ "S06909": {
+  "eva": "08300433",
+  "name": "San Giovanni Valdarno"
+ },
+ "S06910": {
+  "eva": "08300464",
+  "name": "Montevarchi-Terranuova"
+ },
+ "S06911": {
+  "eva": "08300617",
+  "name": "Bucine"
+ },
+ "S06912": {
+  "eva": "08301618",
+  "name": "Laterina"
+ },
+ "S06913": {
+  "eva": "08301955",
+  "name": "Ponticino"
+ },
+ "S06915": {
+  "eva": "08300179",
+  "name": "Arezzo"
+ },
+ "S06920": {
+  "eva": "08300878",
+  "name": "Castiglion Fiorentino"
+ },
+ "S06921": {
+  "eva": "08300618",
+  "name": "Camucia-Cortona"
+ },
+ "S06922": {
+  "eva": "08300177",
+  "name": "Terontola-Cortona"
+ },
+ "S06923": {
+  "eva": "08300580",
+  "name": "Castiglione del Lago"
+ },
+ "S06925": {
+  "eva": "08300148",
+  "name": "Chiusi-Chianciano Terme"
+ },
+ "S06950": {
+  "eva": "08300378",
+  "name": "Firenze San Marco Vecchio"
+ },
+ "S06952": {
+  "eva": "08300394",
+  "name": "Pian del Mugnone"
+ },
+ "S06953": {
+  "eva": "08300454",
+  "name": "Fiesole-Caldine"
+ },
+ "S06957": {
+  "eva": "08303926",
+  "name": "Le Cure"
+ },
+ "S07000": {
+  "eva": "08300757",
+  "name": "Tuoro sul Trasimeno"
+ },
+ "S07001": {
+  "eva": "08300470",
+  "name": "Passignano sul Trasimeno"
+ },
+ "S07002": {
+  "eva": "08300758",
+  "name": "Magione"
+ },
+ "S07003": {
+  "eva": "08301488",
+  "name": "Ellera-Corciano"
+ },
+ "S07004": {
+  "eva": "08300211",
+  "name": "Perugia"
+ },
+ "S07005": {
+  "eva": "08300234",
+  "name": "Perugia Ponte San Giovanni"
+ },
+ "S07006": {
+  "eva": "08323723",
+  "name": "Perugia Universita"
+ },
+ "S07007": {
+  "eva": "08300876",
+  "name": "Bastia"
+ },
+ "S07008": {
+  "eva": "08300188",
+  "name": "Assisi"
+ },
+ "S07010": {
+  "eva": "08300760",
+  "name": "Spello"
+ },
+ "S07011": {
+  "eva": "08302241",
+  "name": "Torricella (Perugia)"
+ },
+ "S07013": {
+  "eva": "08377438",
+  "name": "Perugia Silvestrini"
+ },
+ "S07015": {
+  "eva": "08336329",
+  "name": "Ancona Torrette"
+ },
+ "S07017": {
+  "eva": "08342619",
+  "name": "Pescara San Marco"
+ },
+ "S07018": {
+  "eva": "08300768",
+  "name": "Fossacesia-Torino di Sangro"
+ },
+ "S07019": {
+  "eva": "08307019",
+  "name": "Pescara Tribunale"
+ },
+ "S07020": {
+  "eva": "08307020",
+  "name": "Perugia Capitini"
+ },
+ "S07021": {
+  "eva": "08307021",
+  "name": "Camerano Aspio"
+ },
+ "S07022": {
+  "eva": "08307022",
+  "name": "Spinetoli Villa San Pio X"
+ },
+ "S07024": {
+  "eva": "08307024",
+  "name": "Colli del Tronto"
+ },
+ "S07025": {
+  "eva": "08307025",
+  "name": "Chieti Madonna delle Piane"
+ },
+ "S07026": {
+  "eva": "08307026",
+  "name": "Nepezzano-Piano d’Accio"
+ },
+ "S07030": {
+  "eva": "08307030",
+  "name": "Sulmona S. Rufina"
+ },
+ "S07059": {
+  "eva": "08301497",
+  "name": "Fabriano Ca’Maiano"
+ },
+ "S07060": {
+  "eva": "08300800",
+  "name": "Pergola"
+ },
+ "S07061": {
+  "eva": "08301257",
+  "name": "Bellisio Solfare"
+ },
+ "S07062": {
+  "eva": "08301726",
+  "name": "Monterosso Marche"
+ },
+ "S07063": {
+  "eva": "08300924",
+  "name": "Sassoferrato-Arcevia"
+ },
+ "S07065": {
+  "eva": "08301731",
+  "name": "Melano-Marischio"
+ },
+ "S07100": {
+  "eva": "08300451",
+  "name": "Rimini Miramare"
+ },
+ "S07101": {
+  "eva": "08300225",
+  "name": "Riccione"
+ },
+ "S07102": {
+  "eva": "08300192",
+  "name": "Cattolica-San Giovanni-Gabicce"
+ },
+ "S07104": {
+  "eva": "08300216",
+  "name": "Pesaro"
+ },
+ "S07105": {
+  "eva": "08300198",
+  "name": "Fano"
+ },
+ "S07107": {
+  "eva": "08301728",
+  "name": "Marotta-Mondolfo"
+ },
+ "S07108": {
+  "eva": "08300227",
+  "name": "Senigallia"
+ },
+ "S07109": {
+  "eva": "08300551",
+  "name": "Marzocca"
+ },
+ "S07110": {
+  "eva": "08301730",
+  "name": "Montemarciano"
+ },
+ "S07111": {
+  "eva": "08300477",
+  "name": "Falconara Marittima"
+ },
+ "S07112": {
+  "eva": "08301904",
+  "name": "Palombina"
+ },
+ "S07113": {
+  "eva": "08300186",
+  "name": "Ancona"
+ },
+ "S07114": {
+  "eva": "08307114",
+  "name": "Ancona Stadio"
+ },
+ "S07116": {
+  "eva": "08300509",
+  "name": "Ancona Marittima"
+ },
+ "S07117": {
+  "eva": "08307117",
+  "name": "Falconara Stadio"
+ },
+ "S07119": {
+  "eva": "08300420",
+  "name": "Misano Adriatico"
+ },
+ "S07200": {
+  "eva": "08301444",
+  "name": "Castelferretti"
+ },
+ "S07201": {
+  "eva": "08301351",
+  "name": "Chiaravalle"
+ },
+ "S07202": {
+  "eva": "08300205",
+  "name": "Jesi"
+ },
+ "S07203": {
+  "eva": "08301670",
+  "name": "Montecarotto-Castelbellino"
+ },
+ "S07204": {
+  "eva": "08300775",
+  "name": "Castelplanio-Cupramontana"
+ },
+ "S07205": {
+  "eva": "08300925",
+  "name": "Serra San Quirico"
+ },
+ "S07206": {
+  "eva": "08300891",
+  "name": "Genga-San Vittore Terme"
+ },
+ "S07207": {
+  "eva": "08300187",
+  "name": "Albacina"
+ },
+ "S07208": {
+  "eva": "08300197",
+  "name": "Fabriano"
+ },
+ "S07209": {
+  "eva": "08300379",
+  "name": "Fossato di Vico-Gubbio"
+ },
+ "S07211": {
+  "eva": "08300776",
+  "name": "Gualdo Tadino"
+ },
+ "S07212": {
+  "eva": "08300777",
+  "name": "Gaifana"
+ },
+ "S07213": {
+  "eva": "08300466",
+  "name": "Nocera Umbra"
+ },
+ "S07214": {
+  "eva": "08300778",
+  "name": "Valtopina"
+ },
+ "S07217": {
+  "eva": "08300190",
+  "name": "Foligno"
+ },
+ "S07218": {
+  "eva": "08300779",
+  "name": "Trevi"
+ },
+ "S07219": {
+  "eva": "08301380",
+  "name": "Campello sul Clitunno"
+ },
+ "S07221": {
+  "eva": "08300487",
+  "name": "Spoleto"
+ },
+ "S07224": {
+  "eva": "08301177",
+  "name": "Baiano di Spoleto"
+ },
+ "S07226": {
+  "eva": "08300236",
+  "name": "Terni"
+ },
+ "S07229": {
+  "eva": "08301809",
+  "name": "Nera Montoro"
+ },
+ "S07230": {
+  "eva": "08301800",
+  "name": "Narni-Amelia"
+ },
+ "S07234": {
+  "eva": "08301863",
+  "name": "Pantiere di Castelbellino"
+ },
+ "S07235": {
+  "eva": "08302136",
+  "name": "San Liberato"
+ },
+ "S07300": {
+  "eva": "08300804",
+  "name": "Cerreto d’Esi"
+ },
+ "S07301": {
+  "eva": "08300803",
+  "name": "Matelica"
+ },
+ "S07302": {
+  "eva": "08300883",
+  "name": "Castelraimondo-Camerino"
+ },
+ "S07303": {
+  "eva": "08300802",
+  "name": "San Severino Marche"
+ },
+ "S07304": {
+  "eva": "08300801",
+  "name": "Tolentino"
+ },
+ "S07305": {
+  "eva": "08301912",
+  "name": "Pollenza"
+ },
+ "S07306": {
+  "eva": "08300926",
+  "name": "Urbisaglia-Sforzacosta"
+ },
+ "S07307": {
+  "eva": "08300549",
+  "name": "Macerata"
+ },
+ "S07308": {
+  "eva": "08301278",
+  "name": "Corridonia-Mogliano"
+ },
+ "S07309": {
+  "eva": "08301725",
+  "name": "Morrovalle-Monte San Giusto"
+ },
+ "S07310": {
+  "eva": "08301736",
+  "name": "Montecosaro"
+ },
+ "S07311": {
+  "eva": "08301556",
+  "name": "Gagliole"
+ },
+ "S07312": {
+  "eva": "08302053",
+  "name": "San Claudio"
+ },
+ "S07313": {
+  "eva": "08307313",
+  "name": "Macerata Fontescodella"
+ },
+ "S07314": {
+  "eva": "08307314",
+  "name": "Macerata Universita"
+ },
+ "S07315": {
+  "eva": "08307315",
+  "name": "Tolentino Campus"
+ },
+ "S07401": {
+  "eva": "08301759",
+  "name": "Marmore"
+ },
+ "S07403": {
+  "eva": "08301586",
+  "name": "Greccio"
+ },
+ "S07404": {
+  "eva": "08301395",
+  "name": "Contigliano"
+ },
+ "S07405": {
+  "eva": "08300561",
+  "name": "Rieti"
+ },
+ "S07406": {
+  "eva": "08301359",
+  "name": "Cittaducale"
+ },
+ "S07407": {
+  "eva": "08301124",
+  "name": "Castel Sant’Angelo"
+ },
+ "S07408": {
+  "eva": "08301109",
+  "name": "Antrodoco-Borgo Velino"
+ },
+ "S07409": {
+  "eva": "08301991",
+  "name": "Rocca di Fondi"
+ },
+ "S07411": {
+  "eva": "08302085",
+  "name": "Sella di Corno"
+ },
+ "S07413": {
+  "eva": "08300793",
+  "name": "Sassa-Tornimparte"
+ },
+ "S07414": {
+  "eva": "08300553",
+  "name": "L’Aquila"
+ },
+ "S07415": {
+  "eva": "08307415",
+  "name": "L’Aquila Sassa NSI"
+ },
+ "S07416": {
+  "eva": "08300794",
+  "name": "Paganica"
+ },
+ "S07417": {
+  "eva": "08307417",
+  "name": "L’Aquila San Gregorio"
+ },
+ "S07418": {
+  "eva": "08300920",
+  "name": "San Demetrio de Vestini"
+ },
+ "S07420": {
+  "eva": "08300795",
+  "name": "Fagnano-Campana"
+ },
+ "S07421": {
+  "eva": "08300796",
+  "name": "Fontecchio"
+ },
+ "S07422": {
+  "eva": "08301195",
+  "name": "Beffi"
+ },
+ "S07423": {
+  "eva": "08300798",
+  "name": "Acciano"
+ },
+ "S07424": {
+  "eva": "08300900",
+  "name": "Molina-Castelvecchio Subequo"
+ },
+ "S07425": {
+  "eva": "08302252",
+  "name": "Terria"
+ },
+ "S07426": {
+  "eva": "08300797",
+  "name": "Tione degli Abruzzi"
+ },
+ "S07427": {
+  "eva": "08301634",
+  "name": "Labro-Moggio"
+ },
+ "S07428": {
+  "eva": "08301922",
+  "name": "Poggio Fidoni"
+ },
+ "S07429": {
+  "eva": "08301279",
+  "name": "Canetra"
+ },
+ "S07430": {
+  "eva": "08302243",
+  "name": "Terni Cospea"
+ },
+ "S07431": {
+  "eva": "08307431",
+  "name": "L’Aquila Campo di Pile"
+ },
+ "S07434": {
+  "eva": "08302189",
+  "name": "Sorgenti del Peschiera"
+ },
+ "S07435": {
+  "eva": "08301113",
+  "name": "Antrodoco Centro"
+ },
+ "S07436": {
+  "eva": "08307436",
+  "name": "Bazzano"
+ },
+ "S07500": {
+  "eva": "08300763",
+  "name": "Varano"
+ },
+ "S07502": {
+  "eva": "08301000",
+  "name": "Osimo-Castelfidardo"
+ },
+ "S07503": {
+  "eva": "08300207",
+  "name": "Loreto"
+ },
+ "S07504": {
+  "eva": "08300558",
+  "name": "Porto Recanati"
+ },
+ "S07505": {
+  "eva": "08301931",
+  "name": "Potenza Picena-Montelupone"
+ },
+ "S07506": {
+  "eva": "08300196",
+  "name": "Civitanova Marche-Montegranaro"
+ },
+ "S07507": {
+  "eva": "08300559",
+  "name": "Porto Sant’Elpidio"
+ },
+ "S07508": {
+  "eva": "08300223",
+  "name": "Porto San Giorgio-Fermo"
+ },
+ "S07510": {
+  "eva": "08300764",
+  "name": "Pedaso"
+ },
+ "S07511": {
+  "eva": "08301412",
+  "name": "Cupramarittima"
+ },
+ "S07512": {
+  "eva": "08301592",
+  "name": "Grottammare"
+ },
+ "S07513": {
+  "eva": "08300432",
+  "name": "San Benedetto del Tronto"
+ },
+ "S07515": {
+  "eva": "08307515",
+  "name": "Martinsicuro"
+ },
+ "S07550": {
+  "eva": "08300548",
+  "name": "Ascoli Piceno"
+ },
+ "S07551": {
+  "eva": "08300906",
+  "name": "Offida-Castel di Lama"
+ },
+ "S07552": {
+  "eva": "08302182",
+  "name": "Spinetoli-Colli"
+ },
+ "S07553": {
+  "eva": "08301752",
+  "name": "Monsampolo del Tronto"
+ },
+ "S07554": {
+  "eva": "08301748",
+  "name": "Monteprandone"
+ },
+ "S07555": {
+  "eva": "08301704",
+  "name": "Maltignano"
+ },
+ "S07556": {
+  "eva": "08301778",
+  "name": "Marino del Tronto-Folignano"
+ },
+ "S07557": {
+  "eva": "08302107",
+  "name": "San Filippo"
+ },
+ "S07600": {
+  "eva": "08300799",
+  "name": "Raiano"
+ },
+ "S07601": {
+  "eva": "08301948",
+  "name": "Pratola Peligna Superiore"
+ },
+ "S07700": {
+  "eva": "08300786",
+  "name": "Pratola Peligna"
+ },
+ "S07703": {
+  "eva": "08300784",
+  "name": "Popoli-Vittorito"
+ },
+ "S07704": {
+  "eva": "08300783",
+  "name": "Bussi"
+ },
+ "S07705": {
+  "eva": "08300782",
+  "name": "Tocco-Castiglione"
+ },
+ "S07706": {
+  "eva": "08300781",
+  "name": "Torre dei Passeri"
+ },
+ "S07707": {
+  "eva": "08300930",
+  "name": "Scafa-San Valentino-Caramanico Terme"
+ },
+ "S07708": {
+  "eva": "08300780",
+  "name": "Alanno"
+ },
+ "S07710": {
+  "eva": "08300901",
+  "name": "Manoppello"
+ },
+ "S07712": {
+  "eva": "08300195",
+  "name": "Chieti"
+ },
+ "S07714": {
+  "eva": "08301860",
+  "name": "Piano d’Orta Bolognano"
+ },
+ "S07800": {
+  "eva": "08300557",
+  "name": "Alba Adriatica-Nereto-Controguerra"
+ },
+ "S07801": {
+  "eva": "08300765",
+  "name": "Tortoreto Lido"
+ },
+ "S07802": {
+  "eva": "08300202",
+  "name": "Giulianova"
+ },
+ "S07804": {
+  "eva": "08300560",
+  "name": "Roseto degli Abruzzi"
+ },
+ "S07805": {
+  "eva": "08307805",
+  "name": "Scerne di Pineto"
+ },
+ "S07806": {
+  "eva": "08301917",
+  "name": "Pineto-Atri"
+ },
+ "S07807": {
+  "eva": "08302144",
+  "name": "Silvi"
+ },
+ "S07808": {
+  "eva": "08300766",
+  "name": "Montesilvano"
+ },
+ "S07810": {
+  "eva": "08300218",
+  "name": "Pescara Centrale"
+ },
+ "S07811": {
+  "eva": "08300512",
+  "name": "Pescara Porta Nuova"
+ },
+ "S07813": {
+  "eva": "08300767",
+  "name": "Francavilla al Mare"
+ },
+ "S07814": {
+  "eva": "08302245",
+  "name": "Tollo-Canosa Sannita"
+ },
+ "S07815": {
+  "eva": "08300212",
+  "name": "Ortona"
+ },
+ "S07817": {
+  "eva": "08300226",
+  "name": "San Vito-Lanciano"
+ },
+ "S07821": {
+  "eva": "08300770",
+  "name": "Casalbordino-Pollutri"
+ },
+ "S07822": {
+  "eva": "08301965",
+  "name": "Porto di Vasto"
+ },
+ "S07824": {
+  "eva": "08300228",
+  "name": "Vasto-San Salvo"
+ },
+ "S07825": {
+  "eva": "08301749",
+  "name": "Montenero-Petacciato"
+ },
+ "S07900": {
+  "eva": "08300552",
+  "name": "Teramo"
+ },
+ "S07901": {
+  "eva": "08301317",
+  "name": "Castellalto-Canzano"
+ },
+ "S07902": {
+  "eva": "08301246",
+  "name": "Bellante-Ripattone"
+ },
+ "S07903": {
+  "eva": "08301812",
+  "name": "Notaresco"
+ },
+ "S07904": {
+  "eva": "08300897",
+  "name": "Mosciano Sant’Angelo"
+ },
+ "S08001": {
+  "eva": "08301056",
+  "name": "Alberese"
+ },
+ "S08002": {
+  "eva": "08302233",
+  "name": "Talamone"
+ },
+ "S08003": {
+  "eva": "08301057",
+  "name": "Albinia"
+ },
+ "S08004": {
+  "eva": "08300256",
+  "name": "Orbetello-Monte Argentario"
+ },
+ "S08005": {
+  "eva": "08306900",
+  "name": "Quattro Venti"
+ },
+ "S08006": {
+  "eva": "08301284",
+  "name": "Capalbio"
+ },
+ "S08007": {
+  "eva": "08301350",
+  "name": "Chiarone"
+ },
+ "S08008": {
+  "eva": "08301068",
+  "name": "Montalto di Castro"
+ },
+ "S08009": {
+  "eva": "08300265",
+  "name": "Tarquinia"
+ },
+ "S08010": {
+  "eva": "08300249",
+  "name": "Civitavecchia"
+ },
+ "S08014": {
+  "eva": "08308014",
+  "name": "Val d’Ala"
+ },
+ "S08015": {
+  "eva": "08300590",
+  "name": "Santa Marinella"
+ },
+ "S08016": {
+  "eva": "08302196",
+  "name": "Santa Severa"
+ },
+ "S08019": {
+  "eva": "08302256",
+  "name": "Torre in Pietra-Palidoro"
+ },
+ "S08020": {
+  "eva": "08301671",
+  "name": "Maccarese-Fregene"
+ },
+ "S08021": {
+  "eva": "08301059",
+  "name": "Ladispoli-Cerveteri"
+ },
+ "S08022": {
+  "eva": "08301673",
+  "name": "Marina di Cerveteri"
+ },
+ "S08023": {
+  "eva": "08308023",
+  "name": "Guidonia Montecelio"
+ },
+ "S08025": {
+  "eva": "08301167",
+  "name": "Roma Aurelia"
+ },
+ "S08108": {
+  "eva": "08301746",
+  "name": "Madonna del Piano"
+ },
+ "S08109": {
+  "eva": "08302003",
+  "name": "Ronciglione"
+ },
+ "S08110": {
+  "eva": "08301940",
+  "name": "Caprarola"
+ },
+ "S08111": {
+  "eva": "08301506",
+  "name": "Fabrica di Roma"
+ },
+ "S08112": {
+  "eva": "08301420",
+  "name": "Corchiano"
+ },
+ "S08113": {
+  "eva": "08301545",
+  "name": "Gallese-Bassanello"
+ },
+ "S08201": {
+  "eva": "08301509",
+  "name": "Fabro-Ficulle"
+ },
+ "S08202": {
+  "eva": "08301117",
+  "name": "Allerona-Castel Viscardo"
+ },
+ "S08203": {
+  "eva": "08300257",
+  "name": "Orvieto"
+ },
+ "S08206": {
+  "eva": "08301132",
+  "name": "Alviano"
+ },
+ "S08207": {
+  "eva": "08300252",
+  "name": "Attigliano-Bomarzo"
+ },
+ "S08209": {
+  "eva": "08300224",
+  "name": "Orte"
+ },
+ "S08210": {
+  "eva": "08301540",
+  "name": "Gallese Teverina"
+ },
+ "S08211": {
+  "eva": "08301314",
+  "name": "Civita Castellana-Magliano"
+ },
+ "S08212": {
+  "eva": "08302209",
+  "name": "Stimigliano"
+ },
+ "S08213": {
+  "eva": "08301923",
+  "name": "Poggio Mirteto"
+ },
+ "S08214": {
+  "eva": "08301530",
+  "name": "Fara Sabina-Montelibretti"
+ },
+ "S08215": {
+  "eva": "08301011",
+  "name": "Monterotondo-Mentana"
+ },
+ "S08216": {
+  "eva": "08302066",
+  "name": "Settebagni"
+ },
+ "S08217": {
+  "eva": "08300262",
+  "name": "Roma Tiburtina"
+ },
+ "S08221": {
+  "eva": "08301415",
+  "name": "Collevecchio-Poggio Sommavilla"
+ },
+ "S08222": {
+  "eva": "08301861",
+  "name": "Piana Bella di Montelibretti"
+ },
+ "S08231": {
+  "eva": "08301815",
+  "name": "Nuovo Salario"
+ },
+ "S08235": {
+  "eva": "08302774",
+  "name": "Fidene"
+ },
+ "S08236": {
+  "eva": "08302019",
+  "name": "Roma Nomentana"
+ },
+ "S08241": {
+  "eva": "08301543",
+  "name": "Gavignano Sabino"
+ },
+ "S08300": {
+  "eva": "08302128",
+  "name": "Sipicciano"
+ },
+ "S08301": {
+  "eva": "08301275",
+  "name": "Grotte San Stefano"
+ },
+ "S08302": {
+  "eva": "08302183",
+  "name": "Sipicciano San Nicola"
+ },
+ "S08303": {
+  "eva": "08301696",
+  "name": "Montefiascone"
+ },
+ "S08304": {
+  "eva": "08300567",
+  "name": "Viterbo Porta Fiorentina"
+ },
+ "S08306": {
+  "eva": "08300568",
+  "name": "Viterbo Porta Romana"
+ },
+ "S08308": {
+  "eva": "08302244",
+  "name": "Tre Croci"
+ },
+ "S08309": {
+  "eva": "08302320",
+  "name": "Vetralla"
+ },
+ "S08311": {
+  "eva": "08300754",
+  "name": "Capranica-Sutri"
+ },
+ "S08313": {
+  "eva": "08301836",
+  "name": "Oriolo"
+ },
+ "S08314": {
+  "eva": "08301795",
+  "name": "Manziana-Canale Monterano"
+ },
+ "S08315": {
+  "eva": "08301186",
+  "name": "Bracciano"
+ },
+ "S08316": {
+  "eva": "08302325",
+  "name": "Vigna di Valle"
+ },
+ "S08318": {
+  "eva": "08301141",
+  "name": "Anguillara"
+ },
+ "S08319": {
+  "eva": "08301393",
+  "name": "Cesano di Roma"
+ },
+ "S08320": {
+  "eva": "08302740",
+  "name": "La Storta-Formello"
+ },
+ "S08321": {
+  "eva": "08301628",
+  "name": "La Giustiniana"
+ },
+ "S08322": {
+  "eva": "08301016",
+  "name": "Roma Monte Mario"
+ },
+ "S08323": {
+  "eva": "08301017",
+  "name": "Roma San Pietro"
+ },
+ "S08324": {
+  "eva": "08301844",
+  "name": "Ottavia"
+ },
+ "S08325": {
+  "eva": "08302752",
+  "name": "Roma San Filippo Neri"
+ },
+ "S08326": {
+  "eva": "08303925",
+  "name": "Gemelli"
+ },
+ "S08327": {
+  "eva": "08302016",
+  "name": "Roma Balduina"
+ },
+ "S08328": {
+  "eva": "08303917",
+  "name": "Appiano Proba Petronia"
+ },
+ "S08329": {
+  "eva": "08302830",
+  "name": "Valle Aurelia"
+ },
+ "S08330": {
+  "eva": "08302831",
+  "name": "Ipogeo degli Ottavi"
+ },
+ "S08331": {
+  "eva": "08308331",
+  "name": "Vigna Clara"
+ },
+ "S08333": {
+  "eva": "08302832",
+  "name": "Olgiata"
+ },
+ "S08399": {
+  "eva": "08302790",
+  "name": "Villa Bonelli"
+ },
+ "S08400": {
+  "eva": "08301790",
+  "name": "Muratella"
+ },
+ "S08403": {
+  "eva": "08301014",
+  "name": "Ponte Galeria"
+ },
+ "S08404": {
+  "eva": "08301654",
+  "name": "Magliana"
+ },
+ "S08405": {
+  "eva": "08300479",
+  "name": "Roma Trastevere"
+ },
+ "S08406": {
+  "eva": "08300261",
+  "name": "Roma Ostiense"
+ },
+ "S08408": {
+  "eva": "08300429",
+  "name": "Roma Tuscolana"
+ },
+ "S08409": {
+  "eva": "08300263",
+  "name": "Roma Termini"
+ },
+ "S08411": {
+  "eva": "08301512",
+  "name": "Roma Fiumicino Aeroporto"
+ },
+ "S08412": {
+  "eva": "08350539",
+  "name": "Parco Leonardo"
+ },
+ "S08413": {
+  "eva": "08308415",
+  "name": "Fiera di Roma"
+ },
+ "S08500": {
+  "eva": "08300566",
+  "name": "Roma Prenestina"
+ },
+ "S08501": {
+  "eva": "08302282",
+  "name": "Tor Sapienza"
+ },
+ "S08502": {
+  "eva": "08302139",
+  "name": "Salone"
+ },
+ "S08503": {
+  "eva": "08301627",
+  "name": "Lunghezza"
+ },
+ "S08504": {
+  "eva": "08301209",
+  "name": "Bagni di Tivoli"
+ },
+ "S08505": {
+  "eva": "08308514",
+  "name": "Serenissima"
+ },
+ "S08506": {
+  "eva": "08301580",
+  "name": "Guidonia-Montecelio-Sant’Angelo"
+ },
+ "S08507": {
+  "eva": "08301909",
+  "name": "Marcellina-Palombara"
+ },
+ "S08508": {
+  "eva": "08300386",
+  "name": "Tivoli"
+ },
+ "S08509": {
+  "eva": "08308509",
+  "name": "Palmiro Togliatti"
+ },
+ "S08510": {
+  "eva": "08301722",
+  "name": "Castel Madama"
+ },
+ "S08511": {
+  "eva": "08302309",
+  "name": "Vicovaro"
+ },
+ "S08512": {
+  "eva": "08301767",
+  "name": "Valle Dell’Aniene-Mandela-Sambuci"
+ },
+ "S08513": {
+  "eva": "08308513",
+  "name": "La Rustica Citta"
+ },
+ "S08514": {
+  "eva": "08301641",
+  "name": "La Rustica Uir"
+ },
+ "S08515": {
+  "eva": "08302051",
+  "name": "Roviano"
+ },
+ "S08516": {
+  "eva": "08301162",
+  "name": "Arsoli"
+ },
+ "S08518": {
+  "eva": "08301835",
+  "name": "Oricola-Pereto"
+ },
+ "S08519": {
+  "eva": "08300371",
+  "name": "Carsoli"
+ },
+ "S08520": {
+  "eva": "08301379",
+  "name": "Colli di Monte Bove"
+ },
+ "S08521": {
+  "eva": "08302162",
+  "name": "Sante Marie"
+ },
+ "S08522": {
+  "eva": "08300384",
+  "name": "Tagliacozzo"
+ },
+ "S08523": {
+  "eva": "08302361",
+  "name": "Villa San Sebastiano"
+ },
+ "S08524": {
+  "eva": "08302156",
+  "name": "Scurcola Marsicana"
+ },
+ "S08526": {
+  "eva": "08300248",
+  "name": "Avezzano"
+ },
+ "S08528": {
+  "eva": "08300792",
+  "name": "Celano-Ovindoli"
+ },
+ "S08529": {
+  "eva": "08313705",
+  "name": "Ponte di Nona"
+ },
+ "S08530": {
+  "eva": "08300790",
+  "name": "Cerchio"
+ },
+ "S08532": {
+  "eva": "08300789",
+  "name": "Pescina"
+ },
+ "S08533": {
+  "eva": "08301427",
+  "name": "Carrito-Ortona"
+ },
+ "S08534": {
+  "eva": "08301280",
+  "name": "Cocullo"
+ },
+ "S08535": {
+  "eva": "08300788",
+  "name": "Goriano Sicoli"
+ },
+ "S08536": {
+  "eva": "08300787",
+  "name": "Prezza"
+ },
+ "S08537": {
+  "eva": "08300359",
+  "name": "Anversa-Villalago-Scanno"
+ },
+ "S08538": {
+  "eva": "08301263",
+  "name": "Bugnara"
+ },
+ "S08539": {
+  "eva": "08300264",
+  "name": "Sulmona"
+ },
+ "S08548": {
+  "eva": "08301384",
+  "name": "Collarmele"
+ },
+ "S08550": {
+  "eva": "08300791",
+  "name": "Aielli"
+ },
+ "S08555": {
+  "eva": "08302728",
+  "name": "Villa San Michele"
+ },
+ "S08600": {
+  "eva": "08302242",
+  "name": "Torricola"
+ },
+ "S08601": {
+  "eva": "08300425",
+  "name": "Pomezia-Santa Palomba"
+ },
+ "S08602": {
+  "eva": "08301009",
+  "name": "Campoleone"
+ },
+ "S08603": {
+  "eva": "08301018",
+  "name": "Cisterna di Latina"
+ },
+ "S08604": {
+  "eva": "08300259",
+  "name": "Priverno-Fossanova"
+ },
+ "S08605": {
+  "eva": "08301663",
+  "name": "Monte San Biagio"
+ },
+ "S08606": {
+  "eva": "08300855",
+  "name": "Fondi-Sperlonga"
+ },
+ "S08607": {
+  "eva": "08300856",
+  "name": "Itri"
+ },
+ "S08608": {
+  "eva": "08300258",
+  "name": "Latina"
+ },
+ "S08609": {
+  "eva": "08300854",
+  "name": "Sezze Romano"
+ },
+ "S08640": {
+  "eva": "08300254",
+  "name": "Formia"
+ },
+ "S08650": {
+  "eva": "08300247",
+  "name": "Ciampino"
+ },
+ "S08651": {
+  "eva": "08301780",
+  "name": "Colle Mattia"
+ },
+ "S08652": {
+  "eva": "08301022",
+  "name": "Zagarolo"
+ },
+ "S08653": {
+  "eva": "08301573",
+  "name": "Colonna Galleria"
+ },
+ "S08654": {
+  "eva": "08301613",
+  "name": "Labico"
+ },
+ "S08655": {
+  "eva": "08303923",
+  "name": "Tor Vergata"
+ },
+ "S08656": {
+  "eva": "08302369",
+  "name": "Valmontone"
+ },
+ "S08657": {
+  "eva": "08301010",
+  "name": "Colleferro-Segni-Paliano"
+ },
+ "S08658": {
+  "eva": "08301122",
+  "name": "Anagni-Fiuggi"
+ },
+ "S08659": {
+  "eva": "08302114",
+  "name": "Sgurgola"
+ },
+ "S08660": {
+  "eva": "08301741",
+  "name": "Morolo"
+ },
+ "S08661": {
+  "eva": "08300806",
+  "name": "Ferentino-Supino"
+ },
+ "S08662": {
+  "eva": "08300250",
+  "name": "Frosinone"
+ },
+ "S08663": {
+  "eva": "08300808",
+  "name": "Castro-Pofi-Vallecorsa"
+ },
+ "S08664": {
+  "eva": "08300807",
+  "name": "Ceccano"
+ },
+ "S08665": {
+  "eva": "08301611",
+  "name": "Isoletta-San Giovanni Incarico"
+ },
+ "S08666": {
+  "eva": "08300809",
+  "name": "Ceprano-Falvaterra"
+ },
+ "S08668": {
+  "eva": "08300260",
+  "name": "Roccasecca"
+ },
+ "S08671": {
+  "eva": "08300246",
+  "name": "Cassino"
+ },
+ "S08672": {
+  "eva": "08301413",
+  "name": "Capannelle"
+ },
+ "S08680": {
+  "eva": "08302899",
+  "name": "Piedimonte-Villa Santa Lucia-Aquino"
+ },
+ "S08699": {
+  "eva": "08302619",
+  "name": "Pantanella"
+ },
+ "S08701": {
+  "eva": "08302736",
+  "name": "Marino Laziale"
+ },
+ "S08703": {
+  "eva": "08302509",
+  "name": "Castel Gandolfo"
+ },
+ "S08704": {
+  "eva": "08302449",
+  "name": "Albano Laziale"
+ },
+ "S08705": {
+  "eva": "08302455",
+  "name": "Aprilia"
+ },
+ "S08706": {
+  "eva": "08302635",
+  "name": "Campo di Carne"
+ },
+ "S08707": {
+  "eva": "08302614",
+  "name": "Padiglione"
+ },
+ "S08708": {
+  "eva": "08302571",
+  "name": "Lido di Lavinio"
+ },
+ "S08709": {
+  "eva": "08302453",
+  "name": "Anzio"
+ },
+ "S08710": {
+  "eva": "08302607",
+  "name": "Nettuno"
+ },
+ "S08711": {
+  "eva": "08302729",
+  "name": "Villetta"
+ },
+ "S08712": {
+  "eva": "08302694",
+  "name": "Sassone"
+ },
+ "S08713": {
+  "eva": "08302454",
+  "name": "Anzio Colonia"
+ },
+ "S08714": {
+  "eva": "08302727",
+  "name": "Villa Claudia"
+ },
+ "S08715": {
+  "eva": "08302446",
+  "name": "Acqua Acetosa"
+ },
+ "S08716": {
+  "eva": "08302578",
+  "name": "Marechiaro"
+ },
+ "S08730": {
+  "eva": "08302501",
+  "name": "Casabianca"
+ },
+ "S08731": {
+  "eva": "08302621",
+  "name": "Pavona"
+ },
+ "S08732": {
+  "eva": "08302516",
+  "name": "Cecchina"
+ },
+ "S08733": {
+  "eva": "08302565",
+  "name": "Lanuvio"
+ },
+ "S08734": {
+  "eva": "08302722",
+  "name": "Velletri"
+ },
+ "S08735": {
+  "eva": "08302488",
+  "name": "Cancelliera"
+ },
+ "S08737": {
+  "eva": "08302833",
+  "name": "San Gennaro"
+ },
+ "S08738": {
+  "eva": "08302673",
+  "name": "Santa Maria delle Mole"
+ },
+ "S08739": {
+  "eva": "08302664",
+  "name": "Sant’Eurosia"
+ },
+ "S08751": {
+  "eva": "08302544",
+  "name": "Frascati"
+ },
+ "S08804": {
+  "eva": "08302496",
+  "name": "Capocroce"
+ },
+ "S08806": {
+  "eva": "08302731",
+  "name": "Frasso"
+ },
+ "S08808": {
+  "eva": "08302564",
+  "name": "La Fiora"
+ },
+ "S08809": {
+  "eva": "08302709",
+  "name": "Terracina"
+ },
+ "S08810": {
+  "eva": "08302528",
+  "name": "Cupone"
+ },
+ "S08811": {
+  "eva": "08302624",
+  "name": "Pescocanale"
+ },
+ "S08812": {
+  "eva": "08302489",
+  "name": "Canistro"
+ },
+ "S08813": {
+  "eva": "08302603",
+  "name": "Morrea-Castronovo-Rendinara"
+ },
+ "S08814": {
+  "eva": "08302658",
+  "name": "Roccavivi"
+ },
+ "S08815": {
+  "eva": "08302652",
+  "name": "Ridotti-Collepiano"
+ },
+ "S08816": {
+  "eva": "08302526",
+  "name": "Compre San Vincenzo"
+ },
+ "S08817": {
+  "eva": "08302689",
+  "name": "Santopadre"
+ },
+ "S08818": {
+  "eva": "08302538",
+  "name": "Fontana Liri"
+ },
+ "S08819": {
+  "eva": "08302539",
+  "name": "Fontana Liri Inferiore"
+ },
+ "S08820": {
+  "eva": "08302523",
+  "name": "Colfelice"
+ },
+ "S08850": {
+  "eva": "08302495",
+  "name": "Capistrello"
+ },
+ "S08852": {
+  "eva": "08302521",
+  "name": "Civitella Roveto"
+ },
+ "S08853": {
+  "eva": "08302520",
+  "name": "Civita d’Antino-Morino"
+ },
+ "S08855": {
+  "eva": "08302665",
+  "name": "San Vincenzo Valle Roveto"
+ },
+ "S08856": {
+  "eva": "08302465",
+  "name": "Balsorano"
+ },
+ "S08857": {
+  "eva": "08302703",
+  "name": "Sora"
+ },
+ "S08858": {
+  "eva": "08302561",
+  "name": "Isola Liri"
+ },
+ "S08859": {
+  "eva": "08302458",
+  "name": "Arpino"
+ },
+ "S08861": {
+  "eva": "08302457",
+  "name": "Arce"
+ },
+ "S08906": {
+  "eva": "08302657",
+  "name": "Roccaraso"
+ },
+ "S08908": {
+  "eva": "08302450",
+  "name": "Alfedena-Scontrone"
+ },
+ "S08910": {
+  "eva": "08302508",
+  "name": "Castel di Sangro"
+ },
+ "S08912": {
+  "eva": "08302681",
+  "name": "San Pietro Avellana-Capracotta"
+ },
+ "S08913": {
+  "eva": "08302721",
+  "name": "Vastogirardi"
+ },
+ "S08914": {
+  "eva": "08302499",
+  "name": "Carovilli-Roccasicura"
+ },
+ "S08915": {
+  "eva": "08302625",
+  "name": "Pescolanciano-Chiauci"
+ },
+ "S08917": {
+  "eva": "08302699",
+  "name": "Sessano del Molise"
+ },
+ "S09000": {
+  "eva": "08301099",
+  "name": "Sessa Aurunca-Roccamonfina"
+ },
+ "S09001": {
+  "eva": "08301517",
+  "name": "Falciano-Mondragone-Carinola"
+ },
+ "S09002": {
+  "eva": "08300857",
+  "name": "Cancello-Arnone"
+ },
+ "S09003": {
+  "eva": "08300448",
+  "name": "Villa Literno"
+ },
+ "S09004": {
+  "eva": "08301143",
+  "name": "Albanova"
+ },
+ "S09005": {
+  "eva": "08301697",
+  "name": "San Marcellino-Frignano"
+ },
+ "S09006": {
+  "eva": "08300242",
+  "name": "Aversa"
+ },
+ "S09007": {
+  "eva": "08301145",
+  "name": "Sant’Antimo-Sant’Arpino"
+ },
+ "S09008": {
+  "eva": "08301518",
+  "name": "Frattamaggiore-Grumo"
+ },
+ "S09009": {
+  "eva": "08302378",
+  "name": "Casoria-Afragola"
+ },
+ "S09011": {
+  "eva": "08303225",
+  "name": "Benevento Appia"
+ },
+ "S09014": {
+  "eva": "08309014",
+  "name": "San Martino Valle Caudina-Montesarchio-Pannarano"
+ },
+ "S09015": {
+  "eva": "08303226",
+  "name": "Cervinara"
+ },
+ "S09016": {
+  "eva": "08303227",
+  "name": "Rotondi Paolisi"
+ },
+ "S09017": {
+  "eva": "08309017",
+  "name": "Arpaia Airola-Sant’Agata dei Goti"
+ },
+ "S09018": {
+  "eva": "08303229",
+  "name": "Santa Maria a Vico"
+ },
+ "S09036": {
+  "eva": "08309036",
+  "name": "Valle Di Maddaloni (Nuova Stazione)"
+ },
+ "S09042": {
+  "eva": "08309042",
+  "name": "Acerra (Nuova Stazione)"
+ },
+ "S09050": {
+  "eva": "08302500",
+  "name": "Carpinone"
+ },
+ "S09056": {
+  "eva": "08302666",
+  "name": "Sant’Agapito Longano"
+ },
+ "S09057": {
+  "eva": "08302596",
+  "name": "Monteroduni Sant’Eusanio"
+ },
+ "S09058": {
+  "eva": "08302656",
+  "name": "Rocca Ravindola"
+ },
+ "S09059": {
+  "eva": "08302674",
+  "name": "Santa Maria Oliveto"
+ },
+ "S09060": {
+  "eva": "08302723",
+  "name": "Venafro"
+ },
+ "S09062": {
+  "eva": "08302700",
+  "name": "Sesto Campano"
+ },
+ "S09100": {
+  "eva": "08302552",
+  "name": "Giugliano-Qualiano"
+ },
+ "S09101": {
+  "eva": "08302643",
+  "name": "Pozzuoli Solfatara"
+ },
+ "S09102": {
+  "eva": "08302463",
+  "name": "Bagnoli-Agnano Terme"
+ },
+ "S09103": {
+  "eva": "08300253",
+  "name": "Napoli Campi Flegrei"
+ },
+ "S09104": {
+  "eva": "08300565",
+  "name": "Napoli Piazza Leopardi"
+ },
+ "S09105": {
+  "eva": "08300240",
+  "name": "Napoli Mergellina"
+ },
+ "S09106": {
+  "eva": "08302631",
+  "name": "Napoli Piazza Amedeo"
+ },
+ "S09107": {
+  "eva": "08302753",
+  "name": "Napoli Montesanto"
+ },
+ "S09108": {
+  "eva": "08302632",
+  "name": "Napoli Piazza Cavour"
+ },
+ "S09109": {
+  "eva": "08300241",
+  "name": "Napoli Piazza Garibaldi"
+ },
+ "S09110": {
+  "eva": "08301012",
+  "name": "Napoli Gianturco"
+ },
+ "S09111": {
+  "eva": "08302645",
+  "name": "Quarto di Marano"
+ },
+ "S09113": {
+  "eva": "08302515",
+  "name": "Cavalleggeri Aosta"
+ },
+ "S09122": {
+  "eva": "08309122",
+  "name": "Traccia"
+ },
+ "S09150": {
+  "eva": "08300251",
+  "name": "Minturno-Scauri"
+ },
+ "S09199": {
+  "eva": "08301519",
+  "name": "Fontanarosa-Cervaro"
+ },
+ "S09200": {
+  "eva": "08300916",
+  "name": "Rocca d’Evandro-San Vittore"
+ },
+ "S09201": {
+  "eva": "08301732",
+  "name": "Mignano Monte Lungo"
+ },
+ "S09202": {
+  "eva": "08300810",
+  "name": "Tora-Presenzano"
+ },
+ "S09203": {
+  "eva": "08300267",
+  "name": "Vairano-Caianello"
+ },
+ "S09204": {
+  "eva": "08302029",
+  "name": "Riardo-Pietramelara"
+ },
+ "S09205": {
+  "eva": "08300811",
+  "name": "Teano"
+ },
+ "S09206": {
+  "eva": "08300812",
+  "name": "Sparanise"
+ },
+ "S09207": {
+  "eva": "08300813",
+  "name": "Pignataro Maggiore"
+ },
+ "S09208": {
+  "eva": "08300370",
+  "name": "Capua"
+ },
+ "S09209": {
+  "eva": "08300903",
+  "name": "Santa Maria Capua Vetere"
+ },
+ "S09211": {
+  "eva": "08300244",
+  "name": "Caserta"
+ },
+ "S09212": {
+  "eva": "08300899",
+  "name": "Maddaloni Inferiore"
+ },
+ "S09213": {
+  "eva": "08300245",
+  "name": "Cancello"
+ },
+ "S09215": {
+  "eva": "08300814",
+  "name": "Acerra"
+ },
+ "S09216": {
+  "eva": "08301396",
+  "name": "Casalnuovo di Napoli"
+ },
+ "S09218": {
+  "eva": "08300239",
+  "name": "Napoli Centrale"
+ },
+ "S09300": {
+  "eva": "08301596",
+  "name": "Gricignano-Teverola"
+ },
+ "S09301": {
+  "eva": "08300815",
+  "name": "Marcianise"
+ },
+ "S09302": {
+  "eva": "08301983",
+  "name": "Recale"
+ },
+ "S09304": {
+  "eva": "08302313",
+  "name": "Valle di Maddaloni"
+ },
+ "S09305": {
+  "eva": "08301532",
+  "name": "Frasso Telesino-Dugenta"
+ },
+ "S09306": {
+  "eva": "08300873",
+  "name": "Amorosi Melizzano"
+ },
+ "S09307": {
+  "eva": "08302141",
+  "name": "Solopaca"
+ },
+ "S09308": {
+  "eva": "08302138",
+  "name": "San Lorenzo Maggiore"
+ },
+ "S09309": {
+  "eva": "08300817",
+  "name": "Ponte-Casalduni"
+ },
+ "S09311": {
+  "eva": "08300243",
+  "name": "Benevento"
+ },
+ "S09315": {
+  "eva": "08301664",
+  "name": "Montecalvo-Buonalbergo-Casalbore"
+ },
+ "S09316": {
+  "eva": "08300818",
+  "name": "Ariano Irpino"
+ },
+ "S09318": {
+  "eva": "08300819",
+  "name": "Savignano-Greci"
+ },
+ "S09319": {
+  "eva": "08300820",
+  "name": "Montaguto-Panni"
+ },
+ "S09321": {
+  "eva": "08300365",
+  "name": "Bovino-Deliceto"
+ },
+ "S09326": {
+  "eva": "08300816",
+  "name": "Telese-Cerreto"
+ },
+ "S09451": {
+  "eva": "08302493",
+  "name": "Cantalupo del Sannio-Macchiagodena"
+ },
+ "S09453": {
+  "eva": "08302472",
+  "name": "Boiano"
+ },
+ "S09457": {
+  "eva": "08302730",
+  "name": "Vinchiaturo"
+ },
+ "S09458": {
+  "eva": "08302466",
+  "name": "Baranello"
+ },
+ "S09459": {
+  "eva": "08302771",
+  "name": "Campobasso"
+ },
+ "S09461": {
+  "eva": "08302580",
+  "name": "Matrice-Montagano-San Giovanni in Galdo"
+ },
+ "S09462": {
+  "eva": "08302487",
+  "name": "Campolieto-Monacilione"
+ },
+ "S09463": {
+  "eva": "08302654",
+  "name": "Ripabottoni-Sant’Elia"
+ },
+ "S09464": {
+  "eva": "08302473",
+  "name": "Bonefro-Santa Croce"
+ },
+ "S09465": {
+  "eva": "08302502",
+  "name": "Casacalenda-Guardialfiera"
+ },
+ "S09466": {
+  "eva": "08302567",
+  "name": "Larino"
+ },
+ "S09473": {
+  "eva": "08302517",
+  "name": "Cese"
+ },
+ "S09475": {
+  "eva": "08302693",
+  "name": "Sassinoro"
+ },
+ "S09476": {
+  "eva": "08302669",
+  "name": "San Giuliano del Sannio"
+ },
+ "S09501": {
+  "eva": "08302697",
+  "name": "Sepino"
+ },
+ "S09502": {
+  "eva": "08302668",
+  "name": "Santa Croce del Sannio"
+ },
+ "S09503": {
+  "eva": "08302601",
+  "name": "Morcone"
+ },
+ "S09504": {
+  "eva": "08302638",
+  "name": "Pontelandolfo"
+ },
+ "S09506": {
+  "eva": "08302541",
+  "name": "Fragneto Monforte"
+ },
+ "S09507": {
+  "eva": "08302626",
+  "name": "Pescosannita-Fragneto l’Abate"
+ },
+ "S09508": {
+  "eva": "08302634",
+  "name": "Pietrelcina"
+ },
+ "S09509": {
+  "eva": "08302462",
+  "name": "Benevento Porta Rufina"
+ },
+ "S09510": {
+  "eva": "08302518",
+  "name": "Chianche-Ceppaloni"
+ },
+ "S09511": {
+  "eva": "08302452",
+  "name": "Altavilla Irpina"
+ },
+ "S09512": {
+  "eva": "08302716",
+  "name": "Tufo"
+ },
+ "S09513": {
+  "eva": "08302644",
+  "name": "Prata-Pratola"
+ },
+ "S09514": {
+  "eva": "08300563",
+  "name": "Avellino"
+ },
+ "S09515": {
+  "eva": "08302698",
+  "name": "Serino"
+ },
+ "S09516": {
+  "eva": "08302702",
+  "name": "Solofra"
+ },
+ "S09518": {
+  "eva": "08302599",
+  "name": "Montoro-Forino"
+ },
+ "S09519": {
+  "eva": "08302537",
+  "name": "Fisciano"
+ },
+ "S09520": {
+  "eva": "08302469",
+  "name": "Baronissi"
+ },
+ "S09521": {
+  "eva": "08302622",
+  "name": "Pellezzano"
+ },
+ "S09522": {
+  "eva": "08302545",
+  "name": "Fratte"
+ },
+ "S09523": {
+  "eva": "08302676",
+  "name": "San Michele di Serino"
+ },
+ "S09524": {
+  "eva": "08391590",
+  "name": "Fratte-Villa Comunale"
+ },
+ "S09530": {
+  "eva": "08302917",
+  "name": "Benevento Arco Traiano"
+ },
+ "S09610": {
+  "eva": "08302594",
+  "name": "Montemarano"
+ },
+ "S09611": {
+  "eva": "08302505",
+  "name": "Cassano Irpino"
+ },
+ "S09612": {
+  "eva": "08302593",
+  "name": "Montella"
+ },
+ "S09614": {
+  "eva": "08302610",
+  "name": "Nusco"
+ },
+ "S09616": {
+  "eva": "08302572",
+  "name": "Lioni"
+ },
+ "S09626": {
+  "eva": "08302481",
+  "name": "Campo di Nusco"
+ },
+ "S09700": {
+  "eva": "08302608",
+  "name": "Nola"
+ },
+ "S09701": {
+  "eva": "08302618",
+  "name": "Palma-San Gennaro"
+ },
+ "S09702": {
+  "eva": "08302692",
+  "name": "Sarno"
+ },
+ "S09703": {
+  "eva": "08302522",
+  "name": "Codola"
+ },
+ "S09704": {
+  "eva": "08302511",
+  "name": "Castel San Giorgio-Roccapiemonte"
+ },
+ "S09705": {
+  "eva": "08323007",
+  "name": "Valle di Mercato San Severino"
+ },
+ "S09706": {
+  "eva": "08302582",
+  "name": "Mercato San Severino"
+ },
+ "S09707": {
+  "eva": "08302566",
+  "name": "Lanzara-Fimiani"
+ },
+ "S09709": {
+  "eva": "08389071",
+  "name": "Nocera Inferiore Mercato"
+ },
+ "S09756": {
+  "eva": "08302507",
+  "name": "Castellammare di Stabia"
+ },
+ "S09771": {
+  "eva": "08302661",
+  "name": "Rovigliano"
+ },
+ "S09798": {
+  "eva": "08302447",
+  "name": "Acquamela"
+ },
+ "S09799": {
+  "eva": "08302684",
+  "name": "Salerno Irno"
+ },
+ "S09800": {
+  "eva": "08301013",
+  "name": "Napoli San Giovanni Barra"
+ },
+ "S09801": {
+  "eva": "08301893",
+  "name": "Pietrarsa-San Giorgio a Cremano"
+ },
+ "S09802": {
+  "eva": "08301865",
+  "name": "Portici-Ercolano"
+ },
+ "S09803": {
+  "eva": "08302274",
+  "name": "Torre del Greco"
+ },
+ "S09804": {
+  "eva": "08300894",
+  "name": "Santa Maria la Bruna"
+ },
+ "S09805": {
+  "eva": "08302263",
+  "name": "Torre Annunziata Citta"
+ },
+ "S09806": {
+  "eva": "08300266",
+  "name": "Torre Annunziata Centrale"
+ },
+ "S09810": {
+  "eva": "08300270",
+  "name": "Pompei"
+ },
+ "S09811": {
+  "eva": "08302109",
+  "name": "Scafati"
+ },
+ "S09812": {
+  "eva": "08301125",
+  "name": "Angri"
+ },
+ "S09813": {
+  "eva": "08301918",
+  "name": "Pagani"
+ },
+ "S09814": {
+  "eva": "08300255",
+  "name": "Nocera Inferiore"
+ },
+ "S09815": {
+  "eva": "08301816",
+  "name": "Nocera Superiore"
+ },
+ "S09816": {
+  "eva": "08301021",
+  "name": "Cava dei Tirreni"
+ },
+ "S09817": {
+  "eva": "08300929",
+  "name": "Vietri sul Mare-Amalfi"
+ },
+ "S09818": {
+  "eva": "08300269",
+  "name": "Salerno"
+ },
+ "S09819": {
+  "eva": "08399778",
+  "name": "Duomo - Via Vernieri"
+ },
+ "S09821": {
+  "eva": "08301096",
+  "name": "Pontecagnano"
+ },
+ "S09822": {
+  "eva": "08301786",
+  "name": "Montecorvino"
+ },
+ "S09823": {
+  "eva": "08300397",
+  "name": "Battipaglia"
+ },
+ "S09824": {
+  "eva": "08300294",
+  "name": "Eboli"
+ },
+ "S09825": {
+  "eva": "08302394",
+  "name": "Campagna-Serre-Persano"
+ },
+ "S09826": {
+  "eva": "08302401",
+  "name": "Contursi Terme"
+ },
+ "S09827": {
+  "eva": "08300268",
+  "name": "Sicignano degli Alburni"
+ },
+ "S09828": {
+  "eva": "08302392",
+  "name": "Buccino-San Gregorio Magno"
+ },
+ "S09829": {
+  "eva": "08302423",
+  "name": "Romagnano-Vietri-Salvitelle"
+ },
+ "S09830": {
+  "eva": "08302385",
+  "name": "Balvano-Ricigliano"
+ },
+ "S09831": {
+  "eva": "08302387",
+  "name": "Bella Muro"
+ },
+ "S09832": {
+  "eva": "08300361",
+  "name": "Baragiano Ruoti"
+ },
+ "S09833": {
+  "eva": "08302420",
+  "name": "Picerno"
+ },
+ "S09834": {
+  "eva": "08302429",
+  "name": "Tito"
+ },
+ "S09835": {
+  "eva": "08309835",
+  "name": "Salerno Torrione"
+ },
+ "S09836": {
+  "eva": "08309836",
+  "name": "Salerno Pastena"
+ },
+ "S09837": {
+  "eva": "08313551",
+  "name": "Salerno Mercatello-Mariconda"
+ },
+ "S09838": {
+  "eva": "08313552",
+  "name": "Salerno Arbostella"
+ },
+ "S09839": {
+  "eva": "08309839",
+  "name": "Salerno Stadio Arechi-San Leonardo"
+ },
+ "S09842": {
+  "eva": "08302543",
+  "name": "Franciosa"
+ },
+ "S09903": {
+  "eva": "08302422",
+  "name": "Polla"
+ },
+ "S09904": {
+  "eva": "08302382",
+  "name": "Atena"
+ },
+ "S09906": {
+  "eva": "08302425",
+  "name": "Sala Consilina"
+ },
+ "S09907": {
+  "eva": "08302428",
+  "name": "Sassano-Teggiano"
+ },
+ "S09908": {
+  "eva": "08302415",
+  "name": "Padula"
+ },
+ "S09909": {
+  "eva": "08302413",
+  "name": "Montesano-Buonabitacolo"
+ },
+ "S09910": {
+  "eva": "08302397",
+  "name": "Casalbuono"
+ },
+ "S09911": {
+  "eva": "08309911",
+  "name": "Lagonegro"
+ },
+ "S09988": {
+  "eva": "08309988",
+  "name": "Napoli Afragola"
+ },
+ "S11001": {
+  "eva": "08311001",
+  "name": "Potenza Universita"
+ },
+ "S11003": {
+  "eva": "08311003",
+  "name": "Bari Villaggio del Lavoratore"
+ },
+ "S11004": {
+  "eva": "08311004",
+  "name": "Bari Torre Quetta"
+ },
+ "S11019": {
+  "eva": "08300285",
+  "name": "Termoli"
+ },
+ "S11020": {
+  "eva": "08301386",
+  "name": "Campomarino"
+ },
+ "S11021": {
+  "eva": "08301354",
+  "name": "Chieuti-Serracapriola"
+ },
+ "S11023": {
+  "eva": "08301898",
+  "name": "Poggio Imperiale"
+ },
+ "S11024": {
+  "eva": "08300772",
+  "name": "Apricena"
+ },
+ "S11025": {
+  "eva": "08300283",
+  "name": "San Severo"
+ },
+ "S11051": {
+  "eva": "08302798",
+  "name": "Amendola"
+ },
+ "S11054": {
+  "eva": "08302576",
+  "name": "Manfredonia"
+ },
+ "S11056": {
+  "eva": "08302701",
+  "name": "Siponto"
+ },
+ "S11057": {
+  "eva": "08311057",
+  "name": "Manfredonia Ovest"
+ },
+ "S11100": {
+  "eva": "08300287",
+  "name": "Foggia"
+ },
+ "S11101": {
+  "eva": "08301607",
+  "name": "Incoronata"
+ },
+ "S11102": {
+  "eva": "08301831",
+  "name": "Orta Nova"
+ },
+ "S11103": {
+  "eva": "08300275",
+  "name": "Cerignola Campagna"
+ },
+ "S11106": {
+  "eva": "08300869",
+  "name": "Trinitapoli-San Ferdinando di Puglia"
+ },
+ "S11108": {
+  "eva": "08300273",
+  "name": "Barletta"
+ },
+ "S11112": {
+  "eva": "08300286",
+  "name": "Trani"
+ },
+ "S11113": {
+  "eva": "08300274",
+  "name": "Bisceglie"
+ },
+ "S11114": {
+  "eva": "08300282",
+  "name": "Molfetta"
+ },
+ "S11115": {
+  "eva": "08300773",
+  "name": "Giovinazzo"
+ },
+ "S11116": {
+  "eva": "08301025",
+  "name": "Bari Santo Spirito"
+ },
+ "S11118": {
+  "eva": "08301023",
+  "name": "Bari Palese-Macchie"
+ },
+ "S11120": {
+  "eva": "08302467",
+  "name": "Bari Zona Industriale"
+ },
+ "S11121": {
+  "eva": "08301757",
+  "name": "Marconi"
+ },
+ "S11123": {
+  "eva": "08311123",
+  "name": "Brindisi Cittadella della Ricerca"
+ },
+ "S11125": {
+  "eva": "08314579",
+  "name": "Bari Parco 2 Giugno"
+ },
+ "S11126": {
+  "eva": "08300569",
+  "name": "Bari Torre a Mare"
+ },
+ "S11127": {
+  "eva": "08300279",
+  "name": "Mola di Bari"
+ },
+ "S11128": {
+  "eva": "08300572",
+  "name": "Polignano a Mare"
+ },
+ "S11129": {
+  "eva": "08300278",
+  "name": "Monopoli"
+ },
+ "S11130": {
+  "eva": "08300276",
+  "name": "Fasano"
+ },
+ "S11131": {
+  "eva": "08300774",
+  "name": "Cisternino"
+ },
+ "S11132": {
+  "eva": "08300284",
+  "name": "Ostuni"
+ },
+ "S11133": {
+  "eva": "08300400",
+  "name": "Carovigno"
+ },
+ "S11135": {
+  "eva": "08302221",
+  "name": "San Vito dei Normanni"
+ },
+ "S11136": {
+  "eva": "08300281",
+  "name": "Brindisi"
+ },
+ "S11139": {
+  "eva": "08311139",
+  "name": "Brindisi Perrino"
+ },
+ "S11141": {
+  "eva": "08300437",
+  "name": "San Pietro Vernotico"
+ },
+ "S11142": {
+  "eva": "08300441",
+  "name": "Squinzano"
+ },
+ "S11143": {
+  "eva": "08300442",
+  "name": "Trepuzzi"
+ },
+ "S11145": {
+  "eva": "08300272",
+  "name": "Lecce"
+ },
+ "S11202": {
+  "eva": "08302611",
+  "name": "Ordona"
+ },
+ "S11203": {
+  "eva": "08302751",
+  "name": "Ascoli Satriano"
+ },
+ "S11204": {
+  "eva": "08302750",
+  "name": "Candela Sant’Agata di Puglia"
+ },
+ "S11205": {
+  "eva": "08302659",
+  "name": "Rocchetta Sant’Antonio-Lacedonia"
+ },
+ "S11206": {
+  "eva": "08302581",
+  "name": "Melfi"
+ },
+ "S11208": {
+  "eva": "08302468",
+  "name": "Barile"
+ },
+ "S11209": {
+  "eva": "08302653",
+  "name": "Rionero-Atella-Ripacandida"
+ },
+ "S11210": {
+  "eva": "08302540",
+  "name": "Forenza"
+ },
+ "S11211": {
+  "eva": "08302536",
+  "name": "Filiano"
+ },
+ "S11212": {
+  "eva": "08302510",
+  "name": "Castel Lagopesole"
+ },
+ "S11213": {
+  "eva": "08302633",
+  "name": "Pietragalla"
+ },
+ "S11214": {
+  "eva": "08302460",
+  "name": "Avigliano Lucania"
+ },
+ "S11215": {
+  "eva": "08302935",
+  "name": "Potenza Macchia Romana"
+ },
+ "S11217": {
+  "eva": "08302640",
+  "name": "Potenza Superiore"
+ },
+ "S11220": {
+  "eva": "08302639",
+  "name": "Possidente"
+ },
+ "S11250": {
+  "eva": "08311250",
+  "name": "Bari S.Rita"
+ },
+ "S11251": {
+  "eva": "08311251",
+  "name": "Bari Loseto"
+ },
+ "S11252": {
+  "eva": "08311252",
+  "name": "Bitritto"
+ },
+ "S11300": {
+  "eva": "08303919",
+  "name": "San Nicola di Melfi"
+ },
+ "S11302": {
+  "eva": "08302724",
+  "name": "Venosa-Maschito"
+ },
+ "S11303": {
+  "eva": "08302616",
+  "name": "Palazzo San Gervasio-Montemilone"
+ },
+ "S11304": {
+  "eva": "08302705",
+  "name": "Spinazzola"
+ },
+ "S11305": {
+  "eva": "08302636",
+  "name": "Poggiorsini"
+ },
+ "S11306": {
+  "eva": "08302555",
+  "name": "Gravina in Puglia"
+ },
+ "S11307": {
+  "eva": "08302451",
+  "name": "Altamura"
+ },
+ "S11310": {
+  "eva": "08302688",
+  "name": "Santeramo"
+ },
+ "S11402": {
+  "eva": "08302491",
+  "name": "Canosa di Puglia"
+ },
+ "S11403": {
+  "eva": "08302587",
+  "name": "Minervino Murge"
+ },
+ "S11406": {
+  "eva": "08302490",
+  "name": "Canne della Battaglia"
+ },
+ "S11420": {
+  "eva": "08300291",
+  "name": "Potenza Centrale"
+ },
+ "S11452": {
+  "eva": "08302430",
+  "name": "Trivigno"
+ },
+ "S11453": {
+  "eva": "08302380",
+  "name": "Albano di Lucania"
+ },
+ "S11456": {
+  "eva": "08300455",
+  "name": "Grassano-Garaguso-Tricarico"
+ },
+ "S11457": {
+  "eva": "08302426",
+  "name": "Salandra-Grottole"
+ },
+ "S11458": {
+  "eva": "08300453",
+  "name": "Ferrandina Scalo Matera"
+ },
+ "S11459": {
+  "eva": "08302421",
+  "name": "Pisticci"
+ },
+ "S11460": {
+  "eva": "08302389",
+  "name": "Bernalda"
+ },
+ "S11461": {
+  "eva": "08300413",
+  "name": "Metaponto"
+ },
+ "S11462": {
+  "eva": "08301027",
+  "name": "Ginosa"
+ },
+ "S11463": {
+  "eva": "08301387",
+  "name": "Castellaneta Marina"
+ },
+ "S11464": {
+  "eva": "08301867",
+  "name": "Palagiano-Chiatona"
+ },
+ "S11465": {
+  "eva": "08300292",
+  "name": "Taranto"
+ },
+ "S11501": {
+  "eva": "08302390",
+  "name": "Bitetto-Palo del Colle"
+ },
+ "S11502": {
+  "eva": "08302406",
+  "name": "Grumo Appula"
+ },
+ "S11504": {
+  "eva": "08302379",
+  "name": "Acquaviva delle Fonti"
+ },
+ "S11505": {
+  "eva": "08300277",
+  "name": "Gioia del Colle"
+ },
+ "S11507": {
+  "eva": "08389072",
+  "name": "Castellaneta"
+ },
+ "S11508": {
+  "eva": "08302416",
+  "name": "Palagianello"
+ },
+ "S11509": {
+  "eva": "08302417",
+  "name": "Palagiano-Mottola"
+ },
+ "S11510": {
+  "eva": "08302410",
+  "name": "Massafra"
+ },
+ "S11515": {
+  "eva": "08302412",
+  "name": "Modugno città"
+ },
+ "S11516": {
+  "eva": "08311516",
+  "name": "Modugno"
+ },
+ "S11602": {
+  "eva": "08302556",
+  "name": "Grottaglie"
+ },
+ "S11603": {
+  "eva": "08300323",
+  "name": "Francavilla Fontana"
+ },
+ "S11605": {
+  "eva": "08302754",
+  "name": "Oria"
+ },
+ "S11606": {
+  "eva": "08302568",
+  "name": "Latiano"
+ },
+ "S11607": {
+  "eva": "08302583",
+  "name": "Mesagne"
+ },
+ "S11702": {
+  "eva": "08301082",
+  "name": "Capaccio-Roccadaspide"
+ },
+ "S11703": {
+  "eva": "08300858",
+  "name": "Paestum"
+ },
+ "S11705": {
+  "eva": "08300343",
+  "name": "Agropoli-Castellabate"
+ },
+ "S11708": {
+  "eva": "08301838",
+  "name": "Omignano-Salento"
+ },
+ "S11709": {
+  "eva": "08300345",
+  "name": "Vallo della Lucania-Castelnuovo"
+ },
+ "S11711": {
+  "eva": "08300570",
+  "name": "Ascea"
+ },
+ "S11712": {
+  "eva": "08300851",
+  "name": "Pisciotta-Palinuro"
+ },
+ "S11715": {
+  "eva": "08300860",
+  "name": "Centola"
+ },
+ "S11716": {
+  "eva": "08301302",
+  "name": "Celle Bulgheria-Roccagloriosa"
+ },
+ "S11717": {
+  "eva": "08302267",
+  "name": "Torre Orsaia"
+ },
+ "S11718": {
+  "eva": "08300909",
+  "name": "Policastro Bussentino"
+ },
+ "S11721": {
+  "eva": "08300333",
+  "name": "Sapri"
+ },
+ "S11722": {
+  "eva": "08301123",
+  "name": "Acquafredda"
+ },
+ "S11723": {
+  "eva": "08300317",
+  "name": "Maratea"
+ },
+ "S11724": {
+  "eva": "08301093",
+  "name": "Marina di Maratea"
+ },
+ "S11725": {
+  "eva": "08301902",
+  "name": "Praja-Ajeta-Tortora"
+ },
+ "S11727": {
+  "eva": "08300923",
+  "name": "Scalea-Santa Domenica Talao"
+ },
+ "S11728": {
+  "eva": "08301792",
+  "name": "Marcellina-Verbicaro-Orsomarso"
+ },
+ "S11729": {
+  "eva": "08301579",
+  "name": "Grisolia-Santa Maria"
+ },
+ "S11731": {
+  "eva": "08301470",
+  "name": "Diamante-Buonvicino"
+ },
+ "S11732": {
+  "eva": "08300852",
+  "name": "Belvedere Marittimo"
+ },
+ "S11734": {
+  "eva": "08301300",
+  "name": "Capo Bonifati"
+ },
+ "S11735": {
+  "eva": "08301495",
+  "name": "Cetraro"
+ },
+ "S11736": {
+  "eva": "08301148",
+  "name": "Acquappesa"
+ },
+ "S11737": {
+  "eva": "08301042",
+  "name": "Guardia Piemontese Terme"
+ },
+ "S11738": {
+  "eva": "08301536",
+  "name": "Fuscaldo"
+ },
+ "S11739": {
+  "eva": "08300335",
+  "name": "Paola"
+ },
+ "S11740": {
+  "eva": "08301633",
+  "name": "San Lucido Marina"
+ },
+ "S11741": {
+  "eva": "08301502",
+  "name": "Fiumefreddo Bruzio"
+ },
+ "S11742": {
+  "eva": "08301626",
+  "name": "Longobardi"
+ },
+ "S11743": {
+  "eva": "08301187",
+  "name": "Belmonte Calabro"
+ },
+ "S11744": {
+  "eva": "08300347",
+  "name": "Amantea"
+ },
+ "S11745": {
+  "eva": "08300892",
+  "name": "Campora-San Giovanni-Serra Aiello"
+ },
+ "S11746": {
+  "eva": "08301817",
+  "name": "Nocera Terinese"
+ },
+ "S11747": {
+  "eva": "08301514",
+  "name": "Falerna"
+ },
+ "S11749": {
+  "eva": "08300328",
+  "name": "Lamezia Terme Centrale"
+ },
+ "S11753": {
+  "eva": "08300861",
+  "name": "Pizzo"
+ },
+ "S11754": {
+  "eva": "08300357",
+  "name": "Vibo Marina"
+ },
+ "S11757": {
+  "eva": "08300862",
+  "name": "Briatico"
+ },
+ "S11758": {
+  "eva": "08301054",
+  "name": "Zambrone"
+ },
+ "S11759": {
+  "eva": "08301070",
+  "name": "Parghelia"
+ },
+ "S11760": {
+  "eva": "08300576",
+  "name": "Tropea"
+ },
+ "S11761": {
+  "eva": "08301071",
+  "name": "Ricadi"
+ },
+ "S11763": {
+  "eva": "08301066",
+  "name": "Joppolo"
+ },
+ "S11764": {
+  "eva": "08300349",
+  "name": "Nicotera"
+ },
+ "S11765": {
+  "eva": "08300430",
+  "name": "Rosarno"
+ },
+ "S11766": {
+  "eva": "08300344",
+  "name": "Gioia Tauro"
+ },
+ "S11769": {
+  "eva": "08300853",
+  "name": "Palmi"
+ },
+ "S11770": {
+  "eva": "08300348",
+  "name": "Bagnara"
+ },
+ "S11771": {
+  "eva": "08301065",
+  "name": "Favazzina"
+ },
+ "S11772": {
+  "eva": "08300440",
+  "name": "Scilla"
+ },
+ "S11773": {
+  "eva": "08301075",
+  "name": "Villa San Giovanni-Cannitello"
+ },
+ "S11774": {
+  "eva": "08300342",
+  "name": "Villa San Giovanni"
+ },
+ "S11776": {
+  "eva": "08301045",
+  "name": "Reggio di Calabria Catona"
+ },
+ "S11777": {
+  "eva": "08301046",
+  "name": "Reggio di Calabria Gallico"
+ },
+ "S11780": {
+  "eva": "08300503",
+  "name": "Reggio di Calabria Lido"
+ },
+ "S11781": {
+  "eva": "08300337",
+  "name": "Reggio di Calabria Centrale"
+ },
+ "S11786": {
+  "eva": "08301072",
+  "name": "Santa Domenica"
+ },
+ "S11789": {
+  "eva": "08300346",
+  "name": "Vibo Valentia-Pizzo"
+ },
+ "S11790": {
+  "eva": "08301053",
+  "name": "Mileto"
+ },
+ "S11800": {
+  "eva": "08301659",
+  "name": "Marconia"
+ },
+ "S11801": {
+  "eva": "08302131",
+  "name": "Scanzano Jonico-Montalbano Jonico"
+ },
+ "S11802": {
+  "eva": "08301051",
+  "name": "Policoro-Tursi"
+ },
+ "S11803": {
+  "eva": "08301050",
+  "name": "Nova Siri-Rotondella"
+ },
+ "S11804": {
+  "eva": "08302009",
+  "name": "Rocca Imperiale"
+ },
+ "S11805": {
+  "eva": "08301701",
+  "name": "Monte Giordano"
+ },
+ "S11806": {
+  "eva": "08300821",
+  "name": "Roseto-Capo Spulico"
+ },
+ "S11807": {
+  "eva": "08301147",
+  "name": "Amendolara-Oriolo"
+ },
+ "S11808": {
+  "eva": "08301052",
+  "name": "Trebisacce"
+ },
+ "S11809": {
+  "eva": "08302354",
+  "name": "Villapiana Lido"
+ },
+ "S11810": {
+  "eva": "08302368",
+  "name": "Villapiana-Torre Cerchiara"
+ },
+ "S11811": {
+  "eva": "08300329",
+  "name": "Sibari"
+ },
+ "S11812": {
+  "eva": "08300822",
+  "name": "Corigliano Calabro"
+ },
+ "S11813": {
+  "eva": "08300290",
+  "name": "Rossano"
+ },
+ "S11814": {
+  "eva": "08301679",
+  "name": "Mirto-Crosia"
+ },
+ "S11815": {
+  "eva": "08301418",
+  "name": "Calopezzati"
+ },
+ "S11817": {
+  "eva": "08301709",
+  "name": "Mandatoriccio-Campana"
+ },
+ "S11818": {
+  "eva": "08300289",
+  "name": "Cariati"
+ },
+ "S11819": {
+  "eva": "08300823",
+  "name": "Crucoli"
+ },
+ "S11820": {
+  "eva": "08301028",
+  "name": "Cirò"
+ },
+ "S11821": {
+  "eva": "08302260",
+  "name": "Torre Melissa"
+ },
+ "S11822": {
+  "eva": "08302170",
+  "name": "Strongoli"
+ },
+ "S11823": {
+  "eva": "08300309",
+  "name": "Crotone"
+ },
+ "S11826": {
+  "eva": "08300824",
+  "name": "Cutro"
+ },
+ "S11829": {
+  "eva": "08300825",
+  "name": "Botricello"
+ },
+ "S11830": {
+  "eva": "08300826",
+  "name": "Cropani"
+ },
+ "S11833": {
+  "eva": "08300312",
+  "name": "Catanzaro Lido"
+ },
+ "S11835": {
+  "eva": "08301037",
+  "name": "Squillace"
+ },
+ "S11836": {
+  "eva": "08301733",
+  "name": "Montepaone-Montauro"
+ },
+ "S11837": {
+  "eva": "08300486",
+  "name": "Soverato"
+ },
+ "S11840": {
+  "eva": "08300574",
+  "name": "Sant’Andrea dello Jonio"
+ },
+ "S11841": {
+  "eva": "08301030",
+  "name": "Badolato"
+ },
+ "S11842": {
+  "eva": "08301034",
+  "name": "Santa Caterina dello Jonio"
+ },
+ "S11843": {
+  "eva": "08300828",
+  "name": "Guardavalle"
+ },
+ "S11844": {
+  "eva": "08300871",
+  "name": "Monasterace-Stilo"
+ },
+ "S11845": {
+  "eva": "08300829",
+  "name": "Riace"
+ },
+ "S11846": {
+  "eva": "08300830",
+  "name": "Caulonia"
+ },
+ "S11847": {
+  "eva": "08300325",
+  "name": "Roccella Jonica"
+ },
+ "S11848": {
+  "eva": "08300320",
+  "name": "Gioiosa Jonica"
+ },
+ "S11850": {
+  "eva": "08300831",
+  "name": "Siderno"
+ },
+ "S11851": {
+  "eva": "08300316",
+  "name": "Locri"
+ },
+ "S11853": {
+  "eva": "08301120",
+  "name": "Ardore"
+ },
+ "S11854": {
+  "eva": "08300832",
+  "name": "Bovalino"
+ },
+ "S11855": {
+  "eva": "08300833",
+  "name": "Bianco"
+ },
+ "S11856": {
+  "eva": "08300835",
+  "name": "Ferruzzano"
+ },
+ "S11857": {
+  "eva": "08300836",
+  "name": "Brancaleone"
+ },
+ "S11858": {
+  "eva": "08300837",
+  "name": "Capo Spartivento"
+ },
+ "S11859": {
+  "eva": "08301907",
+  "name": "Palizzi"
+ },
+ "S11860": {
+  "eva": "08300838",
+  "name": "Bova Marina"
+ },
+ "S11861": {
+  "eva": "08300839",
+  "name": "Condofuri"
+ },
+ "S11862": {
+  "eva": "08301720",
+  "name": "Marina di San Lorenzo"
+ },
+ "S11863": {
+  "eva": "08300334",
+  "name": "Melito di Porto Salvo"
+ },
+ "S11864": {
+  "eva": "08301482",
+  "name": "Saline di Reggio"
+ },
+ "S11865": {
+  "eva": "08300904",
+  "name": "Motta San Giovanni-Lazzaro"
+ },
+ "S11867": {
+  "eva": "08301047",
+  "name": "Reggio di Calabria Pellaro"
+ },
+ "S11868": {
+  "eva": "08301048",
+  "name": "Reggio di Calabria San Gregorio"
+ },
+ "S11870": {
+  "eva": "08311870",
+  "name": "Annà"
+ },
+ "S11872": {
+  "eva": "08300834",
+  "name": "Africo Nuovo"
+ },
+ "S11901": {
+  "eva": "08302438",
+  "name": "Spezzano Albanese Terme"
+ },
+ "S11903": {
+  "eva": "08302707",
+  "name": "Tarsia"
+ },
+ "S11904": {
+  "eva": "08302437",
+  "name": "San Marco Roggiano"
+ },
+ "S11905": {
+  "eva": "08302589",
+  "name": "Mongrassano-Cervicati"
+ },
+ "S11906": {
+  "eva": "08302714",
+  "name": "Torano-Lattarico"
+ },
+ "S11909": {
+  "eva": "08302439",
+  "name": "Castiglione Cosentino"
+ },
+ "S11910": {
+  "eva": "08300575",
+  "name": "Cosenza"
+ },
+ "S11950": {
+  "eva": "08301032",
+  "name": "Lamezia Terme-Sambiase"
+ },
+ "S11951": {
+  "eva": "08301039",
+  "name": "Lamezia Terme-Nicastro"
+ },
+ "S11953": {
+  "eva": "08301033",
+  "name": "Marcellinara"
+ },
+ "S11956": {
+  "eva": "08300315",
+  "name": "Catanzaro (Germaneto)"
+ },
+ "S11961": {
+  "eva": "08302796",
+  "name": "Toscano"
+ },
+ "S11969": {
+  "eva": "08302948",
+  "name": "Reggio di Calabria Bocale"
+ },
+ "S11970": {
+  "eva": "08302949",
+  "name": "Reggio di Calabria Omeca"
+ },
+ "S11971": {
+  "eva": "08302247",
+  "name": "Torremezzo di Falconara"
+ },
+ "S11973": {
+  "eva": "08301978",
+  "name": "Reggio di Calabria Archi"
+ },
+ "S11974": {
+  "eva": "08311974",
+  "name": "Reggio di Calabria Pentimele"
+ },
+ "S11975": {
+  "eva": "08301987",
+  "name": "Reggio di Calabria Santa Caterina"
+ },
+ "S12001": {
+  "eva": "08312001",
+  "name": "Fiumara Gazzi"
+ },
+ "S12002": {
+  "eva": "08300341",
+  "name": "Palermo Centrale"
+ },
+ "S12003": {
+  "eva": "08312003",
+  "name": "Mili Marina"
+ },
+ "S12005": {
+  "eva": "08312005",
+  "name": "Ponte Santo Stefano"
+ },
+ "S12008": {
+  "eva": "08300360",
+  "name": "Bagheria"
+ },
+ "S12009": {
+  "eva": "08302110",
+  "name": "Santa Flavia-Solunto-Porticello"
+ },
+ "S12010": {
+  "eva": "08301276",
+  "name": "Casteldaccia"
+ },
+ "S12011": {
+  "eva": "08301135",
+  "name": "Altavilla Milicia"
+ },
+ "S12012": {
+  "eva": "08302164",
+  "name": "San Nicola Tonnara"
+ },
+ "S12013": {
+  "eva": "08302236",
+  "name": "Trabia"
+ },
+ "S12014": {
+  "eva": "08300330",
+  "name": "Termini Imerese"
+ },
+ "S12015": {
+  "eva": "08300844",
+  "name": "Fiumetorto"
+ },
+ "S12017": {
+  "eva": "08301336",
+  "name": "Campofelice"
+ },
+ "S12018": {
+  "eva": "08301629",
+  "name": "Lascari-Gratteri"
+ },
+ "S12019": {
+  "eva": "08300308",
+  "name": "Cefalù"
+ },
+ "S12020": {
+  "eva": "08301305",
+  "name": "Castelbuono"
+ },
+ "S12021": {
+  "eva": "08301946",
+  "name": "Pollina-San Mauro Castelverde"
+ },
+ "S12022": {
+  "eva": "08302287",
+  "name": "Tusa"
+ },
+ "S12023": {
+  "eva": "08312023",
+  "name": "Fontane Bianche"
+ },
+ "S12024": {
+  "eva": "08300327",
+  "name": "San Stefano di Camastra-Mistretta"
+ },
+ "S12025": {
+  "eva": "08301357",
+  "name": "Caronia"
+ },
+ "S12026": {
+  "eva": "08302104",
+  "name": "Acquedolci-San Fratello"
+ },
+ "S12027": {
+  "eva": "08300431",
+  "name": "Sant’Agata di Militello"
+ },
+ "S12028": {
+  "eva": "08301133",
+  "name": "San Marco d’Alunzio-Torrenova"
+ },
+ "S12029": {
+  "eva": "08301055",
+  "name": "Zappulla"
+ },
+ "S12030": {
+  "eva": "08300306",
+  "name": "Capo d’Orlando-Naso"
+ },
+ "S12031": {
+  "eva": "08301201",
+  "name": "Brolo-Ficarra"
+ },
+ "S12032": {
+  "eva": "08312032",
+  "name": "Roccella"
+ },
+ "S12033": {
+  "eva": "08301578",
+  "name": "Gioiosa Marea"
+ },
+ "S12034": {
+  "eva": "08301564",
+  "name": "San Giorgio"
+ },
+ "S12035": {
+  "eva": "08312035",
+  "name": "Ficarazzi"
+ },
+ "S12036": {
+  "eva": "08300322",
+  "name": "Patti-San Piero Patti"
+ },
+ "S12037": {
+  "eva": "08301843",
+  "name": "Oliveri-Tindari"
+ },
+ "S12038": {
+  "eva": "08301499",
+  "name": "Falcone"
+ },
+ "S12039": {
+  "eva": "08301808",
+  "name": "Novara-Montalbano-Furnari"
+ },
+ "S12040": {
+  "eva": "08300475",
+  "name": "Terme Vigliatore"
+ },
+ "S12041": {
+  "eva": "08300302",
+  "name": "Barcellona-Castroreale"
+ },
+ "S12042": {
+  "eva": "08300321",
+  "name": "Milazzo"
+ },
+ "S12045": {
+  "eva": "08301876",
+  "name": "Pace del Mela"
+ },
+ "S12049": {
+  "eva": "08300917",
+  "name": "Rometta-Messinese"
+ },
+ "S12050": {
+  "eva": "08302370",
+  "name": "Villafranca Tirrena-Saponara"
+ },
+ "S12053": {
+  "eva": "08302249",
+  "name": "Torre del Lauro"
+ },
+ "S12054": {
+  "eva": "08312054",
+  "name": "Spadafora"
+ },
+ "S12055": {
+  "eva": "08301049",
+  "name": "Palermo Brancaccio"
+ },
+ "S12059": {
+  "eva": "08312059",
+  "name": "San Paolo"
+ },
+ "S12060": {
+  "eva": "08312060",
+  "name": "Ponte Schiavo"
+ },
+ "S12061": {
+  "eva": "08312061",
+  "name": "Torregrotta"
+ },
+ "S12065": {
+  "eva": "08312065",
+  "name": "Palermo De Gasperi"
+ },
+ "S12066": {
+  "eva": "08312066",
+  "name": "Palermo Sferracavallo"
+ },
+ "S12069": {
+  "eva": "08312069",
+  "name": "Palermo La Malfa"
+ },
+ "S12070": {
+  "eva": "08301629",
+  "name": "Lascari"
+ },
+ "S12075": {
+  "eva": "08312075",
+  "name": "Palermo Liberta"
+ },
+ "S12100": {
+  "eva": "08300340",
+  "name": "Trapani"
+ },
+ "S12103": {
+  "eva": "08302613",
+  "name": "Paceco"
+ },
+ "S12104": {
+  "eva": "08302577",
+  "name": "Marausa"
+ },
+ "S12105": {
+  "eva": "08302646",
+  "name": "Mozia-Birgi"
+ },
+ "S12106": {
+  "eva": "08302704",
+  "name": "Spagnuola"
+ },
+ "S12107": {
+  "eva": "08300318",
+  "name": "Marsala"
+ },
+ "S12108": {
+  "eva": "08302710",
+  "name": "Terrenove"
+ },
+ "S12109": {
+  "eva": "08302627",
+  "name": "Petrosino Strasatti"
+ },
+ "S12110": {
+  "eva": "08300319",
+  "name": "Mazara del Vallo"
+ },
+ "S12112": {
+  "eva": "08302484",
+  "name": "Campobello di Mazara"
+ },
+ "S12113": {
+  "eva": "08300295",
+  "name": "Castelvetrano"
+ },
+ "S12114": {
+  "eva": "08300355",
+  "name": "Salemi-Gibellina"
+ },
+ "S12115": {
+  "eva": "08312115",
+  "name": "Gallitello"
+ },
+ "S12120": {
+  "eva": "08300352",
+  "name": "Castellammare del Golfo"
+ },
+ "S12121": {
+  "eva": "08312121",
+  "name": "Orsa(IT)"
+ },
+ "S12122": {
+  "eva": "08300351",
+  "name": "Balestrate"
+ },
+ "S12123": {
+  "eva": "08302715",
+  "name": "Trappeto"
+ },
+ "S12124": {
+  "eva": "08300353",
+  "name": "Partinico"
+ },
+ "S12125": {
+  "eva": "08302734",
+  "name": "Piraineto"
+ },
+ "S12126": {
+  "eva": "08302519",
+  "name": "Cinisi-Terrasini"
+ },
+ "S12127": {
+  "eva": "08302498",
+  "name": "Carini"
+ },
+ "S12128": {
+  "eva": "08302494",
+  "name": "Capaci"
+ },
+ "S12129": {
+  "eva": "08302560",
+  "name": "Isola delle Femmine"
+ },
+ "S12130": {
+  "eva": "08303930",
+  "name": "Palazzo Reale-Orleans"
+ },
+ "S12131": {
+  "eva": "08302713",
+  "name": "Palermo Tommaso Natale"
+ },
+ "S12132": {
+  "eva": "08302671",
+  "name": "Palermo San Lorenzo"
+ },
+ "S12133": {
+  "eva": "08303931",
+  "name": "Palermo Aeroporto"
+ },
+ "S12134": {
+  "eva": "08300511",
+  "name": "Palermo Notarbartolo"
+ },
+ "S12135": {
+  "eva": "08302725",
+  "name": "Palermo Vespri"
+ },
+ "S12136": {
+  "eva": "08302533",
+  "name": "Palermo Imperatore Federico"
+ },
+ "S12137": {
+  "eva": "08302534",
+  "name": "Palermo Fiera"
+ },
+ "S12138": {
+  "eva": "08302551",
+  "name": "Palermo Giachery"
+ },
+ "S12139": {
+  "eva": "08302770",
+  "name": "Palermo Francia"
+ },
+ "S12140": {
+  "eva": "08302769",
+  "name": "Cardillo Zen"
+ },
+ "S12143": {
+  "eva": "08312143",
+  "name": "Lolli"
+ },
+ "S12144": {
+  "eva": "08312144",
+  "name": "Guadagna"
+ },
+ "S12145": {
+  "eva": "08302494",
+  "name": "Capaci"
+ },
+ "S12150": {
+  "eva": "08300299",
+  "name": "Alcamo Diramazione"
+ },
+ "S12151": {
+  "eva": "08300367",
+  "name": "Calatafimi"
+ },
+ "S12152": {
+  "eva": "08300482",
+  "name": "Segesta Tempio"
+ },
+ "S12200": {
+  "eva": "08301494",
+  "name": "Cerda"
+ },
+ "S12203": {
+  "eva": "08301700",
+  "name": "Montemaggiore Belsito"
+ },
+ "S12204": {
+  "eva": "08300324",
+  "name": "Roccapalumba-Alia"
+ },
+ "S12207": {
+  "eva": "08300571",
+  "name": "Cammarata-San Giovanni Gemini"
+ },
+ "S12209": {
+  "eva": "08300849",
+  "name": "Acquaviva-Casteltermini"
+ },
+ "S12211": {
+  "eva": "08300577",
+  "name": "Campofranco"
+ },
+ "S12213": {
+  "eva": "08300298",
+  "name": "Agrigento Bassa"
+ },
+ "S12216": {
+  "eva": "08300296",
+  "name": "Agrigento Centrale"
+ },
+ "S12230": {
+  "eva": "08301666",
+  "name": "Marcatobianco"
+ },
+ "S12231": {
+  "eva": "08300848",
+  "name": "Valledolmo"
+ },
+ "S12232": {
+  "eva": "08300387",
+  "name": "Vallelunga"
+ },
+ "S12233": {
+  "eva": "08300847",
+  "name": "Villalba"
+ },
+ "S12234": {
+  "eva": "08300846",
+  "name": "Marianopoli"
+ },
+ "S12237": {
+  "eva": "08300489",
+  "name": "Villarosa"
+ },
+ "S12238": {
+  "eva": "08300326",
+  "name": "Enna"
+ },
+ "S12239": {
+  "eva": "08300052",
+  "name": "Leonforte-Pirato"
+ },
+ "S12240": {
+  "eva": "08300053",
+  "name": "Dittaino"
+ },
+ "S12244": {
+  "eva": "08300314",
+  "name": "Catenanuova-Centuripe"
+ },
+ "S12270": {
+  "eva": "08300399",
+  "name": "Caltagirone"
+ },
+ "S12272": {
+  "eva": "08300409",
+  "name": "Grammichele"
+ },
+ "S12273": {
+  "eva": "08300450",
+  "name": "Vizzini-Licodia"
+ },
+ "S12276": {
+  "eva": "08302584",
+  "name": "Militello"
+ },
+ "S12278": {
+  "eva": "08302696",
+  "name": "Scordia"
+ },
+ "S12300": {
+  "eva": "08300331",
+  "name": "Messina Marittima"
+ },
+ "S12301": {
+  "eva": "08300332",
+  "name": "Messina Centrale"
+ },
+ "S12303": {
+  "eva": "08302281",
+  "name": "Tremestieri"
+ },
+ "S12305": {
+  "eva": "08301576",
+  "name": "Galati"
+ },
+ "S12308": {
+  "eva": "08301566",
+  "name": "Giampilieri"
+ },
+ "S12309": {
+  "eva": "08302088",
+  "name": "Scaletta Zanclea"
+ },
+ "S12310": {
+  "eva": "08300493",
+  "name": "Ali Terme"
+ },
+ "S12311": {
+  "eva": "08300840",
+  "name": "Nizza di Sicilia"
+ },
+ "S12312": {
+  "eva": "08302017",
+  "name": "Roccalumera-Mandanici"
+ },
+ "S12313": {
+  "eva": "08301535",
+  "name": "Furci"
+ },
+ "S12314": {
+  "eva": "08300438",
+  "name": "Santa Teresa di Riva"
+ },
+ "S12315": {
+  "eva": "08301161",
+  "name": "Sant’Alessio Siculo-Forza d’Agrò"
+ },
+ "S12316": {
+  "eva": "08301625",
+  "name": "Letojanni"
+ },
+ "S12317": {
+  "eva": "08300339",
+  "name": "Taormina-Giardini"
+ },
+ "S12320": {
+  "eva": "08301111",
+  "name": "Alcantara"
+ },
+ "S12321": {
+  "eva": "08301443",
+  "name": "Calatabiano"
+ },
+ "S12322": {
+  "eva": "08300841",
+  "name": "Fiumefreddo Sicilia"
+ },
+ "S12323": {
+  "eva": "08301092",
+  "name": "Mascali"
+ },
+ "S12324": {
+  "eva": "08300311",
+  "name": "Giarre-Riposto"
+ },
+ "S12326": {
+  "eva": "08301455",
+  "name": "Carruba"
+ },
+ "S12327": {
+  "eva": "08301029",
+  "name": "Guardia-Mangano-Santa Venerina"
+ },
+ "S12328": {
+  "eva": "08300297",
+  "name": "Acireale"
+ },
+ "S12330": {
+  "eva": "08301397",
+  "name": "Cannizzaro"
+ },
+ "S12332": {
+  "eva": "08300307",
+  "name": "Catania Centrale"
+ },
+ "S12333": {
+  "eva": "08301041",
+  "name": "Catania Ognina"
+ },
+ "S12334": {
+  "eva": "08312334",
+  "name": "Catania Picanello"
+ },
+ "S12335": {
+  "eva": "08312335",
+  "name": "Catania Europa"
+ },
+ "S12336": {
+  "eva": "08312336",
+  "name": "Catania Aeroporto Fontanarossa"
+ },
+ "S12337": {
+  "eva": "08301040",
+  "name": "Catania Acquicella"
+ },
+ "S12338": {
+  "eva": "08300842",
+  "name": "Bicocca"
+ },
+ "S12340": {
+  "eva": "08301647",
+  "name": "Lentini Diramazione"
+ },
+ "S12341": {
+  "eva": "08300313",
+  "name": "Lentini"
+ },
+ "S12342": {
+  "eva": "08301121",
+  "name": "Agnone di Siracusa"
+ },
+ "S12345": {
+  "eva": "08300301",
+  "name": "Augusta"
+ },
+ "S12347": {
+  "eva": "08302432",
+  "name": "Priolo-Melilli"
+ },
+ "S12349": {
+  "eva": "08300338",
+  "name": "Siracusa"
+ },
+ "S12353": {
+  "eva": "08300843",
+  "name": "Targia"
+ },
+ "S12355": {
+  "eva": "08302958",
+  "name": "Contesse"
+ },
+ "S12370": {
+  "eva": "08300300",
+  "name": "Aragona-Caldare"
+ },
+ "S12372": {
+  "eva": "08300527",
+  "name": "Grotte"
+ },
+ "S12373": {
+  "eva": "08300528",
+  "name": "Racalmuto"
+ },
+ "S12375": {
+  "eva": "08300305",
+  "name": "Canicatti"
+ },
+ "S12380": {
+  "eva": "08300304",
+  "name": "Caltanissetta Xirbi"
+ },
+ "S12381": {
+  "eva": "08300303",
+  "name": "Caltanissetta Centrale"
+ },
+ "S12382": {
+  "eva": "08300531",
+  "name": "San Cataldo"
+ },
+ "S12383": {
+  "eva": "08300529",
+  "name": "Serradifalco"
+ },
+ "S12385": {
+  "eva": "08302485",
+  "name": "Campobello Ravanusa"
+ },
+ "S12392": {
+  "eva": "08300423",
+  "name": "Niscemi"
+ },
+ "S12400": {
+  "eva": "08300380",
+  "name": "Licata"
+ },
+ "S12405": {
+  "eva": "08302532",
+  "name": "Falconara"
+ },
+ "S12407": {
+  "eva": "08300310",
+  "name": "Gela"
+ },
+ "S12409": {
+  "eva": "08302445",
+  "name": "Acate"
+ },
+ "S12410": {
+  "eva": "08300491",
+  "name": "Vittoria"
+ },
+ "S12411": {
+  "eva": "08302524",
+  "name": "Comiso"
+ },
+ "S12412": {
+  "eva": "08302530",
+  "name": "Donnafugata"
+ },
+ "S12414": {
+  "eva": "08300336",
+  "name": "Ragusa"
+ },
+ "S12417": {
+  "eva": "08300462",
+  "name": "Modica"
+ },
+ "S12418": {
+  "eva": "08302695",
+  "name": "Scicli"
+ },
+ "S12419": {
+  "eva": "08302686",
+  "name": "Sampieri"
+ },
+ "S12420": {
+  "eva": "08302642",
+  "name": "Pozzallo"
+ },
+ "S12421": {
+  "eva": "08302562",
+  "name": "Ispica"
+ },
+ "S12422": {
+  "eva": "08302660",
+  "name": "Rosolini"
+ },
+ "S12424": {
+  "eva": "08302609",
+  "name": "Noto"
+ },
+ "S12426": {
+  "eva": "08302461",
+  "name": "Avola"
+ },
+ "S12799": {
+  "eva": "08358110",
+  "name": "Carini Torre Ciachea"
+ },
+ "S12802": {
+  "eva": "08300037",
+  "name": "Porto Torres"
+ },
+ "S12803": {
+  "eva": "08312803",
+  "name": "Porto Torres Marittima"
+ },
+ "S12807": {
+  "eva": "08300032",
+  "name": "Sassari"
+ },
+ "S12808": {
+  "eva": "08312808",
+  "name": "Assemini Santa Lucia"
+ },
+ "S12809": {
+  "eva": "08312809",
+  "name": "Assemini Carmine"
+ },
+ "S12810": {
+  "eva": "08312810",
+  "name": "Cagliari Santa Gilla"
+ },
+ "S12814": {
+  "eva": "08302078",
+  "name": "Scala di Giocca"
+ },
+ "S12816": {
+  "eva": "08301906",
+  "name": "Ploaghe"
+ },
+ "S12818": {
+  "eva": "08312818",
+  "name": "Carbonia Serbariu"
+ },
+ "S12819": {
+  "eva": "08312819",
+  "name": "Elmas Aeroporto"
+ },
+ "S12851": {
+  "eva": "08302073",
+  "name": "Cala Sabina"
+ },
+ "S12852": {
+  "eva": "08300518",
+  "name": "Golfo Aranci"
+ },
+ "S12854": {
+  "eva": "08301760",
+  "name": "Marinella"
+ },
+ "S12855": {
+  "eva": "08300452",
+  "name": "Olbia"
+ },
+ "S12856": {
+  "eva": "08301490",
+  "name": "Enas"
+ },
+ "S12857": {
+  "eva": "08301777",
+  "name": "Monti-Telti"
+ },
+ "S12859": {
+  "eva": "08301197",
+  "name": "Berchidda"
+ },
+ "S12860": {
+  "eva": "08300468",
+  "name": "Oschiri"
+ },
+ "S12862": {
+  "eva": "08300469",
+  "name": "Ozieri-Chilivani"
+ },
+ "S12866": {
+  "eva": "08301569",
+  "name": "Giave"
+ },
+ "S12867": {
+  "eva": "08301225",
+  "name": "Bonorva"
+ },
+ "S12869": {
+  "eva": "08300456",
+  "name": "Macomer"
+ },
+ "S12872": {
+  "eva": "08301227",
+  "name": "Borore"
+ },
+ "S12873": {
+  "eva": "08300805",
+  "name": "Abbasanta"
+ },
+ "S12874": {
+  "eva": "08301858",
+  "name": "Paulilatino"
+ },
+ "S12876": {
+  "eva": "08302215",
+  "name": "Solarussa"
+ },
+ "S12878": {
+  "eva": "08300038",
+  "name": "Oristano"
+ },
+ "S12879": {
+  "eva": "08301774",
+  "name": "Marrubiu-Terralba-Arborea"
+ },
+ "S12880": {
+  "eva": "08302295",
+  "name": "Uras-Mogoro"
+ },
+ "S12881": {
+  "eva": "08301851",
+  "name": "Pabillonis"
+ },
+ "S12882": {
+  "eva": "08300480",
+  "name": "San Gavino"
+ },
+ "S12883": {
+  "eva": "08302203",
+  "name": "Sanluri Stato"
+ },
+ "S12885": {
+  "eva": "08302130",
+  "name": "Samassi-Serrenti"
+ },
+ "S12886": {
+  "eva": "08302165",
+  "name": "Serramanna-Nuraminis"
+ },
+ "S12887": {
+  "eva": "08302332",
+  "name": "Villasor"
+ },
+ "S12888": {
+  "eva": "08300376",
+  "name": "Decimomannu"
+ },
+ "S12889": {
+  "eva": "08301163",
+  "name": "Assemini"
+ },
+ "S12890": {
+  "eva": "08300949",
+  "name": "Cagliari Elmas"
+ },
+ "S12891": {
+  "eva": "08300039",
+  "name": "Cagliari"
+ },
+ "S12895": {
+  "eva": "08302046",
+  "name": "Rudalza"
+ },
+ "S12896": {
+  "eva": "08302216",
+  "name": "Su Canale"
+ },
+ "S12950": {
+  "eva": "08300948",
+  "name": "Iglesias"
+ },
+ "S12952": {
+  "eva": "08300944",
+  "name": "Villamassargia-Domusnovas"
+ },
+ "S12954": {
+  "eva": "08302129",
+  "name": "Siliqua"
+ },
+ "S12956": {
+  "eva": "08302344",
+  "name": "Villaspeciosa-Uta"
+ },
+ "S12972": {
+  "eva": "08312972",
+  "name": "Carbonia Stato"
+ },
+ "S13653": {
+  "eva": "08300864",
+  "name": "Maccagno"
+ },
+ "S17451": {
+  "eva": "08317451",
+  "name": "Brescia Violino"
+ }
+}

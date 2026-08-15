@@ -1,0 +1,1018 @@
+[
+ {
+  "code": "S00034",
+  "name": "MORTARA"
+ },
+ {
+  "code": "S00035",
+  "name": "TORINO PORTA SUSA"
+ },
+ {
+  "code": "S00060",
+  "name": "TORINO REBAUDENGO FOSSATA"
+ },
+ {
+  "code": "S00219",
+  "name": "TORINO PORTA NUOVA"
+ },
+ {
+  "code": "S00232",
+  "name": "CHIVASSO"
+ },
+ {
+  "code": "S00248",
+  "name": "NOVARA"
+ },
+ {
+  "code": "S00452",
+  "name": "TORINO LINGOTTO"
+ },
+ {
+  "code": "S00453",
+  "name": "MONCALIERI"
+ },
+ {
+  "code": "S00455",
+  "name": "TROFARELLO"
+ },
+ {
+  "code": "S00470",
+  "name": "ALESSANDRIA"
+ },
+ {
+  "code": "S00601",
+  "name": "CARMAGNOLA"
+ },
+ {
+  "code": "S01020",
+  "name": "ARONA"
+ },
+ {
+  "code": "S01021",
+  "name": "ISEO"
+ },
+ {
+  "code": "S01022",
+  "name": "MILANO TIBALDI UNIVERSITA' BOCCONI"
+ },
+ {
+  "code": "S01030",
+  "name": "GALLARATE"
+ },
+ {
+  "code": "S01031",
+  "name": "BUSTO ARSIZIO"
+ },
+ {
+  "code": "S01032",
+  "name": "MILANO ROMOLO"
+ },
+ {
+  "code": "S01033",
+  "name": "LEGNANO"
+ },
+ {
+  "code": "S01034",
+  "name": "CANEGRATE"
+ },
+ {
+  "code": "S01035",
+  "name": "PARABIAGO"
+ },
+ {
+  "code": "S01036",
+  "name": "VANZAGO POGLIANO"
+ },
+ {
+  "code": "S01037",
+  "name": "RHO"
+ },
+ {
+  "code": "S01039",
+  "name": "RHO FIERA"
+ },
+ {
+  "code": "S01040",
+  "name": "MAGENTA"
+ },
+ {
+  "code": "S01041",
+  "name": "CORBETTA-S.STEFANO TICINO"
+ },
+ {
+  "code": "S01042",
+  "name": "VITTUONE ARLUNO"
+ },
+ {
+  "code": "S01058",
+  "name": "PREGNANA MILANESE"
+ },
+ {
+  "code": "S01059",
+  "name": "ALBAIRATE-VERMEZZO"
+ },
+ {
+  "code": "S01063",
+  "name": "GAGGIANO"
+ },
+ {
+  "code": "S01066",
+  "name": "MILANO CADORNA"
+ },
+ {
+  "code": "S01067",
+  "name": "MILANO DOMODOSSOLA"
+ },
+ {
+  "code": "S01070",
+  "name": "NOVATE MILANESE"
+ },
+ {
+  "code": "S01071",
+  "name": "BOLLATE CENTRO"
+ },
+ {
+  "code": "S01072",
+  "name": "BOLLATE NORD"
+ },
+ {
+  "code": "S01073",
+  "name": "GARBAGNATE PARCO DELLE GROANE"
+ },
+ {
+  "code": "S01074",
+  "name": "GARBAGNATE MILANESE"
+ },
+ {
+  "code": "S01075",
+  "name": "CESATE"
+ },
+ {
+  "code": "S01076",
+  "name": "CARONNO PERTUSELLA"
+ },
+ {
+  "code": "S01077",
+  "name": "SARONNO SUD"
+ },
+ {
+  "code": "S01078",
+  "name": "MILANO AFFORI"
+ },
+ {
+  "code": "S01079",
+  "name": "MILANO BRUZZANO PARCO NORD"
+ },
+ {
+  "code": "S01082",
+  "name": "PADERNO DUGNANO"
+ },
+ {
+  "code": "S01083",
+  "name": "PALAZZOLO MILANESE"
+ },
+ {
+  "code": "S01085",
+  "name": "BOVISIO MASCIAGO"
+ },
+ {
+  "code": "S01086",
+  "name": "CESANO MADERNO"
+ },
+ {
+  "code": "S01109",
+  "name": "CORMANO-CUSANO MILANINO"
+ },
+ {
+  "code": "S01135",
+  "name": "RESCALDINA"
+ },
+ {
+  "code": "S01136",
+  "name": "CASTELLANZA"
+ },
+ {
+  "code": "S01137",
+  "name": "BUSTO ARSIZIO NORD"
+ },
+ {
+  "code": "S01138",
+  "name": "FERNO - LONATE POZZOLO"
+ },
+ {
+  "code": "S01139",
+  "name": "MALPENSA AEROPORTO TERMINAL 1"
+ },
+ {
+  "code": "S01146",
+  "name": "MALPENSA AEROPORTO TERMINAL 2"
+ },
+ {
+  "code": "S01203",
+  "name": "ARCISATE"
+ },
+ {
+  "code": "S01204",
+  "name": "INDUNO OLONA"
+ },
+ {
+  "code": "S01205",
+  "name": "VARESE"
+ },
+ {
+  "code": "S01207",
+  "name": "GAZZADA SCHIANNO MORAZZONE"
+ },
+ {
+  "code": "S01208",
+  "name": "CASTRONNO"
+ },
+ {
+  "code": "S01209",
+  "name": "ALBIZZATE SOLBIATE ARNO"
+ },
+ {
+  "code": "S01210",
+  "name": "CAVARIA OGGIONA IERAGO"
+ },
+ {
+  "code": "S01307",
+  "name": "COMO S.GIOVANNI"
+ },
+ {
+  "code": "S01308",
+  "name": "COMO CAMERLATA"
+ },
+ {
+  "code": "S01312",
+  "name": "CUCCIAGO"
+ },
+ {
+  "code": "S01313",
+  "name": "CANTU'-CERMENATE"
+ },
+ {
+  "code": "S01315",
+  "name": "CARIMATE"
+ },
+ {
+  "code": "S01316",
+  "name": "CAMNAGO-LENTATE"
+ },
+ {
+  "code": "S01318",
+  "name": "SEREGNO"
+ },
+ {
+  "code": "S01320",
+  "name": "DESIO"
+ },
+ {
+  "code": "S01321",
+  "name": "LISSONE-MUGGIO'"
+ },
+ {
+  "code": "S01322",
+  "name": "MONZA"
+ },
+ {
+  "code": "S01325",
+  "name": "SESTO S.GIOVANNI"
+ },
+ {
+  "code": "S01326",
+  "name": "MILANO GRECO PIRELLI"
+ },
+ {
+  "code": "S01409",
+  "name": "BELLANO TARTAVALLE TERME"
+ },
+ {
+  "code": "S01411",
+  "name": "VARENNA ESINO"
+ },
+ {
+  "code": "S01415",
+  "name": "MANDELLO DEL LARIO"
+ },
+ {
+  "code": "S01420",
+  "name": "COLICO"
+ },
+ {
+  "code": "S01440",
+  "name": "TIRANO"
+ },
+ {
+  "code": "S01492",
+  "name": "MILANO FORLANINI"
+ },
+ {
+  "code": "S01510",
+  "name": "ARCORE"
+ },
+ {
+  "code": "S01511",
+  "name": "CARNATE USMATE"
+ },
+ {
+  "code": "S01520",
+  "name": "LECCO"
+ },
+ {
+  "code": "S01600",
+  "name": "VERDELLO DALMINE"
+ },
+ {
+  "code": "S01630",
+  "name": "MILANO S.CRISTOFORO"
+ },
+ {
+  "code": "S01632",
+  "name": "MILANO SCALO ROMANA"
+ },
+ {
+  "code": "S01642",
+  "name": "MILANO BOVISA POLITECNICO"
+ },
+ {
+  "code": "S01645",
+  "name": "MILANO PORTA GARIBALDI"
+ },
+ {
+  "code": "S01700",
+  "name": "MILANO CENTRALE"
+ },
+ {
+  "code": "S01701",
+  "name": "MILANO LAMBRATE"
+ },
+ {
+  "code": "S01703",
+  "name": "PIOLTELLO LIMITO"
+ },
+ {
+  "code": "S01708",
+  "name": "TREVIGLIO"
+ },
+ {
+  "code": "S01714",
+  "name": "ROVATO"
+ },
+ {
+  "code": "S01715",
+  "name": "SEGRATE"
+ },
+ {
+  "code": "S01717",
+  "name": "BRESCIA"
+ },
+ {
+  "code": "S01801",
+  "name": "LOCATE TRIULZI"
+ },
+ {
+  "code": "S01802",
+  "name": "VILLAMAGGIORE"
+ },
+ {
+  "code": "S01820",
+  "name": "MILANO ROGOREDO"
+ },
+ {
+  "code": "S01821",
+  "name": "S.GIULIANO MILANESE"
+ },
+ {
+  "code": "S01822",
+  "name": "MELEGNANO"
+ },
+ {
+  "code": "S01823",
+  "name": "S.ZENONE AL LAMBRO"
+ },
+ {
+  "code": "S01824",
+  "name": "TAVAZZANO"
+ },
+ {
+  "code": "S01825",
+  "name": "LODI"
+ },
+ {
+  "code": "S01827",
+  "name": "CASALPUSTERLENGO"
+ },
+ {
+  "code": "S01828",
+  "name": "CODOGNO"
+ },
+ {
+  "code": "S01860",
+  "name": "PAVIA"
+ },
+ {
+  "code": "S01925",
+  "name": "SEVESO"
+ },
+ {
+  "code": "S01929",
+  "name": "SEVESO BARUCCANA"
+ },
+ {
+  "code": "S01933",
+  "name": "SARONNO"
+ },
+ {
+  "code": "S01934",
+  "name": "CERIANO LAGHETTO - SOLARO"
+ },
+ {
+  "code": "S02011",
+  "name": "FORTEZZA"
+ },
+ {
+  "code": "S02014",
+  "name": "BRESSANONE"
+ },
+ {
+  "code": "S02026",
+  "name": "BOLZANO"
+ },
+ {
+  "code": "S02031",
+  "name": "ORA"
+ },
+ {
+  "code": "S02035",
+  "name": "MEZZOCORONA"
+ },
+ {
+  "code": "S02038",
+  "name": "TRENTO"
+ },
+ {
+  "code": "S02084",
+  "name": "DESENZANO DEL GARDA-SIRMIONE"
+ },
+ {
+  "code": "S02088",
+  "name": "PESCHIERA DEL GARDA"
+ },
+ {
+  "code": "S02314",
+  "name": "BORGO VALSUGANA EST"
+ },
+ {
+  "code": "S02430",
+  "name": "VERONA PORTA NUOVA"
+ },
+ {
+  "code": "S02537",
+  "name": "CASTELFRANCO VENETO"
+ },
+ {
+  "code": "S02581",
+  "name": "PADOVA"
+ },
+ {
+  "code": "S02589",
+  "name": "VENEZIA MESTRE"
+ },
+ {
+  "code": "S02592",
+  "name": "VENEZIA PORTO MARGHERA"
+ },
+ {
+  "code": "S02593",
+  "name": "VENEZIA S.LUCIA"
+ },
+ {
+  "code": "S02664",
+  "name": "S.STINO DI LIVENZA"
+ },
+ {
+  "code": "S02666",
+  "name": "S.DONA' DI PIAVE-JESOLO"
+ },
+ {
+  "code": "S02712",
+  "name": "TREVISO CENTRALE"
+ },
+ {
+  "code": "S02717",
+  "name": "MOGLIANO VENETO"
+ },
+ {
+  "code": "S03026",
+  "name": "UDINE"
+ },
+ {
+  "code": "S03200",
+  "name": "PORTOGRUARO CAORLE"
+ },
+ {
+  "code": "S03213",
+  "name": "TRIESTE AIRPORT"
+ },
+ {
+  "code": "S03304",
+  "name": "GORIZIA CENTRALE"
+ },
+ {
+  "code": "S03310",
+  "name": "MONFALCONE"
+ },
+ {
+  "code": "S03317",
+  "name": "TRIESTE CENTRALE"
+ },
+ {
+  "code": "S04211",
+  "name": "RONCO SCRIVIA"
+ },
+ {
+  "code": "S04220",
+  "name": "GENOVA SAMPIERDARENA"
+ },
+ {
+  "code": "S04516",
+  "name": "ALBENGA"
+ },
+ {
+  "code": "S04519",
+  "name": "LOANO"
+ },
+ {
+  "code": "S04520",
+  "name": "PIETRA LIGURE"
+ },
+ {
+  "code": "S04522",
+  "name": "FINALE LIGURE MARINA"
+ },
+ {
+  "code": "S04523",
+  "name": "IMPERIA"
+ },
+ {
+  "code": "S04529",
+  "name": "ALBISOLA"
+ },
+ {
+  "code": "S04530",
+  "name": "CELLE"
+ },
+ {
+  "code": "S04531",
+  "name": "VARAZZE"
+ },
+ {
+  "code": "S04532",
+  "name": "COGOLETO"
+ },
+ {
+  "code": "S04533",
+  "name": "ARENZANO"
+ },
+ {
+  "code": "S04534",
+  "name": "GENOVA VOLTRI"
+ },
+ {
+  "code": "S04537",
+  "name": "GENOVA SESTRI PONENTE AEROPORTO"
+ },
+ {
+  "code": "S04700",
+  "name": "GENOVA PIAZZA PRINCIPE"
+ },
+ {
+  "code": "S04702",
+  "name": "GENOVA BRIGNOLE"
+ },
+ {
+  "code": "S04707",
+  "name": "GENOVA NERVI"
+ },
+ {
+  "code": "S04714",
+  "name": "RECCO"
+ },
+ {
+  "code": "S04718",
+  "name": "S.MARGHERITA LIGURE PORTOFINO"
+ },
+ {
+  "code": "S04720",
+  "name": "RAPALLO"
+ },
+ {
+  "code": "S04722",
+  "name": "CHIAVARI"
+ },
+ {
+  "code": "S04725",
+  "name": "SESTRI LEVANTE"
+ },
+ {
+  "code": "S04727",
+  "name": "MONEGLIA"
+ },
+ {
+  "code": "S04728",
+  "name": "DEIVA MARINA"
+ },
+ {
+  "code": "S04731",
+  "name": "LEVANTO"
+ },
+ {
+  "code": "S04732",
+  "name": "MONTEROSSO"
+ },
+ {
+  "code": "S04733",
+  "name": "VERNAZZA"
+ },
+ {
+  "code": "S04734",
+  "name": "CORNIGLIA"
+ },
+ {
+  "code": "S04735",
+  "name": "MANAROLA"
+ },
+ {
+  "code": "S04736",
+  "name": "RIOMAGGIORE"
+ },
+ {
+  "code": "S04801",
+  "name": "SAVONA"
+ },
+ {
+  "code": "S05000",
+  "name": "PIACENZA"
+ },
+ {
+  "code": "S05007",
+  "name": "FIORENZUOLA"
+ },
+ {
+  "code": "S05009",
+  "name": "FIDENZA"
+ },
+ {
+  "code": "S05014",
+  "name": "PARMA"
+ },
+ {
+  "code": "S05023",
+  "name": "REGGIO EMILIA"
+ },
+ {
+  "code": "S05032",
+  "name": "MODENA"
+ },
+ {
+  "code": "S05037",
+  "name": "CASTELFRANCO EMILIA"
+ },
+ {
+  "code": "S05043",
+  "name": "BOLOGNA CENTRALE"
+ },
+ {
+  "code": "S05054",
+  "name": "IMOLA"
+ },
+ {
+  "code": "S05056",
+  "name": "CASTELBOLOGNESE-RIOLO TERME"
+ },
+ {
+  "code": "S05058",
+  "name": "FAENZA"
+ },
+ {
+  "code": "S05059",
+  "name": "FORLI'"
+ },
+ {
+  "code": "S05066",
+  "name": "CESENA"
+ },
+ {
+  "code": "S05071",
+  "name": "RIMINI"
+ },
+ {
+  "code": "S05703",
+  "name": "MONSELICE"
+ },
+ {
+  "code": "S05706",
+  "name": "ROVIGO"
+ },
+ {
+  "code": "S05712",
+  "name": "FERRARA"
+ },
+ {
+  "code": "S05814",
+  "name": "CERVIA-MILANO MARITTIMA"
+ },
+ {
+  "code": "S05818",
+  "name": "IGEA MARINA"
+ },
+ {
+  "code": "S06000",
+  "name": "LA SPEZIA CENTRALE"
+ },
+ {
+  "code": "S06004",
+  "name": "LA SPEZIA MIGLIARINA"
+ },
+ {
+  "code": "S06007",
+  "name": "SARZANA"
+ },
+ {
+  "code": "S06009",
+  "name": "MASSA CENTRO"
+ },
+ {
+  "code": "S06031",
+  "name": "CAMPIGLIA MARITTIMA"
+ },
+ {
+  "code": "S06040",
+  "name": "VIAREGGIO"
+ },
+ {
+  "code": "S06171",
+  "name": "VEZZANO LIGURE"
+ },
+ {
+  "code": "S06412",
+  "name": "MONTECATINI CENTRO"
+ },
+ {
+  "code": "S06416",
+  "name": "PRATO CENTRALE"
+ },
+ {
+  "code": "S06420",
+  "name": "FIRENZE RIFREDI"
+ },
+ {
+  "code": "S06421",
+  "name": "FIRENZE SANTA MARIA NOVELLA"
+ },
+ {
+  "code": "S06500",
+  "name": "PISA CENTRALE"
+ },
+ {
+  "code": "S06501",
+  "name": "PISA/BINARI PISA S.ROSSORE"
+ },
+ {
+  "code": "S06506",
+  "name": "PONTEDERA CASCIANA TERME"
+ },
+ {
+  "code": "S06510",
+  "name": "EMPOLI"
+ },
+ {
+  "code": "S06725",
+  "name": "LIVORNO CENTRALE"
+ },
+ {
+  "code": "S07101",
+  "name": "RICCIONE"
+ },
+ {
+  "code": "S07102",
+  "name": "CATTOLICA S.GIOVANNI GABICCE"
+ },
+ {
+  "code": "S07104",
+  "name": "PESARO"
+ },
+ {
+  "code": "S07111",
+  "name": "FALCONARA MARITTIMA"
+ },
+ {
+  "code": "S07113",
+  "name": "ANCONA"
+ },
+ {
+  "code": "S07513",
+  "name": "S.BENEDETTO DEL TRONTO"
+ },
+ {
+  "code": "S07810",
+  "name": "PESCARA"
+ },
+ {
+  "code": "S08004",
+  "name": "ORBETELLO-MONTE ARGENTARIO"
+ },
+ {
+  "code": "S08010",
+  "name": "CIVITAVECCHIA"
+ },
+ {
+  "code": "S08215",
+  "name": "MONTEROTONDO-MENTANA"
+ },
+ {
+  "code": "S08217",
+  "name": "ROMA TIBURTINA"
+ },
+ {
+  "code": "S08323",
+  "name": "ROMA S.PIETRO"
+ },
+ {
+  "code": "S08405",
+  "name": "ROMA TRASTEVERE"
+ },
+ {
+  "code": "S08406",
+  "name": "ROMA OSTIENSE"
+ },
+ {
+  "code": "S08409",
+  "name": "ROMA TERMINI"
+ },
+ {
+  "code": "S08411",
+  "name": "FIUMICINO AEROPORTO"
+ },
+ {
+  "code": "S08602",
+  "name": "CAMPOLEONE"
+ },
+ {
+  "code": "S08640",
+  "name": "FORMIA-GAETA"
+ },
+ {
+  "code": "S08650",
+  "name": "CIAMPINO"
+ },
+ {
+  "code": "S09103",
+  "name": "NAPOLI CAMPI FLEGREI"
+ },
+ {
+  "code": "S09104",
+  "name": "NAPOLI PIAZZA LEOPARDI"
+ },
+ {
+  "code": "S09105",
+  "name": "NAPOLI MERGELLINA"
+ },
+ {
+  "code": "S09106",
+  "name": "NAPOLI PIAZZA AMEDEO"
+ },
+ {
+  "code": "S09108",
+  "name": "NAPOLI PIAZZA CAVOUR"
+ },
+ {
+  "code": "S09109",
+  "name": "NAPOLI PIAZZA GARIBALDI"
+ },
+ {
+  "code": "S09110",
+  "name": "NAPOLI GIANTURCO"
+ },
+ {
+  "code": "S09218",
+  "name": "NAPOLI CENTRALE"
+ },
+ {
+  "code": "S09311",
+  "name": "BENEVENTO"
+ },
+ {
+  "code": "S09800",
+  "name": "NAPOLI S.GIOVANNI BARRA"
+ },
+ {
+  "code": "S09818",
+  "name": "SALERNO"
+ },
+ {
+  "code": "S09838",
+  "name": "ARBOSTELLA"
+ },
+ {
+  "code": "S11100",
+  "name": "FOGGIA"
+ },
+ {
+  "code": "S11136",
+  "name": "BRINDISI"
+ },
+ {
+  "code": "S11145",
+  "name": "LECCE"
+ },
+ {
+  "code": "S11420",
+  "name": "POTENZA CENTRALE"
+ },
+ {
+  "code": "S11465",
+  "name": "TARANTO"
+ },
+ {
+  "code": "S11515",
+  "name": "MODUGNO CITTA'"
+ },
+ {
+  "code": "S11705",
+  "name": "AGROPOLI CASTELLABATE"
+ },
+ {
+  "code": "S11721",
+  "name": "SAPRI"
+ },
+ {
+  "code": "S11739",
+  "name": "PAOLA"
+ },
+ {
+  "code": "S11749",
+  "name": "LAMEZIA TERME CENTRALE"
+ },
+ {
+  "code": "S11781",
+  "name": "REGGIO DI CALABRIA CENTRALE"
+ },
+ {
+  "code": "S11823",
+  "name": "CROTONE"
+ },
+ {
+  "code": "S11956",
+  "name": "CATANZARO"
+ },
+ {
+  "code": "S12002",
+  "name": "PALERMO CENTRALE"
+ },
+ {
+  "code": "S12031",
+  "name": "BROLO FICARRA"
+ },
+ {
+  "code": "S12037",
+  "name": "OLIVERI TINDARI"
+ },
+ {
+  "code": "S12216",
+  "name": "AGRIGENTO CENTRALE"
+ },
+ {
+  "code": "S12301",
+  "name": "MESSINA CENTRALE"
+ },
+ {
+  "code": "S12332",
+  "name": "CATANIA CENTRALE"
+ },
+ {
+  "code": "S12349",
+  "name": "SIRACUSA"
+ },
+ {
+  "code": "S12807",
+  "name": "SASSARI"
+ },
+ {
+  "code": "S12819",
+  "name": "ELMAS AEROPORTO"
+ },
+ {
+  "code": "S12855",
+  "name": "OLBIA"
+ },
+ {
+  "code": "S12878",
+  "name": "ORISTANO"
+ },
+ {
+  "code": "S12891",
+  "name": "CAGLIARI"
+ }
+]
