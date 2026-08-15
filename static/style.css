@@ -128,7 +128,8 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .dropdown div { padding: 9px 12px; cursor: pointer; font-size: 14px; }
 .dropdown div:hover, .dropdown div.active { background: var(--gray-bg); }
 .dropdown-item { display: flex; align-items: center; gap: 8px; }
-.dropdown-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* long station names wrap to a second line instead of truncating behind the star */
+.dropdown-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 /* negative margin buys a thumb-sized tap target without growing the row */
 .fav-star {
   flex: none; background: none; border: 0; line-height: 1;
