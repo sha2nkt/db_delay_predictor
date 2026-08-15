@@ -1,6 +1,6 @@
 ---
 name: commit-and-push
-description: Land finished work in this repo — commit, push the branch, merge into main, and remove the feature worktree. Use whenever the user gives the go-ahead to ship reviewed work ("commit and push", "push this", "ship it", "land it", "merge it"). Stops before deploying to delaybahn.com.
+description: Land finished work in this repo — commit, push the branch, merge into main, remove the feature worktree, and deploy to delaybahn.com. Use whenever the user gives the go-ahead to ship reviewed work ("commit and push", "push this", "ship it", "land it", "merge it"). Ends with the change live and /health verified.
 ---
 
 # Commit and push
@@ -8,7 +8,8 @@ description: Land finished work in this repo — commit, push the branch, merge 
 The user has reviewed the work and wants it landed. Run the whole sequence without
 asking for further confirmation — the go-ahead already covers every step below.
 
-Stop before deploying. Deploying is a separate ask.
+The sequence ends with the change live on delaybahn.com — the go-ahead covers the
+deploy too (user decision, 2026-08-15).
 
 If a step is denied by the permission classifier, stop and hand the remaining
 commands to the user. Do not reach for a different command that reaches the same
@@ -144,28 +145,46 @@ objects to untracked files, that is the deliberate scaffolding — the `data` sy
 `.env`, a `.venv` — and `--force` is the escape hatch, but read what it is about to
 discard before reaching for it.
 
-## 8. Report, do not deploy
+## 8. Deploy and verify
 
-State the merge commit on `main`, the buster versions that shipped, and that
-delaybahn.com is still serving the old build. Then hand over the deploy commands
-for the user to run themselves:
+Run this only after `main` is pushed. If anything earlier was aborted or denied,
+nothing new is on origin — stop and report instead of deploying the old build.
+
+Pull on the box (the quoted `EOF` matters: it keeps `$(date +%s)` and `$STASHED`
+from being expanded by the *local* shell before ssh ever sends them — the remote
+stash guard silently breaks otherwise):
 
 ```bash
-ssh root@delaybahn_hetzner
-```
-
-```bash
-sudo -u stripathi -i bash -c '
+ssh root@delaybahn_hetzner 'sudo -u stripathi -i bash -s' <<'EOF'
 cd /home/stripathi/Documents/code_local/db_delay_predictor
 STASHED=
 git diff --quiet && git diff --cached --quiet || { git stash push -m deploy-$(date +%s) && STASHED=1; }
 git pull --no-rebase --no-edit https://github.com/sha2nkt/delay_bahn.git main
 [ -n "$STASHED" ] && git stash pop
 git log --oneline -1
-'
-systemctl restart delaybahn
-systemctl is-active delaybahn
+EOF
+```
+
+Check that `git log` line: it must show the merge commit just pushed. A pull that
+stopped on a conflict with server-side edits leaves the old build running — report
+it, do not force anything on the box.
+
+Then restart and verify:
+
+```bash
+ssh root@delaybahn_hetzner 'systemctl restart delaybahn && systemctl is-active delaybahn'
 curl -sS https://delaybahn.com/health
 ```
 
-Only run the deploy yourself if the user asks for it separately.
+`is-active` must print `active` and `/health` must answer `"ok":true`. If either
+fails, say so immediately with the output — the ntfy watchdog will also fire, but
+the user hears it from this session first. `curl` runs from this box on purpose:
+it proves the site through Cloudflare, not just locally on the server (mind the
+ps083 DNS quirk — use the documented workaround there if the curl misbehaves).
+
+## 9. Report
+
+State the merge commit on `main`, the buster versions that shipped, and the deploy
+verification: the commit `git log` showed on the box, `is-active`, and the `/health`
+body. For frontend changes, note that returning visitors pick up the new shell on
+their next load via the bumped `SHELL_VERSION`.
