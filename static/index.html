@@ -6,6 +6,18 @@
 <title>DelayBahn – DB Verbindungssuche mit Verspätungsstatistik</title>
 <meta name="description" content="DB-Verbindungen suchen und vorab sehen, wie pünktlich die Züge in den letzten Wochen wirklich waren. Verspätungs-Check für vergangene Reisen und Entschädigung nach EU-Fahrgastrechten.">
 <link rel="canonical" href="https://delaybahn.com/">
+<link rel="alternate" hreflang="de" href="https://delaybahn.com/">
+<link rel="alternate" hreflang="en" href="https://delaybahn.com/en/">
+<link rel="alternate" hreflang="x-default" href="https://delaybahn.com/">
+<script>
+// Returning visitors who once picked English land back on it. Crawlers have no
+// localStorage, so they always see the German URL this page is canonical for —
+// the redirect only ever moves a human who already made the choice.
+try {
+  var altUrl = {"/": "/en/", "/entschaedigung": "/en/compensation"}[location.pathname];
+  if (altUrl && localStorage.getItem("lang") === "en") location.replace(altUrl + location.search);
+} catch (e) {}
+</script>
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://delaybahn.com/">
 <meta property="og:site_name" content="DelayBahn">
@@ -38,7 +50,7 @@
   ]
 }
 </script>
-<link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#fd1c17">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -46,18 +58,18 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="style.css?v=64">
+<link rel="stylesheet" href="/style.css?v=65">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
 <header>
   <div class="header-inner">
-    <a class="logo-link" href="/"><img class="logo" src="logo.png?v=3" alt="DelayBahn"></a>
+    <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
     <span class="header-title"><span data-i18n="headerTitle">Verbindungssuche</span> <small data-i18n="headerSubtitle">mit Verspätungsstatistik</small><span class="tagline" data-i18n="tagline">Den Zug buchen, nicht die Verspätung</span></span>
     <a id="refund-nav" class="refund-nav" href="/entschaedigung" data-i18n="navRefund">Entschädigung beantragen</a>
     <div class="header-lang">
-      <button class="lang-btn active" data-lang="de">DE</button>
-      <button class="lang-btn" data-lang="en">EN</button>
+      <a href="/" hreflang="de" data-lang="de" class="lang-btn active">DE</a>
+      <a href="/en/" hreflang="en" data-lang="en" class="lang-btn">EN</a>
     </div>
   </div>
 </header>
@@ -324,7 +336,7 @@
 <footer class="site-footer">
   <a href="https://github.com/sha2nkt/delay_bahn" target="_blank" rel="noopener" data-i18n="footerOpenSource">Open Source – Quellcode auf GitHub</a> ·
   <span id="donate-footer-item"><a href="https://ko-fi.com/delaybahn" target="_blank" rel="noopener" id="donate-footer" data-i18n="footerDonate">☕ Spendier mir einen Kaffee</a> ·</span>
-  <a href="impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a> ·
+  <a href="/impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a> ·
   <a href="#" id="contact-link" data-i18n="footerContact">Kontakt</a>
   <p class="footer-data">
     <span data-i18n="footerData">Verspätungsdaten:</span>
@@ -338,7 +350,7 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=89"></script>
+<script src="/app.js?v=90"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

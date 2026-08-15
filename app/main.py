@@ -1,8 +1,11 @@
 import asyncio
+import json
 import re
 from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
+from functools import lru_cache
+from html import escape
 from math import ceil
 from pathlib import Path
 from typing import Literal
@@ -660,45 +663,230 @@ async def coverage():
     }
 
 
-# Past mode (compensation check) is indexable under its own URL. The homepage's
-# index.html stays the single source of truth: it is rewritten per request with
-# past-specific head tags and the past-mode body class, so the two pages can
-# never drift apart.
-PAST_URL = "https://delaybahn.com/entschaedigung"
-PAST_TITLE = "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen | DelayBahn"
-PAST_DESCRIPTION = (
-    "Vergangene DB-Reise eingeben und sehen, wie sie wirklich verlief: Verspätungen, "
-    "verpasste Anschlüsse und Entschädigung nach EU-Fahrgastrechten – "
-    "25 % ab 60 min, 50 % ab 120 min Verspätung am Ziel."
+# Every (mode, language) pair is its own indexable URL, so Google can rank the
+# German and English versions separately instead of seeing one page whose text a
+# JS toggle rewrites. German keeps the existing URLs; English lives under /en/.
+# static/index.html stays the single source of truth for the markup — it *is* the
+# German homepage, and the other three variants are that same file with its head
+# tags, body class and language-dependent links rewritten per request, so the
+# pages can never drift apart.
+SITE = "https://delaybahn.com"
+
+PAGE_PATHS = {
+    ("future", "de"): "/",
+    ("future", "en"): "/en/",
+    ("past", "de"): "/entschaedigung",
+    ("past", "en"): "/en/compensation",
+}
+
+OG_LOCALE = {"de": "de_DE", "en": "en_US"}
+
+# (title, meta description, og:description) per variant. The titles mirror
+# I18N.pageTitle / pageTitlePast in static/app.js, which retitles the tab on load.
+# The German homepage is served straight from index.html rather than rendered, so
+# its entry is what that file's head has to say — keep the two in step.
+PAGE_META = {
+    ("future", "de"): (
+        "DelayBahn – DB Verbindungssuche mit Verspätungsstatistik",
+        "DB-Verbindungen suchen und vorab sehen, wie pünktlich die Züge in den letzten "
+        "Wochen wirklich waren. Verspätungs-Check für vergangene Reisen und "
+        "Entschädigung nach EU-Fahrgastrechten.",
+        "DB-Verbindungen suchen und vorab sehen, wie pünktlich die Züge in den letzten "
+        "Wochen wirklich waren. Den Zug buchen, nicht die Verspätung.",
+    ),
+    ("future", "en"): (
+        "DelayBahn – DB Connection Search with Delay Statistics",
+        "Search Deutsche Bahn connections and see up front how punctual the trains "
+        "really were over the past weeks. Delay check for past journeys and "
+        "compensation under EU passenger rights.",
+        "Search DB connections and see up front how punctual the trains really were. "
+        "Book the train, not the delay.",
+    ),
+    ("past", "de"): (
+        "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen | DelayBahn",
+        "Vergangene DB-Reise eingeben und sehen, wie sie wirklich verlief: Verspätungen, "
+        "verpasste Anschlüsse und Entschädigung nach EU-Fahrgastrechten – "
+        "25 % ab 60 min, 50 % ab 120 min Verspätung am Ziel.",
+        "Vergangene DB-Reise eingeben und sehen, wie sie wirklich verlief: Verspätungen, "
+        "verpasste Anschlüsse und Entschädigung nach EU-Fahrgastrechten – "
+        "25 % ab 60 min, 50 % ab 120 min Verspätung am Ziel.",
+    ),
+    ("past", "en"): (
+        "Check DB delay compensation – delay check for past journeys | DelayBahn",
+        "Enter a past Deutsche Bahn journey and see how it actually went: delays, missed "
+        "connections and compensation under EU passenger rights – 25% from 60 min, "
+        "50% from 120 min delay on arrival.",
+        "Enter a past Deutsche Bahn journey and see how it actually went: delays, missed "
+        "connections and compensation under EU passenger rights – 25% from 60 min, "
+        "50% from 120 min delay on arrival.",
+    ),
+}
+
+EN_APP_DESCRIPTION = (
+    "DB connection search with delay statistics: shows for every connection how "
+    "punctual the trains were over the past weeks, and checks past journeys for "
+    "delays and compensation claims."
 )
 
 
-def _past_page_html() -> str:
+# One `key: "text",` entry of I18N.en in static/app.js. Parameterised entries are
+# arrow functions and deliberately don't match — they need runtime values anyway.
+_EN_ENTRY = re.compile(r'^    ([A-Za-z0-9_]+): "((?:[^"\\]|\\.)*)",$', re.M)
+# an element carrying data-i18n; its content is plain text (no nested markup)
+_I18N_EL = re.compile(
+    r'(?P<open><(?P<tag>\w+)[^<>]*\sdata-i18n="(?P<key>[A-Za-z0-9_]+)"[^<>]*>)'
+    r"[^<>]*(?P<close></(?P=tag)>)"
+)
+
+
+@lru_cache(maxsize=1)
+def _en_strings() -> dict[str, str]:
+    """The plain English strings from I18N.en in static/app.js.
+
+    app.js translates the page on load, but then the markup a crawler fetches is
+    German on an English URL until it renders the JS. Reusing the same table
+    server-side means /en/ ships English text without a second copy of it.
+    Anything not parsed here just stays German until app.js runs.
+    """
+    src = (STATIC_DIR / "app.js").read_text(encoding="utf-8")
+    try:
+        start = src.index("\n  en: {", src.index("const I18N = {"))
+        block = src[start : src.index("\n  },\n", start)]
+    except ValueError:
+        return {}
+    return {
+        key: json.loads(f'"{raw}"')  # the entry is a JS string literal: unescape it
+        for key, raw in _EN_ENTRY.findall(block)
+    }
+
+
+def _translate(html: str) -> str:
+    strings = _en_strings()
+
+    def sub(m: re.Match[str]) -> str:
+        text = strings.get(m["key"])
+        return m[0] if text is None else m["open"] + escape(text) + m["close"]
+
+    return _I18N_EL.sub(sub, html)
+
+
+def _page_html(mode: str, lang: str) -> str:
+    """Render one (mode, language) variant of the single-page app from index.html."""
     html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
-    for pattern, repl in (
-        (r"<title>[^<]*</title>", f"<title>{PAST_TITLE}</title>"),
-        (r'(<meta name="description" content=")[^"]*', rf"\g<1>{PAST_DESCRIPTION}"),
-        (r'(<link rel="canonical" href=")[^"]*', rf"\g<1>{PAST_URL}"),
-        (r'(<meta property="og:url" content=")[^"]*', rf"\g<1>{PAST_URL}"),
-        (r'(<meta property="og:title" content=")[^"]*', rf"\g<1>{PAST_TITLE}"),
-        (r'(<meta property="og:description" content=")[^"]*', rf"\g<1>{PAST_DESCRIPTION}"),
-        (r"<body>", '<body class="past-mode">'),
-        # the sub-page's heading is the past banner title
-        (r'<strong data-i18n="pastTitle">([^<]*)</strong>', r'<h1 data-i18n="pastTitle">\1</h1>'),
-    ):
+    title, description, og_description = PAGE_META[(mode, lang)]
+    url = SITE + PAGE_PATHS[(mode, lang)]
+    home = PAGE_PATHS[("future", lang)]
+    past = PAGE_PATHS[("past", lang)]
+    subs = [
+        (r'<html lang="[^"]*"', f'<html lang="{lang}"'),
+        (r"<title>[^<]*</title>", f"<title>{title}</title>"),
+        (r'(<meta name="description" content=")[^"]*', rf"\g<1>{description}"),
+        (r'(<link rel="canonical" href=")[^"]*', rf"\g<1>{url}"),
+        # both languages of *this* page; x-default sends unmatched locales to German
+        (r'(<link rel="alternate" hreflang="de" href=")[^"]*',
+         rf"\g<1>{SITE}{PAGE_PATHS[(mode, 'de')]}"),
+        (r'(<link rel="alternate" hreflang="en" href=")[^"]*',
+         rf"\g<1>{SITE}{PAGE_PATHS[(mode, 'en')]}"),
+        (r'(<link rel="alternate" hreflang="x-default" href=")[^"]*',
+         rf"\g<1>{SITE}{PAGE_PATHS[(mode, 'de')]}"),
+        (r'(<meta property="og:url" content=")[^"]*', rf"\g<1>{url}"),
+        (r'(<meta property="og:title" content=")[^"]*', rf"\g<1>{title}"),
+        (r'(<meta property="og:description" content=")[^"]*', rf"\g<1>{og_description}"),
+        (r'(<meta property="og:locale" content=")[^"]*', rf"\g<1>{OG_LOCALE[lang]}"),
+        (r'(<meta property="og:locale:alternate" content=")[^"]*',
+         rf"\g<1>{OG_LOCALE['de' if lang == 'en' else 'en']}"),
+        # the toggle is a pair of real links, one per language URL of this page
+        (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{PAGE_PATHS[(mode, 'de')]}\g<2>"),
+        (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{PAGE_PATHS[(mode, 'en')]}\g<2>"),
+        # in-page navigation must stay inside the current language
+        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{home}"),
+        (r'(<a id="refund-nav" class="refund-nav" href=")[^"]*', rf"\g<1>{past}"),
+        (r'(<a id="refund-cta" class="refund-cta" href=")[^"]*', rf"\g<1>{past}"),
+        (r'(<a id="past-exit" class="past-exit" href=")[^"]*', rf"\g<1>{home}"),
+    ]
+    if lang == "en":
+        subs += [
+            (r'(<link rel="manifest" href=")[^"]*', r"\g<1>/en/manifest.json"),
+            (r'("description": ")DB-Verbindungssuche[^"]*', rf"\g<1>{EN_APP_DESCRIPTION}"),
+        ]
+    if mode == "past":
+        subs += [
+            (r"<body>", '<body class="past-mode">'),
+            # the sub-page's heading is the past banner title
+            (r'<strong data-i18n="pastTitle">([^<]*)</strong>',
+             r'<h1 data-i18n="pastTitle">\1</h1>'),
+        ]
+    for pattern, repl in subs:
         html = re.sub(pattern, repl, html, count=1)
+    if lang == "en":
+        # the JSON-LD "url" sits on both the WebSite and the WebApplication node
+        html = html.replace('"url": "https://delaybahn.com/"', f'"url": "{SITE}/en/"')
+        html = html.replace('data-lang="en" class="lang-btn"', 'data-lang="en" class="lang-btn active"')
+        html = html.replace('data-lang="de" class="lang-btn active"', 'data-lang="de" class="lang-btn"')
+        html = _translate(html)
     return html
 
 
 @app.get("/entschaedigung")
 async def entschaedigung_page() -> HTMLResponse:
-    return HTMLResponse(_past_page_html())
+    return HTMLResponse(_page_html("past", "de"))
 
 
 @app.get("/entschaedigung/")
 async def entschaedigung_slash() -> RedirectResponse:
-    # relative asset URLs only resolve from the slashless path
+    # one canonical spelling per page, so the slashed form never gets indexed too
     return RedirectResponse("/entschaedigung", status_code=301)
+
+
+@app.get("/en/")
+async def en_home() -> HTMLResponse:
+    return HTMLResponse(_page_html("future", "en"))
+
+
+@app.get("/en")
+async def en_home_no_slash() -> RedirectResponse:
+    return RedirectResponse("/en/", status_code=301)
+
+
+@app.get("/en/compensation")
+async def en_compensation_page() -> HTMLResponse:
+    return HTMLResponse(_page_html("past", "en"))
+
+
+@app.get("/en/compensation/")
+async def en_compensation_slash() -> RedirectResponse:
+    return RedirectResponse("/en/compensation", status_code=301)
+
+
+# German has no /de/ prefix, and the static mount would otherwise answer on
+# /index.html too — send both to the one canonical German homepage.
+@app.get("/de")
+@app.get("/de/")
+@app.get("/index.html")
+async def de_home() -> RedirectResponse:
+    return RedirectResponse("/", status_code=301)
+
+
+@app.get("/en/manifest.json")
+async def en_manifest() -> Response:
+    """English install target: same app, but it opens on the English URL."""
+    data = json.loads((STATIC_DIR / "manifest.json").read_text(encoding="utf-8"))
+    data |= {
+        "id": "/en/",
+        "start_url": "/en/",
+        "lang": "en",
+        "name": "DelayBahn – DB Delay Check",
+        "description": EN_APP_DESCRIPTION,
+        "shortcuts": [
+            {
+                "name": "Check compensation",
+                "short_name": "Compensation",
+                "description": "Check a past journey for delays and compensation",
+                "url": "/en/compensation",
+            }
+        ],
+    }
+    return Response(json.dumps(data, ensure_ascii=False), media_type="application/manifest+json")
 
 
 @app.get("/stats/script.js")

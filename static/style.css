@@ -196,6 +196,8 @@ body.past-mode .refund-nav {
 .lang-btn {
   background: transparent; border: 1px solid rgba(255,255,255,.6); border-radius: 16px;
   padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #fff;
+  /* real links so each language URL is crawlable; these keep them button-shaped */
+  text-decoration: none; line-height: normal;
 }
 .lang-btn.active { background: #fff; color: var(--brand-red); border-color: #fff; }
 

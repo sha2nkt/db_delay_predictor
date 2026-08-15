@@ -11,7 +11,7 @@
  * Bump SHELL_VERSION whenever the precached asset URLs below change (e.g. after a
  * ?v= cache-buster bump in index.html) so old shells are dropped and re-primed.
  */
-const SHELL_VERSION = "v22";
+const SHELL_VERSION = "v23";
 const SHELL_CACHE = `delaybahn-shell-${SHELL_VERSION}`;
 const API_CACHE = `delaybahn-api-${SHELL_VERSION}`;
 
@@ -21,8 +21,9 @@ const API_MAX_AGE = 10 * 60 * 1000; // 10 minutes
 // Keep the versioned URLs in step with static/index.html.
 const PRECACHE = [
   "/",
-  "/style.css?v=64",
-  "/app.js?v=89",
+  "/en/",
+  "/style.css?v=65",
+  "/app.js?v=90",
   "/manifest.json",
   "/favicon.png",
   "/logo.png?v=3",
@@ -117,7 +118,9 @@ async function networkFirstNavigation(req) {
     if (res && res.ok && !res.redirected) cache.put(req, res.clone());
     return res;
   } catch (err) {
-    return (await cache.match(req)) || (await cache.match("/")) || offlinePage();
+    // fall back to the shell of the language the request was for
+    const home = new URL(req.url).pathname.startsWith("/en") ? "/en/" : "/";
+    return (await cache.match(req)) || (await cache.match(home)) || offlinePage(home);
   }
 }
 
@@ -133,11 +136,15 @@ async function staleWhileRevalidate(req) {
   return cached || (await network) || new Response("", { status: 504 });
 }
 
-function offlinePage() {
+function offlinePage(home = "/") {
+  const lang = home === "/en/" ? "en" : "de";
+  const lead = lang === "en"
+    ? "This page isn't available right now. Please try again later."
+    : "Diese Seite ist gerade nicht verfügbar. Bitte später erneut versuchen.";
   return new Response(
-    "<!doctype html><meta charset=utf-8><title>Offline</title>" +
+    `<!doctype html><html lang=${lang}><meta charset=utf-8><title>Offline</title>` +
       "<body style=\"font-family:system-ui;padding:2rem;text-align:center;color:#282d37\">" +
-      "<h1>Offline</h1><p>Diese Seite ist gerade nicht verfügbar. Bitte später erneut versuchen.</p>",
+      `<h1>Offline</h1><p>${lead}</p>`,
     { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
 }
