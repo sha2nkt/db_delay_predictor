@@ -21,7 +21,7 @@ A bahn.de-style train connection search that shows the **median arrival delay of
 
 - **Journey search**: the bahn.de web API (`www.bahn.de/web/api`) provides journey options including transfers and prices — the same API the bahn.de website uses. Station autocomplete is answered from the local delay data, falling back to that API for stations without delay history.
 - **Historical delays, Germany**: the public HuggingFace dataset [piebro/deutsche-bahn-data](https://huggingface.co/datasets/piebro/deutsche-bahn-data) publishes raw Deutsche Bahn IRIS timetable responses every 6 hours. The pipeline keeps a rolling 31-day mirror and builds a per-stop delay table covering all German stations.
-- **Historical delays, Switzerland, France, and Austria**: official istdaten daily files (opentransportdata.swiss), a 24/7 poller on the official SNCF GTFS-RT feed, and a 24/7 poller sweeping ÖBB HAFAS (Scotty) station boards for the ~200 busiest Austrian stations produce per-day tables in the same schema; `pipeline/merge_delays.py` unions all four countries into the served table.
+- **Historical delays, Switzerland, France, Austria, and the Netherlands**: official istdaten daily files (opentransportdata.swiss), 24/7 pollers on the official SNCF GTFS-RT feed and OVapi's Dutch train GTFS-RT feed, and a 24/7 poller sweeping ÖBB HAFAS (Scotty) station boards for the ~200 busiest Austrian stations produce per-day tables in the same schema; NL history is seeded from the Rijden de Treinen monthly train archive; `pipeline/merge_delays.py` unions all five countries into the served table.
 - **Today's delays**: for a journey the nightly pipeline has not ingested yet, delays are read at request time from the [DB Timetables API](https://developers.deutschebahn.com/db-api-marketplace/apis/product/timetables) (IRIS `plan` + `fchg`) — the same field the pipeline stores, so the answer does not change later. Optional: set `DB_API_KEY`/`DB_CLIENT_ID` (e.g. in a `.env`); without them the site simply stops at the last ingested day.
 - **Matching**: each train leg of a journey is matched against history by train number + arrival-station EVA + time-of-day proximity (±120 min), one closest match per calendar day. The median arrival delay at the leg destination is taken over the matched days; cancelled days are excluded from the median but counted.
 
@@ -98,6 +98,7 @@ Open http://localhost:8000, search a connection (e.g. Berlin Hbf → München Hb
 - Austria: [ÖBB Scotty](https://fahrplan.oebb.at) HAFAS station boards (unofficial interface, the same access the public web client uses).
 - Switzerland: [opentransportdata.swiss](https://opentransportdata.swiss/) istdaten actual-data files.
 - France: SNCF GTFS-RT via [transport.data.gouv.fr](https://transport.data.gouv.fr/datasets/horaires-sncf) (ODbL).
+- Netherlands: NS train GTFS-RT via [OVapi](https://gtfs.ovapi.nl/) (community-run), and the [Rijden de Treinen](https://www.rijdendetreinen.nl/en/open-data) train archive and stations datasets (CC BY 4.0 / CC0) for historical seeding and the station crosswalk.
 
 ## Repo context for tooling and future work
 

@@ -44,6 +44,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Swiss delay coverage | done | official istdaten v2 daily files; 31-day history from day one; all operators feeding SBB customer info (SBB/BLS/RhB/SOB verified) |
 | French delay coverage | done | SNCF GTFS-RT poller + 35-day mirror backfill; TGV/Ouigo/TER/Intercités; "actual" = last realtime projection before arrival |
 | Austrian delay coverage | done | ÖBB HAFAS (Scotty) board poller over the ~200 busiest stations (RJ/RJX/IC/EC/NJ/REX/CJX/R/S); "actual" = last realtime projection before arrival |
+| Dutch delay coverage | done | OVapi GTFS-RT train feed poller (whole network, IFF train/station identity from the proto extension — immune to OVapi's daily id rotation) + Rijden de Treinen monthly archive seeder; limits: RT path can't surface mid-route stop skips (no times on SKIPPED stops; archive days carry them), seed ends at the last archive month so month-start → first poller day is a hole that ages out, OVapi is community-run best-effort |
 
 ## Data pipeline
 
