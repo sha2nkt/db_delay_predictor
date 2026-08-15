@@ -109,6 +109,16 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .return-remove-label { display: none; }
 
 .autocomplete-wrap { position: relative; }
+.autocomplete-wrap input { padding-right: 34px; }
+/* :placeholder-shown tracks emptiness even on programmatic changes (swap, URL restore) */
+.input-clear { display: none; }
+.autocomplete-wrap input:not(:placeholder-shown) + .input-clear {
+  display: flex; align-items: center; justify-content: center;
+  position: absolute; right: 6px; bottom: 8px; width: 24px; height: 24px;
+  background: none; border: 0; border-radius: 50%; cursor: pointer;
+  font-size: 13px; line-height: 1; color: var(--text-muted);
+}
+.input-clear:hover { background: var(--gray-bg); color: var(--text); }
 .dropdown {
   position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
   background: #fff; border: 1px solid var(--gray-border); border-radius: 0 0 4px 4px;

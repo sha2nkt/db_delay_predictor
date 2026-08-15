@@ -36,7 +36,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="style.css?v=61">
+<link rel="stylesheet" href="style.css?v=62">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -72,12 +72,14 @@
     <div class="field autocomplete-wrap">
       <label for="from" data-i18n="from">Von</label>
       <input id="from" type="text" placeholder="z.B. Berlin Hbf" data-i18n-placeholder="fromPlaceholder" autocomplete="off">
+      <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
       <div class="dropdown" id="from-dropdown"></div>
     </div>
     <button id="swap" type="button" title="Richtung tauschen" data-i18n-title="swapTitle">⇅</button>
     <div class="field autocomplete-wrap">
       <label for="to" data-i18n="to">Nach</label>
       <input id="to" type="text" placeholder="z.B. München Hbf" data-i18n-placeholder="toPlaceholder" autocomplete="off">
+      <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
       <div class="dropdown" id="to-dropdown"></div>
     </div>
     <div class="field field-date">
@@ -323,7 +325,7 @@
   </p>
   <p class="footer-disclaimer" data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</p>
 </footer>
-<script src="app.js?v=86"></script>
+<script src="app.js?v=87"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

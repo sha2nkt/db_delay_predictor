@@ -53,6 +53,7 @@ const I18N = {
     fromPlaceholder: "z.B. Berlin Hbf",
     toPlaceholder: "z.B. München Hbf",
     swapTitle: "Richtung tauschen",
+    clearInput: "Eingabe löschen",
     date: "Datum",
     time: "Uhrzeit",
     returnAdd: "+ Rückfahrt hinzufügen",
@@ -222,6 +223,7 @@ const I18N = {
     fromPlaceholder: "e.g. Berlin Hbf",
     toPlaceholder: "e.g. München Hbf",
     swapTitle: "Swap direction",
+    clearInput: "Clear input",
     date: "Date",
     time: "Time",
     returnAdd: "+ Add return journey",
@@ -707,6 +709,15 @@ function setupAutocomplete(inputId, dropdownId, key) {
   });
 
   input.addEventListener("blur", () => setTimeout(() => dropdown.classList.remove("open"), 150));
+
+  // mousedown, not click: keeps the focus — and the open dropdown — on the input
+  input.parentElement.querySelector(".input-clear").addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    state[key] = null;
+    input.value = "";
+    input.focus();
+    showSaved();
+  });
 }
 
 setupAutocomplete("from", "from-dropdown", "from");
