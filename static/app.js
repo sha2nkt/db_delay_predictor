@@ -1,5 +1,14 @@
-// past mode (compensation check) lives on its own sub-page for SEO; the path decides the mode
-const PAST_PAGE = location.pathname.startsWith("/entschaedigung");
+// Each (mode, language) pair has its own URL so Google can index them separately,
+// which makes the path — not localStorage — the authority on both.
+//   /              /entschaedigung        German
+//   /en/           /en/compensation       English
+const URL_LANG = /^\/en(\/|$)/.test(location.pathname) ? "en" : "de";
+const PAST_PAGE = /^(\/entschaedigung|\/en\/compensation)\/?$/.test(location.pathname);
+const PATHS = {
+  de: { future: "/", past: "/entschaedigung" },
+  en: { future: "/en/", past: "/en/compensation" },
+};
+const pagePath = (mode, lang = URL_LANG) => PATHS[lang][mode];
 
 const state = {
   from: null,   // {id, name}
@@ -11,7 +20,7 @@ const state = {
   departure: null,  // departure ISO of the current search (reused for paging)
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
-  lang: localStorage.getItem("lang") || "de",
+  lang: URL_LANG,
   chart: null,  // which hero chart is expanded: null (collapsed) | "scatter" | "violin"
   status: null,  // {key, params} of the current status message, re-rendered on lang switch
   mode: PAST_PAGE ? "past" : "future",  // "future" = delay forecast, "past" = compensation check for a past journey
@@ -543,8 +552,8 @@ function reasonText(code) {
 }
 
 const chartSrcs = {
-  scatter: { de: "delay-correlation.svg?v=5", en: "delay-correlation-en.svg?v=5", alt: "chartAlt" },
-  violin: { de: "delay-violin.svg?v=4", en: "delay-violin-en.svg?v=4", alt: "violinAlt" },
+  scatter: { de: "/delay-correlation.svg?v=5", en: "/delay-correlation-en.svg?v=5", alt: "chartAlt" },
+  violin: { de: "/delay-violin.svg?v=4", en: "/delay-violin-en.svg?v=4", alt: "violinAlt" },
 };
 
 function updateChartImg() {
@@ -1539,10 +1548,14 @@ async function loadPage(dir) {
 
 // --- language toggle ---
 
+// The buttons are links to the other language's URL, so switching is a navigation,
+// not an in-place text swap. The stored choice only decides where a returning
+// visitor who lands on a German URL gets sent (see the redirect in index.html).
 document.querySelectorAll(".lang-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
+    if (btn.dataset.lang === state.lang) return;
     track("lang", { lang: btn.dataset.lang });
-    applyLang(btn.dataset.lang);
+    try { localStorage.setItem("lang", btn.dataset.lang); } catch (e) {}
   });
 });
 
@@ -2645,7 +2658,7 @@ const qp = new URLSearchParams(location.search);
   if (!PAST_PAGE && qp.get("mode") === "past") {
     // legacy links from before past mode moved to its own sub-page
     qp.delete("mode");
-    location.replace(`/entschaedigung${qp.size ? `?${qp}` : ""}`);
+    location.replace(`${pagePath("past")}${qp.size ? `?${qp}` : ""}`);
     return;
   }
   if (PAST_PAGE) await initPastPage();
