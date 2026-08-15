@@ -1,0 +1,2366 @@
+{
+ "ac": {
+  "eva": "08400047",
+  "name": "Abcoude"
+ },
+ "acdg": {
+  "eva": "08727149",
+  "name": "Airport Charles de Gaulle"
+ },
+ "ah": {
+  "eva": "08400071",
+  "name": "Arnhem Centraal"
+ },
+ "ahbf": {
+  "eva": "08015345",
+  "name": "Aachen Hbf"
+ },
+ "ahp": {
+  "eva": "08400072",
+  "name": "Arnhem Velperpoort"
+ },
+ "ahpr": {
+  "eva": "08400075",
+  "name": "Arnhem Presikhaaf"
+ },
+ "ahz": {
+  "eva": "08400227",
+  "name": "Arnhem Zuid"
+ },
+ "aime": {
+  "eva": "08774176",
+  "name": "Aime-la-Plagne"
+ },
+ "aixtgv": {
+  "eva": "08731901",
+  "name": "Aix-en-Provence TGV"
+ },
+ "akl": {
+  "eva": "08400068",
+  "name": "Arkel"
+ },
+ "akm": {
+  "eva": "08400049",
+  "name": "Akkrum"
+ },
+ "albert": {
+  "eva": "08774164",
+  "name": "Albertville"
+ },
+ "aless": {
+  "eva": "08305043",
+  "name": "Bologna Centrale"
+ },
+ "alm": {
+  "eva": "08400080",
+  "name": "Almere Centrum"
+ },
+ "almb": {
+  "eva": "08400081",
+  "name": "Almere Buiten"
+ },
+ "almm": {
+  "eva": "08400082",
+  "name": "Almere Muziekwijk"
+ },
+ "almo": {
+  "eva": "08400226",
+  "name": "Almere Oostvaarders"
+ },
+ "almp": {
+  "eva": "08400104",
+  "name": "Almere Parkwijk"
+ },
+ "amf": {
+  "eva": "08400055",
+  "name": "Amersfoort Centraal"
+ },
+ "amfs": {
+  "eva": "08400054",
+  "name": "Amersfoort Schothorst"
+ },
+ "aml": {
+  "eva": "08400051",
+  "name": "Almelo"
+ },
+ "ampo": {
+  "eva": "08400450",
+  "name": "Almere Poort"
+ },
+ "amr": {
+  "eva": "08400050",
+  "name": "Alkmaar"
+ },
+ "amri": {
+  "eva": "08400520",
+  "name": "Almelo de Riet"
+ },
+ "amrn": {
+  "eva": "08400052",
+  "name": "Alkmaar Noord"
+ },
+ "amst": {
+  "eva": "08101049",
+  "name": "Amstetten NÖ"
+ },
+ "ana": {
+  "eva": "08400065",
+  "name": "Anna Paulowna"
+ },
+ "andd": {
+  "eva": "08821089",
+  "name": "Antwerpen-Noorderdokken"
+ },
+ "apd": {
+  "eva": "08400066",
+  "name": "Apeldoorn"
+ },
+ "apdm": {
+  "eva": "08400233",
+  "name": "Apeldoorn De Maten"
+ },
+ "apdo": {
+  "eva": "08400229",
+  "name": "Apeldoorn Osseveld"
+ },
+ "apg": {
+  "eva": "08400067",
+  "name": "Appingedam"
+ },
+ "apn": {
+  "eva": "08400053",
+  "name": "Alphen a/d Rijn"
+ },
+ "arn": {
+  "eva": "08400069",
+  "name": "Arnemuiden"
+ },
+ "asa": {
+  "eva": "08400057",
+  "name": "Amsterdam Amstel"
+ },
+ "asb": {
+  "eva": "08400074",
+  "name": "Amsterdam Bijlmer ArenA"
+ },
+ "asd": {
+  "eva": "08400058",
+  "name": "Amsterdam Centraal"
+ },
+ "asdl": {
+  "eva": "08400079",
+  "name": "Amsterdam Lelylaan"
+ },
+ "asdm": {
+  "eva": "08400060",
+  "name": "Amsterdam Muiderpoort"
+ },
+ "asdz": {
+  "eva": "08400061",
+  "name": "Amsterdam Zuid"
+ },
+ "ashd": {
+  "eva": "08400231",
+  "name": "Amsterdam Holendrecht"
+ },
+ "asn": {
+  "eva": "08400073",
+  "name": "Assen"
+ },
+ "ass": {
+  "eva": "08400059",
+  "name": "Amsterdam Sloterdijk"
+ },
+ "assp": {
+  "eva": "08400235",
+  "name": "Amsterdam Science Park"
+ },
+ "atn": {
+  "eva": "08400045",
+  "name": "Aalten"
+ },
+ "atw": {
+  "eva": "08821006",
+  "name": "Antwerpen-Centraal"
+ },
+ "atwlb": {
+  "eva": "08821063",
+  "name": "Antwerpen-Luchtbal"
+ },
+ "avat": {
+  "eva": "08400228",
+  "name": "Amersfoort Vathorst"
+ },
+ "avtgv": {
+  "eva": "08731896",
+  "name": "Avignon TGV"
+ },
+ "aw": {
+  "eva": "08015199",
+  "name": "Aachen West"
+ },
+ "badenz": {
+  "eva": "08503504",
+  "name": "Baden (CH)"
+ },
+ "baselb": {
+  "eva": "08014431",
+  "name": "Basel Bad Bf"
+ },
+ "basels": {
+  "eva": "08500010",
+  "name": "Basel SBB"
+ },
+ "bd": {
+  "eva": "08400131",
+  "name": "Breda"
+ },
+ "bde": {
+  "eva": "08400140",
+  "name": "Bunde"
+ },
+ "bdg": {
+  "eva": "08400121",
+  "name": "Bodegraven"
+ },
+ "bdm": {
+  "eva": "08400094",
+  "name": "Bedum"
+ },
+ "bdpb": {
+  "eva": "08400132",
+  "name": "Breda-Prinsenbeek"
+ },
+ "berch": {
+  "eva": "08821121",
+  "name": "Antwerpen-Berchem"
+ },
+ "berhbl": {
+  "eva": "08065969",
+  "name": "Berlin Hbf"
+ },
+ "bet": {
+  "eva": "08400112",
+  "name": "Best"
+ },
+ "bf": {
+  "eva": "08400089",
+  "name": "Baflo"
+ },
+ "bgn": {
+  "eva": "08400108",
+  "name": "Bergen op Zoom"
+ },
+ "bh": {
+  "eva": "08021156",
+  "name": "Bad Bentheim"
+ },
+ "bhdv": {
+  "eva": "08400236",
+  "name": "Boven-Hardinxveld"
+ },
+ "bhf": {
+  "eva": "08003004",
+  "name": "Berlin Ostbahnhof"
+ },
+ "bhv": {
+  "eva": "08400114",
+  "name": "Bilthoven"
+ },
+ "bielef": {
+  "eva": "08013597",
+  "name": "Bielefeld Hbf"
+ },
+ "bk": {
+  "eva": "08400096",
+  "name": "Beek-Elsloo"
+ },
+ "bkf": {
+  "eva": "08400230",
+  "name": "Bovenkarspel Flora"
+ },
+ "bkg": {
+  "eva": "08400127",
+  "name": "Bovenkarspel-Grootebroek"
+ },
+ "bkl": {
+  "eva": "08400133",
+  "name": "Breukelen"
+ },
+ "bl": {
+  "eva": "08400100",
+  "name": "Beilen"
+ },
+ "bll": {
+  "eva": "08400118",
+  "name": "Bloemendaal"
+ },
+ "bltm": {
+  "eva": "08841665",
+  "name": "Milmort"
+ },
+ "bmn": {
+  "eva": "08400136",
+  "name": "Brummen"
+ },
+ "bmr": {
+  "eva": "08400128",
+  "name": "Boxmeer"
+ },
+ "bn": {
+  "eva": "08400124",
+  "name": "Borne"
+ },
+ "bnc": {
+  "eva": "08400091",
+  "name": "Barneveld Centrum"
+ },
+ "bnk": {
+  "eva": "08400141",
+  "name": "Bunnik"
+ },
+ "bnn": {
+  "eva": "08400092",
+  "name": "Barneveld Noord"
+ },
+ "bnz": {
+  "eva": "08400115",
+  "name": "Barneveld Zuid"
+ },
+ "bonn": {
+  "eva": "08015485",
+  "name": "Bonn Hbf"
+ },
+ "bourg": {
+  "eva": "08774179",
+  "name": "Bourg-St-Maurice"
+ },
+ "bp": {
+  "eva": "08400139",
+  "name": "Buitenpost"
+ },
+ "br": {
+  "eva": "08400117",
+  "name": "Blerick"
+ },
+ "brd": {
+  "eva": "08400090",
+  "name": "Barendrecht"
+ },
+ "bressx": {
+  "eva": "08843901",
+  "name": "Bressoux"
+ },
+ "brn": {
+  "eva": "08400086",
+  "name": "Baarn"
+ },
+ "brusc": {
+  "eva": "08813003",
+  "name": "Brussel-Centraal"
+ },
+ "brusn": {
+  "eva": "08812005",
+  "name": "Brussel-Noord"
+ },
+ "brusz": {
+  "eva": "08814001",
+  "name": "Brussel-Zuid Midi"
+ },
+ "bsd": {
+  "eva": "08400097",
+  "name": "Beesd"
+ },
+ "bsk": {
+  "eva": "08400125",
+  "name": "Boskoop"
+ },
+ "bsks": {
+  "eva": "08400126",
+  "name": "Boskoop Snijdelwijk"
+ },
+ "bsmz": {
+  "eva": "08400145",
+  "name": "Bussum Zuid"
+ },
+ "bspd": {
+  "eva": "08003025",
+  "name": "Berlin-Spandau"
+ },
+ "btl": {
+  "eva": "08400129",
+  "name": "Boxtel"
+ },
+ "buende": {
+  "eva": "08021173",
+  "name": "Bünde (Westf)"
+ },
+ "bv": {
+  "eva": "08400113",
+  "name": "Beverwijk"
+ },
+ "bzl": {
+  "eva": "08400354",
+  "name": "Kapelle-Biezelinge"
+ },
+ "cas": {
+  "eva": "08400151",
+  "name": "Castricum"
+ },
+ "chamb": {
+  "eva": "08774100",
+  "name": "Chambéry"
+ },
+ "ck": {
+  "eva": "08400155",
+  "name": "Cuijk"
+ },
+ "cl": {
+  "eva": "08400154",
+  "name": "Culemborg"
+ },
+ "co": {
+  "eva": "08400153",
+  "name": "Coevorden"
+ },
+ "como": {
+  "eva": "08301307",
+  "name": "Como S. Giovanni"
+ },
+ "cps": {
+  "eva": "08400147",
+  "name": "Capelle Schollevaar"
+ },
+ "cvm": {
+  "eva": "08400152",
+  "name": "Chevremont"
+ },
+ "da": {
+  "eva": "08400164",
+  "name": "Daarlerveen"
+ },
+ "db": {
+  "eva": "08400182",
+  "name": "Driebergen-Zeist"
+ },
+ "ddn": {
+  "eva": "08400169",
+  "name": "Delden"
+ },
+ "ddr": {
+  "eva": "08400180",
+  "name": "Dordrecht"
+ },
+ "ddrs": {
+  "eva": "08400186",
+  "name": "Dordrecht Stadspolders"
+ },
+ "ddzd": {
+  "eva": "08400181",
+  "name": "Dordrecht Zuid"
+ },
+ "dei": {
+  "eva": "08400168",
+  "name": "Deinum"
+ },
+ "did": {
+  "eva": "08400174",
+  "name": "Didam"
+ },
+ "dl": {
+  "eva": "08400167",
+  "name": "Dalfsen"
+ },
+ "dld": {
+  "eva": "08400179",
+  "name": "Den Dolder"
+ },
+ "dln": {
+  "eva": "08400161",
+  "name": "Dalen"
+ },
+ "dmn": {
+  "eva": "08400165",
+  "name": "Diemen"
+ },
+ "dmnz": {
+  "eva": "08400163",
+  "name": "Diemen Zuid"
+ },
+ "dn": {
+  "eva": "08400172",
+  "name": "Deurne"
+ },
+ "domod": {
+  "eva": "08301645",
+  "name": "Milano Porta Garibaldi"
+ },
+ "dr": {
+  "eva": "08400176",
+  "name": "Dieren"
+ },
+ "drh": {
+  "eva": "08400183",
+  "name": "Driehuis"
+ },
+ "dron": {
+  "eva": "08400198",
+  "name": "Dronten"
+ },
+ "drp": {
+  "eva": "08400192",
+  "name": "Dronryp"
+ },
+ "dt": {
+  "eva": "08400170",
+  "name": "Delft"
+ },
+ "dtc": {
+  "eva": "08400177",
+  "name": "Doetinchem"
+ },
+ "dtch": {
+  "eva": "08400184",
+  "name": "Doetinchem De Huet"
+ },
+ "dtcp": {
+  "eva": "08400166",
+  "name": "Delft Campus"
+ },
+ "duisb": {
+  "eva": "08010316",
+  "name": "Duisburg Hbf"
+ },
+ "dussel": {
+  "eva": "08008094",
+  "name": "Düsseldorf Hbf"
+ },
+ "dv": {
+  "eva": "08400173",
+  "name": "Deventer"
+ },
+ "dvc": {
+  "eva": "08400185",
+  "name": "Deventer Colmschate"
+ },
+ "dvd": {
+  "eva": "08400194",
+  "name": "Duivendrecht"
+ },
+ "dvn": {
+  "eva": "08400193",
+  "name": "Duiven"
+ },
+ "dvnk": {
+  "eva": "08400188",
+  "name": "De Vink"
+ },
+ "dwe": {
+  "eva": "08400745",
+  "name": "De Westereen"
+ },
+ "dz": {
+  "eva": "08400171",
+  "name": "Delfzijl"
+ },
+ "dzw": {
+  "eva": "08400175",
+  "name": "Delfzijl West"
+ },
+ "eabg": {
+  "eva": "08021148",
+  "name": "Altenberge"
+ },
+ "eahs": {
+  "eva": "08021123",
+  "name": "Ahaus"
+ },
+ "ebeo": {
+  "eva": "08010385",
+  "name": "Bönen"
+ },
+ "ebft": {
+  "eva": "08021143",
+  "name": "Steinfurt-Burgsteinfurt"
+ },
+ "ebgo": {
+  "eva": "08021150",
+  "name": "Steinfurt-Borghorst"
+ },
+ "ebok": {
+  "eva": "08021111",
+  "name": "Bork (Westf)"
+ },
+ "ec": {
+  "eva": "08400195",
+  "name": "Echt"
+ },
+ "ecmf": {
+  "eva": "08021119",
+  "name": "Coesfeld (Westf)"
+ },
+ "ed": {
+  "eva": "08400200",
+  "name": "Ede-Wageningen"
+ },
+ "edc": {
+  "eva": "08400201",
+  "name": "Ede Centrum"
+ },
+ "edd": {
+  "eva": "08010101",
+  "name": "Dortmund Derne"
+ },
+ "edkd": {
+  "eva": "08010102",
+  "name": "Dortmund Kirchderne"
+ },
+ "edn": {
+  "eva": "08400219",
+  "name": "Eijsden"
+ },
+ "edo": {
+  "eva": "08010053",
+  "name": "Dortmund Hbf"
+ },
+ "edulh": {
+  "eva": "08021005",
+  "name": "Dülmen"
+ },
+ "eem": {
+  "eva": "08400202",
+  "name": "Eemshaven"
+ },
+ "eenp": {
+  "eva": "08008134",
+  "name": "Ennepetal"
+ },
+ "eepe": {
+  "eva": "08021126",
+  "name": "Epe (Westf)"
+ },
+ "egh": {
+  "eva": "08400338",
+  "name": "Eygelshoven"
+ },
+ "eghm": {
+  "eva": "08400234",
+  "name": "Eygelshoven Markt"
+ },
+ "egrk": {
+  "eva": "08071069",
+  "name": "Steinfurt-Grottenkamp"
+ },
+ "ehs": {
+  "eva": "08400196",
+  "name": "Eindhoven Strijp-S"
+ },
+ "ehv": {
+  "eva": "08400206",
+  "name": "Eindhoven Centraal"
+ },
+ "ehw": {
+  "eva": "08021121",
+  "name": "Rosendahl-Holtwick"
+ },
+ "ehzw": {
+  "eva": "08010384",
+  "name": "Holzwickede"
+ },
+ "ekz": {
+  "eva": "08400210",
+  "name": "Enkhuizen"
+ },
+ "el": {
+  "eva": "08033415",
+  "name": "Emmerich-Elten"
+ },
+ "eldh": {
+  "eva": "08021113",
+  "name": "Lüdinghausen"
+ },
+ "elet": {
+  "eva": "08021117",
+  "name": "Lette (Kr Coesfeld)"
+ },
+ "elgd": {
+  "eva": "08021122",
+  "name": "Legden"
+ },
+ "elue": {
+  "eva": "08010098",
+  "name": "Lünen Hbf"
+ },
+ "em": {
+  "eva": "08010288",
+  "name": "Emmerich"
+ },
+ "eml": {
+  "eva": "08400216",
+  "name": "Ermelo"
+ },
+ "emn": {
+  "eva": "08400208",
+  "name": "Emmen"
+ },
+ "emnz": {
+  "eva": "08400407",
+  "name": "Emmen Zuid"
+ },
+ "emte": {
+  "eva": "08021151",
+  "name": "Metelen Land"
+ },
+ "enbe": {
+  "eva": "08021147",
+  "name": "Münster-Häger"
+ },
+ "enhf": {
+  "eva": "08023783",
+  "name": "Münster (W) Zentrum Nord"
+ },
+ "enow": {
+  "eva": "08021149",
+  "name": "Nordwalde"
+ },
+ "eop": {
+  "eva": "08021152",
+  "name": "Ochtrup"
+ },
+ "epra": {
+  "eva": "08010286",
+  "name": "Praest"
+ },
+ "eprn": {
+  "eva": "08010100",
+  "name": "Preussen"
+ },
+ "es": {
+  "eva": "08400212",
+  "name": "Enschede"
+ },
+ "ese": {
+  "eva": "08400217",
+  "name": "Enschede De Eschmarke"
+ },
+ "eseb": {
+  "eva": "08021120",
+  "name": "Selm-Beifang"
+ },
+ "esem": {
+  "eva": "08021112",
+  "name": "Selm"
+ },
+ "esk": {
+  "eva": "08400221",
+  "name": "Enschede Kennispark"
+ },
+ "esn": {
+  "eva": "08821402",
+  "name": "Essen"
+ },
+ "esrt": {
+  "eva": "08008016",
+  "name": "Schwerte (Ruhr)"
+ },
+ "est": {
+  "eva": "08400207",
+  "name": "Elst"
+ },
+ "etn": {
+  "eva": "08400218",
+  "name": "Etten-Leur"
+ },
+ "eun": {
+  "eva": "08010382",
+  "name": "Unna"
+ },
+ "fbnl": {
+  "eva": "08819406",
+  "name": "Brussels Airport-Zaventem"
+ },
+ "fbr": {
+  "eva": "08894748",
+  "name": "Beveren"
+ },
+ "fffm": {
+  "eva": "08011068",
+  "name": "Frankfurt (M) Hbf"
+ },
+ "ffs": {
+  "eva": "08011065",
+  "name": "Frankfurt (Main) Süd"
+ },
+ "fgsp": {
+  "eva": "08892007",
+  "name": "Gent Sint Pieters"
+ },
+ "fhs": {
+  "eva": "08831005",
+  "name": "Hasselt"
+ },
+ "fie": {
+  "eva": "08831138",
+  "name": "Bilzen"
+ },
+ "fkth": {
+  "eva": "08821444",
+  "name": "Kalmthout"
+ },
+ "flb": {
+  "eva": "08032572",
+  "name": "Limburg Süd"
+ },
+ "flgp": {
+  "eva": "08841525",
+  "name": "Liège-Saint-Lambert"
+ },
+ "flj": {
+  "eva": "08841558",
+  "name": "Liège-Carré"
+ },
+ "flk": {
+  "eva": "08894201",
+  "name": "Lokeren"
+ },
+ "fmb": {
+  "eva": "08822814",
+  "name": "Boom"
+ },
+ "fmz": {
+  "eva": "08019051",
+  "name": "Mainz Hbf"
+ },
+ "fn": {
+  "eva": "08400232",
+  "name": "Franeker"
+ },
+ "fnaf": {
+  "eva": "08061676",
+  "name": "Frankfurt Flughafen Fernb"
+ },
+ "fnu": {
+  "eva": "08894714",
+  "name": "Nieuwkerken-Waas"
+ },
+ "fnzd": {
+  "eva": "08821196",
+  "name": "Antwerpen-Zuid"
+ },
+ "foe": {
+  "eva": "08824158",
+  "name": "Hoboken-Polder"
+ },
+ "frp": {
+  "eva": "08822715",
+  "name": "Puurs"
+ },
+ "fsn": {
+  "eva": "08894508",
+  "name": "Sint-Niklaas"
+ },
+ "fsv": {
+  "eva": "08822848",
+  "name": "Ruisbroek-Sauvegarde"
+ },
+ "ftg": {
+  "eva": "08831310",
+  "name": "Tongeren"
+ },
+ "fvs": {
+  "eva": "08846201",
+  "name": "Visé"
+ },
+ "fwd": {
+  "eva": "08400638",
+  "name": "Feanwâlden"
+ },
+ "g": {
+  "eva": "08021128",
+  "name": "Gronau (Westf.)"
+ },
+ "gbg": {
+  "eva": "08400259",
+  "name": "Gramsbergen"
+ },
+ "gbr": {
+  "eva": "08400262",
+  "name": "Glanerbrug"
+ },
+ "gd": {
+  "eva": "08400258",
+  "name": "Gouda"
+ },
+ "gdg": {
+  "eva": "08400257",
+  "name": "Gouda Goverwelle"
+ },
+ "gdm": {
+  "eva": "08400244",
+  "name": "Geldermalsen"
+ },
+ "gdp": {
+  "eva": "08831112",
+  "name": "Diepenbeek"
+ },
+ "gdr": {
+  "eva": "08400241",
+  "name": "Gaanderen"
+ },
+ "gerp": {
+  "eva": "08400238",
+  "name": "Groningen Europapark"
+ },
+ "gk": {
+  "eva": "08400267",
+  "name": "Grijpskerk"
+ },
+ "gkt": {
+  "eva": "08821451",
+  "name": "Kijkuit"
+ },
+ "gln": {
+  "eva": "08400246",
+  "name": "Geleen Oost"
+ },
+ "gn": {
+  "eva": "08400263",
+  "name": "Groningen"
+ },
+ "gnd": {
+  "eva": "08400295",
+  "name": "Hardinxveld-Giessendam"
+ },
+ "gnn": {
+  "eva": "08400264",
+  "name": "Groningen Noord"
+ },
+ "go": {
+  "eva": "08400254",
+  "name": "Goor"
+ },
+ "gp": {
+  "eva": "08400245",
+  "name": "Geldrop"
+ },
+ "gr": {
+  "eva": "08400256",
+  "name": "Gorinchem"
+ },
+ "gs": {
+  "eva": "08400253",
+  "name": "Goes"
+ },
+ "gsb": {
+  "eva": "08007799",
+  "name": "Berlin Gesundbrunnen"
+ },
+ "gv": {
+  "eva": "08400280",
+  "name": "Den Haag HS"
+ },
+ "gvc": {
+  "eva": "08400282",
+  "name": "Den Haag Centraal"
+ },
+ "gvm": {
+  "eva": "08400278",
+  "name": "Den Haag Mariahoeve"
+ },
+ "gvmw": {
+  "eva": "08400279",
+  "name": "Den Haag Moerwijk"
+ },
+ "gw": {
+  "eva": "08400266",
+  "name": "Grou-Jirnsum"
+ },
+ "gwd": {
+  "eva": "08821436",
+  "name": "Wildert"
+ },
+ "gz": {
+  "eva": "08400251",
+  "name": "Gilze-Rijen"
+ },
+ "had": {
+  "eva": "08400302",
+  "name": "Heemstede-Aerdenhout"
+ },
+ "hagen": {
+  "eva": "08008073",
+  "name": "Hagen Hbf"
+ },
+ "hamm": {
+  "eva": "08010002",
+  "name": "Hamm (Westf.)"
+ },
+ "hann": {
+  "eva": "08013552",
+  "name": "Hannover Hbf"
+ },
+ "hb": {
+  "eva": "08400326",
+  "name": "Hoensbroek"
+ },
+ "hbzm": {
+  "eva": "08400438",
+  "name": "Hardinxveld Blauwe Zoom"
+ },
+ "hd": {
+  "eva": "08400294",
+  "name": "Harderwijk"
+ },
+ "hdb": {
+  "eva": "08400293",
+  "name": "Hardenberg"
+ },
+ "hde": {
+  "eva": "08400388",
+  "name": "'t Harde"
+ },
+ "hdg": {
+  "eva": "08400292",
+  "name": "Hurdegaryp"
+ },
+ "hdr": {
+  "eva": "08400311",
+  "name": "Den Helder"
+ },
+ "hdrz": {
+  "eva": "08400303",
+  "name": "Den Helder Zuid"
+ },
+ "hfd": {
+  "eva": "08400332",
+  "name": "Hoofddorp"
+ },
+ "hgl": {
+  "eva": "08400316",
+  "name": "Hengelo"
+ },
+ "hglg": {
+  "eva": "08400433",
+  "name": "Hengelo Gezondheidspark"
+ },
+ "hglo": {
+  "eva": "08400312",
+  "name": "Hengelo Oost"
+ },
+ "hgv": {
+  "eva": "08400330",
+  "name": "Hoogeveen"
+ },
+ "hgz": {
+  "eva": "08400331",
+  "name": "Hoogezand-Sappemeer"
+ },
+ "hil": {
+  "eva": "08400329",
+  "name": "Hillegom"
+ },
+ "hk": {
+  "eva": "08400317",
+  "name": "Heemskerk"
+ },
+ "hks": {
+  "eva": "08400334",
+  "name": "Hoogkarspel"
+ },
+ "hlg": {
+  "eva": "08400296",
+  "name": "Harlingen"
+ },
+ "hlgh": {
+  "eva": "08400298",
+  "name": "Harlingen Haven"
+ },
+ "hlm": {
+  "eva": "08400285",
+  "name": "Haarlem"
+ },
+ "hlms": {
+  "eva": "08400270",
+  "name": "Haarlem Spaarnwoude"
+ },
+ "hlo": {
+  "eva": "08400309",
+  "name": "Heiloo"
+ },
+ "hm": {
+  "eva": "08400313",
+  "name": "Helmond"
+ },
+ "hmbh": {
+  "eva": "08400299",
+  "name": "Helmond Brouwhuis"
+ },
+ "hmbv": {
+  "eva": "08400242",
+  "name": "Helmond Brandevoort"
+ },
+ "hmh": {
+  "eva": "08400300",
+  "name": "Helmond 't Hout"
+ },
+ "hmn": {
+  "eva": "08400315",
+  "name": "Hemmen-Dodewaard"
+ },
+ "hn": {
+  "eva": "08400337",
+  "name": "Hoorn"
+ },
+ "hnk": {
+  "eva": "08400336",
+  "name": "Hoorn Kersenboogerd"
+ },
+ "hno": {
+  "eva": "08400310",
+  "name": "Heino"
+ },
+ "hnp": {
+  "eva": "08400323",
+  "name": "Hindeloopen"
+ },
+ "hoje": {
+  "eva": "07401318",
+  "name": "Göteborg Central"
+ },
+ "hon": {
+  "eva": "08400328",
+  "name": "Holten"
+ },
+ "hopf": {
+  "eva": "08101168",
+  "name": "Hopfgarten"
+ },
+ "hor": {
+  "eva": "08400327",
+  "name": "Hollandsche Rading"
+ },
+ "hr": {
+  "eva": "08400305",
+  "name": "Heerenveen"
+ },
+ "hrl": {
+  "eva": "08400307",
+  "name": "Heerlen"
+ },
+ "hrlw": {
+  "eva": "08400404",
+  "name": "Heerlen Woonboulevard"
+ },
+ "hrn": {
+  "eva": "08400297",
+  "name": "Haren"
+ },
+ "hrt": {
+  "eva": "08400339",
+  "name": "Horst-Sevenum"
+ },
+ "hry": {
+  "eva": "08400301",
+  "name": "Heerenveen IJsstadion"
+ },
+ "ht": {
+  "eva": "08400319",
+  "name": "'s-Hertogenbosch"
+ },
+ "htn": {
+  "eva": "08400340",
+  "name": "Houten"
+ },
+ "htnc": {
+  "eva": "08400335",
+  "name": "Houten Castellum"
+ },
+ "hto": {
+  "eva": "08400320",
+  "name": "'s-Hertogenbosch Oost"
+ },
+ "hvl": {
+  "eva": "08400490",
+  "name": "Hoevelaken"
+ },
+ "hvs": {
+  "eva": "08400322",
+  "name": "Hilversum"
+ },
+ "hvsm": {
+  "eva": "08400324",
+  "name": "Hilversum Media Park"
+ },
+ "hvsp": {
+  "eva": "08400570",
+  "name": "Hilversum Sportpark"
+ },
+ "hwd": {
+  "eva": "08400306",
+  "name": "Heerhugowaard"
+ },
+ "hwob": {
+  "eva": "08013017",
+  "name": "Wolfsburg Hbf"
+ },
+ "hwzb": {
+  "eva": "08400400",
+  "name": "Halfweg-Zwanenburg"
+ },
+ "hz": {
+  "eva": "08015190",
+  "name": "Herzogenrath"
+ },
+ "hze": {
+  "eva": "08400308",
+  "name": "Heeze"
+ },
+ "ijt": {
+  "eva": "08400722",
+  "name": "IJlst"
+ },
+ "innsb": {
+  "eva": "08101187",
+  "name": "Innsbruck Hbf"
+ },
+ "jenbac": {
+  "eva": "08101176",
+  "name": "Jenbach"
+ },
+ "karlsr": {
+  "eva": "08014228",
+  "name": "Karlsruhe Hbf"
+ },
+ "kbb": {
+  "eva": "08015577",
+  "name": "Bonn-Beuel"
+ },
+ "kbd": {
+  "eva": "08400367",
+  "name": "Krabbendijke"
+ },
+ "kbk": {
+  "eva": "08400361",
+  "name": "Klarenbeek"
+ },
+ "kboi": {
+  "eva": "08015128",
+  "name": "Boisheim"
+ },
+ "kbry": {
+  "eva": "08015129",
+  "name": "Breyell"
+ },
+ "kdffh": {
+  "eva": "08039904",
+  "name": "Düsseldorf Flughafen"
+ },
+ "kdul": {
+  "eva": "08015125",
+  "name": "Dülken"
+ },
+ "kkd": {
+  "eva": "08015561",
+  "name": "Köln Messe/Deutz"
+ },
+ "kkerp": {
+  "eva": "08015321",
+  "name": "Köln-Ehrenfeld"
+ },
+ "kkm": {
+  "eva": "08015541",
+  "name": "Köln-Mülheim"
+ },
+ "kko": {
+  "eva": "08019023",
+  "name": "Koblenz Hbf"
+ },
+ "kkw": {
+  "eva": "08015468",
+  "name": "Köln West"
+ },
+ "klp": {
+  "eva": "08400637",
+  "name": "Veenendaal-De Klomp"
+ },
+ "kma": {
+  "eva": "08400368",
+  "name": "Krommenie-Assendelft"
+ },
+ "kmr": {
+  "eva": "08400362",
+  "name": "Klimmen-Ransdaal"
+ },
+ "kmw": {
+  "eva": "08400366",
+  "name": "Koudum-Molkwerum"
+ },
+ "kn": {
+  "eva": "08015130",
+  "name": "Kaldenkirchen"
+ },
+ "koln": {
+  "eva": "08015458",
+  "name": "Köln Hbf"
+ },
+ "kpn": {
+  "eva": "08400353",
+  "name": "Kampen"
+ },
+ "kpnz": {
+  "eva": "08400360",
+  "name": "Kampen Zuid"
+ },
+ "krd": {
+  "eva": "08400355",
+  "name": "Kerkrade Centrum"
+ },
+ "krg": {
+  "eva": "08400370",
+  "name": "Kruiningen-Yerseke"
+ },
+ "ksb": {
+  "eva": "08015588",
+  "name": "Siegburg/Bonn"
+ },
+ "kswe": {
+  "eva": "08008136",
+  "name": "Schwelm"
+ },
+ "kt": {
+  "eva": "08015572",
+  "name": "Troisdorf"
+ },
+ "ktr": {
+  "eva": "08400359",
+  "name": "Kesteren"
+ },
+ "kufst": {
+  "eva": "08102184",
+  "name": "Kufstein"
+ },
+ "kw": {
+  "eva": "08400369",
+  "name": "Kropswolde"
+ },
+ "kwba": {
+  "eva": "08008142",
+  "name": "Wuppertal-Barmen"
+ },
+ "kwo": {
+  "eva": "08008138",
+  "name": "Wuppertal-Oberbarmen"
+ },
+ "kz": {
+  "eva": "08400363",
+  "name": "Koog aan de Zaan"
+ },
+ "laa": {
+  "eva": "08400380",
+  "name": "Den Haag Laan v NOI"
+ },
+ "landry": {
+  "eva": "08774177",
+  "name": "Landry"
+ },
+ "lc": {
+  "eva": "08400399",
+  "name": "Lochem"
+ },
+ "ldl": {
+  "eva": "08400384",
+  "name": "Leiden Lammenschans"
+ },
+ "ldm": {
+  "eva": "08400386",
+  "name": "Leerdam"
+ },
+ "ledn": {
+  "eva": "08400390",
+  "name": "Leiden Centraal"
+ },
+ "leer": {
+  "eva": "08021091",
+  "name": "Leer (Ostfriesl)"
+ },
+ "leuven": {
+  "eva": "08833001",
+  "name": "Leuven"
+ },
+ "lg": {
+  "eva": "08400548",
+  "name": "Landgraaf"
+ },
+ "lgl": {
+  "eva": "08841731",
+  "name": "Glons"
+ },
+ "lhs": {
+  "eva": "08841608",
+  "name": "Herstal"
+ },
+ "lillee": {
+  "eva": "08722326",
+  "name": "Lille Europe"
+ },
+ "linz": {
+  "eva": "08101073",
+  "name": "Linz Hbf"
+ },
+ "livor": {
+  "eva": "08306900",
+  "name": "Firenze Campo di Marte"
+ },
+ "lkm": {
+  "eva": "08824224",
+  "name": "Hemiksem"
+ },
+ "lkp": {
+  "eva": "08821535",
+  "name": "Kapellen"
+ },
+ "lkr": {
+  "eva": "08821071",
+  "name": "Ekeren"
+ },
+ "llb": {
+  "eva": "08894433",
+  "name": "Belsele"
+ },
+ "lls": {
+  "eva": "08400394",
+  "name": "Lelystad Centrum"
+ },
+ "llzm": {
+  "eva": "08400135",
+  "name": "Lansingerland-Zoetermeer"
+ },
+ "lm": {
+  "eva": "08894755",
+  "name": "Melsele"
+ },
+ "lni": {
+  "eva": "08824240",
+  "name": "Niel"
+ },
+ "lp": {
+  "eva": "08400403",
+  "name": "Loppersum"
+ },
+ "ls": {
+  "eva": "08024062",
+  "name": "Stendal"
+ },
+ "lsl": {
+  "eva": "08841673",
+  "name": "Liers"
+ },
+ "lsw": {
+  "eva": "08894425",
+  "name": "Sinaai"
+ },
+ "ltn": {
+  "eva": "08400405",
+  "name": "Lunteren"
+ },
+ "ltv": {
+  "eva": "08400395",
+  "name": "Lichtenvoorde-Groenlo"
+ },
+ "luik": {
+  "eva": "08841004",
+  "name": "Liège-Guillemins"
+ },
+ "lut": {
+  "eva": "08400248",
+  "name": "Geleen-Lutterade"
+ },
+ "lw": {
+  "eva": "08400387",
+  "name": "Leeuwarden"
+ },
+ "lwc": {
+  "eva": "08400389",
+  "name": "Leeuwarden Camminghaburen"
+ },
+ "lzd": {
+  "eva": "08894821",
+  "name": "Zwijndrecht (B)"
+ },
+ "ma": {
+  "eva": "08002140",
+  "name": "Augsburg Hbf"
+ },
+ "mannhe": {
+  "eva": "08014008",
+  "name": "Mannheim Hbf"
+ },
+ "maria": {
+  "eva": "08821543",
+  "name": "Sint-Mariaburg"
+ },
+ "marne": {
+  "eva": "08738264",
+  "name": "Marne-la-Vallée-Chessy"
+ },
+ "mars": {
+  "eva": "08775100",
+  "name": "Marseille-St-Charles"
+ },
+ "mas": {
+  "eva": "08400419",
+  "name": "Maarssen"
+ },
+ "mcgb": {
+  "eva": "08015165",
+  "name": "Mönchengladbach Hbf"
+ },
+ "mdb": {
+  "eva": "08400436",
+  "name": "Middelburg"
+ },
+ "mech": {
+  "eva": "08822004",
+  "name": "Mechelen"
+ },
+ "merel": {
+  "eva": "08302593",
+  "name": "Venezia Santa Lucia"
+ },
+ "mes": {
+  "eva": "08400434",
+  "name": "Meerssen"
+ },
+ "mg": {
+  "eva": "08400427",
+  "name": "Mantgum"
+ },
+ "mgzb": {
+  "eva": "08002084",
+  "name": "Günzburg"
+ },
+ "mid": {
+  "eva": "08821519",
+  "name": "Heide (B)"
+ },
+ "minden": {
+  "eva": "08013578",
+  "name": "Minden (Westf)"
+ },
+ "mmlh": {
+  "eva": "08400446",
+  "name": "Mook-Molenhoek"
+ },
+ "mout": {
+  "eva": "08774172",
+  "name": "Moutiers-Salins-Brides"
+ },
+ "mp": {
+  "eva": "08400435",
+  "name": "Meppel"
+ },
+ "mrb": {
+  "eva": "08400428",
+  "name": "Mariënberg"
+ },
+ "mrn": {
+  "eva": "08400417",
+  "name": "Maarn"
+ },
+ "mt": {
+  "eva": "08400424",
+  "name": "Maastricht"
+ },
+ "mth": {
+  "eva": "08400430",
+  "name": "Martenshoek"
+ },
+ "mtn": {
+  "eva": "08400449",
+  "name": "Maastricht Noord"
+ },
+ "mtr": {
+  "eva": "08400426",
+  "name": "Maastricht Randwyck"
+ },
+ "munchh": {
+  "eva": "08020347",
+  "name": "München Hbf"
+ },
+ "munst": {
+  "eva": "08021011",
+  "name": "Münster (Westf) Hbf"
+ },
+ "mz": {
+  "eva": "08400432",
+  "name": "Maarheeze"
+ },
+ "na": {
+  "eva": "08400454",
+  "name": "Nieuw Amsterdam"
+ },
+ "ndb": {
+  "eva": "08400452",
+  "name": "Naarden-Bussum"
+ },
+ "ndkp": {
+  "eva": "08821105",
+  "name": "Noorderkempen"
+ },
+ "neuss": {
+  "eva": "08015149",
+  "name": "Neuss Hbf"
+ },
+ "nh": {
+  "eva": "08400467",
+  "name": "Nuth"
+ },
+ "nkk": {
+  "eva": "08400469",
+  "name": "Nijkerk"
+ },
+ "nm": {
+  "eva": "08400470",
+  "name": "Nijmegen"
+ },
+ "nmd": {
+  "eva": "08400475",
+  "name": "Nijmegen Dukenburg"
+ },
+ "nmgo": {
+  "eva": "08400477",
+  "name": "Nijmegen Goffert"
+ },
+ "nmh": {
+  "eva": "08400468",
+  "name": "Nijmegen Heyendaal"
+ },
+ "nml": {
+  "eva": "08400451",
+  "name": "Nijmegen Lent"
+ },
+ "ns": {
+  "eva": "08400466",
+  "name": "Nunspeet"
+ },
+ "nsch": {
+  "eva": "08400457",
+  "name": "Bad Nieuweschans"
+ },
+ "nurnb": {
+  "eva": "08022193",
+  "name": "Nürnberg Hbf"
+ },
+ "nvd": {
+  "eva": "08400472",
+  "name": "Nijverdal"
+ },
+ "nvp": {
+  "eva": "08400460",
+  "name": "Nieuw Vennep"
+ },
+ "nwk": {
+  "eva": "08400455",
+  "name": "Nieuwerkerk a/d IJssel"
+ },
+ "o": {
+  "eva": "08400495",
+  "name": "Oss"
+ },
+ "obd": {
+  "eva": "08400480",
+  "name": "Obdam"
+ },
+ "oberh": {
+  "eva": "08010263",
+  "name": "Oberhausen Hbf"
+ },
+ "oberhs": {
+  "eva": "08010266",
+  "name": "Oberhausen-Sterkrade"
+ },
+ "odb": {
+  "eva": "08400498",
+  "name": "Oudenbosch"
+ },
+ "odens": {
+  "eva": "08600858",
+  "name": "Københavns Lufthavn St"
+ },
+ "odz": {
+  "eva": "08400483",
+  "name": "Oldenzaal"
+ },
+ "oeynh": {
+  "eva": "08013585",
+  "name": "Bad Oeynhausen"
+ },
+ "omn": {
+  "eva": "08400487",
+  "name": "Ommen"
+ },
+ "op": {
+  "eva": "08400494",
+  "name": "Opheusden"
+ },
+ "osnh": {
+  "eva": "08021025",
+  "name": "Osnabrück Hbf"
+ },
+ "ost": {
+  "eva": "08400486",
+  "name": "Olst"
+ },
+ "ot": {
+  "eva": "08400482",
+  "name": "Oisterwijk"
+ },
+ "otb": {
+  "eva": "08400489",
+  "name": "Oosterbeek"
+ },
+ "ovn": {
+  "eva": "08400501",
+  "name": "Overveen"
+ },
+ "ow": {
+  "eva": "08400496",
+  "name": "Oss West"
+ },
+ "paris": {
+  "eva": "08727100",
+  "name": "Paris-Nord"
+ },
+ "pass": {
+  "eva": "08026506",
+  "name": "Passau Hbf"
+ },
+ "pmo": {
+  "eva": "08400506",
+  "name": "Purmerend Overwhere"
+ },
+ "pmr": {
+  "eva": "08400508",
+  "name": "Purmerend"
+ },
+ "pmw": {
+  "eva": "08400499",
+  "name": "Purmerend Weidevenne"
+ },
+ "polten": {
+  "eva": "08101032",
+  "name": "St.Pölten Hbf"
+ },
+ "pt": {
+  "eva": "08400509",
+  "name": "Putten"
+ },
+ "rai": {
+  "eva": "08400056",
+  "name": "Amsterdam RAI"
+ },
+ "rat": {
+  "eva": "08400513",
+  "name": "Raalte"
+ },
+ "rb": {
+  "eva": "08400521",
+  "name": "Rilland-Bath"
+ },
+ "rd": {
+  "eva": "08400525",
+  "name": "Roodeschool"
+ },
+ "regenb": {
+  "eva": "08026294",
+  "name": "Regensburg Hbf"
+ },
+ "rf": {
+  "eva": "08014350",
+  "name": "Freiburg (Breisgau) Hbf"
+ },
+ "rh": {
+  "eva": "08400519",
+  "name": "Rheden"
+ },
+ "rheine": {
+  "eva": "08021067",
+  "name": "Rheine"
+ },
+ "rhn": {
+  "eva": "08400517",
+  "name": "Rhenen"
+ },
+ "rings": {
+  "eva": "07402611",
+  "name": "Malmö Central"
+ },
+ "rl": {
+  "eva": "08400537",
+  "name": "Ruurlo"
+ },
+ "rlb": {
+  "eva": "08400542",
+  "name": "Rotterdam Lombardijen"
+ },
+ "rm": {
+  "eva": "08400523",
+  "name": "Roermond"
+ },
+ "ro": {
+  "eva": "08014309",
+  "name": "Offenburg"
+ },
+ "rosenh": {
+  "eva": "08020174",
+  "name": "Rosenheim"
+ },
+ "rs": {
+  "eva": "08400524",
+  "name": "Rosmalen"
+ },
+ "rsd": {
+  "eva": "08400526",
+  "name": "Roosendaal"
+ },
+ "rsn": {
+  "eva": "08400538",
+  "name": "Rijssen"
+ },
+ "rsw": {
+  "eva": "08400505",
+  "name": "Rijswijk"
+ },
+ "rta": {
+  "eva": "08400507",
+  "name": "Rotterdam Alexander"
+ },
+ "rtb": {
+  "eva": "08400529",
+  "name": "Rotterdam Blaak"
+ },
+ "rtd": {
+  "eva": "08400530",
+  "name": "Rotterdam Centraal"
+ },
+ "rtn": {
+  "eva": "08400531",
+  "name": "Rotterdam Noord"
+ },
+ "rtst": {
+  "eva": "08400534",
+  "name": "Rotterdam Stadion"
+ },
+ "rtz": {
+  "eva": "08400533",
+  "name": "Rotterdam Zuid"
+ },
+ "rv": {
+  "eva": "08400518",
+  "name": "Reuver"
+ },
+ "rvs": {
+  "eva": "08400515",
+  "name": "Ravenstein"
+ },
+ "sbk": {
+  "eva": "08400572",
+  "name": "Spaubeek"
+ },
+ "schard": {
+  "eva": "08101114",
+  "name": "Salzburg Hbf"
+ },
+ "schll": {
+  "eva": "08824232",
+  "name": "Schelle"
+ },
+ "sd": {
+  "eva": "08400569",
+  "name": "Soestdijk"
+ },
+ "sda": {
+  "eva": "08400551",
+  "name": "Scheemda"
+ },
+ "sdm": {
+  "eva": "08400553",
+  "name": "Schiedam Centrum"
+ },
+ "sdt": {
+  "eva": "08400565",
+  "name": "Sliedrecht"
+ },
+ "sdtb": {
+  "eva": "08400497",
+  "name": "Sliedrecht Baanhoek"
+ },
+ "sgl": {
+  "eva": "08400341",
+  "name": "Houthem-St. Gerlach"
+ },
+ "sgn": {
+  "eva": "08400549",
+  "name": "Schagen"
+ },
+ "shl": {
+  "eva": "08400561",
+  "name": "Schiphol Airport"
+ },
+ "sk": {
+  "eva": "08400566",
+  "name": "Sneek"
+ },
+ "sknd": {
+  "eva": "08400574",
+  "name": "Sneek Noord"
+ },
+ "sm": {
+  "eva": "08400583",
+  "name": "Swalmen"
+ },
+ "sn": {
+  "eva": "08400554",
+  "name": "Schinnen"
+ },
+ "sog": {
+  "eva": "08400555",
+  "name": "Schin op Geul"
+ },
+ "sptn": {
+  "eva": "08400543",
+  "name": "Santpoort Noord"
+ },
+ "sptz": {
+  "eva": "08400544",
+  "name": "Santpoort Zuid"
+ },
+ "srn": {
+  "eva": "08400582",
+  "name": "Susteren"
+ },
+ "ssh": {
+  "eva": "08400603",
+  "name": "Sassenheim"
+ },
+ "st": {
+  "eva": "08400567",
+  "name": "Soest"
+ },
+ "std": {
+  "eva": "08400564",
+  "name": "Sittard"
+ },
+ "stm": {
+  "eva": "08400576",
+  "name": "Stedum"
+ },
+ "stp": {
+  "eva": "07015400",
+  "name": "London St. Pancras Int."
+ },
+ "straub": {
+  "eva": "08020234",
+  "name": "München Ost"
+ },
+ "stv": {
+  "eva": "08400575",
+  "name": "Stavoren"
+ },
+ "stz": {
+  "eva": "08400571",
+  "name": "Soest Zuid"
+ },
+ "swd": {
+  "eva": "08400547",
+  "name": "Sauwerd"
+ },
+ "swk": {
+  "eva": "08400578",
+  "name": "Steenwijk"
+ },
+ "tb": {
+  "eva": "08400597",
+  "name": "Tilburg"
+ },
+ "tbg": {
+  "eva": "08400592",
+  "name": "Terborg"
+ },
+ "tbr": {
+  "eva": "08400598",
+  "name": "Tilburg Reeshof"
+ },
+ "tbu": {
+  "eva": "08400594",
+  "name": "Tilburg Universiteit"
+ },
+ "tg": {
+  "eva": "08400591",
+  "name": "Tegelen"
+ },
+ "tgo": {
+  "eva": "08029066",
+  "name": "Göppingen"
+ },
+ "tl": {
+  "eva": "08400596",
+  "name": "Tiel"
+ },
+ "tp": {
+  "eva": "08029060",
+  "name": "Plochingen"
+ },
+ "tpsw": {
+  "eva": "08400600",
+  "name": "Tiel Passewaaij"
+ },
+ "ts": {
+  "eva": "08029034",
+  "name": "Stuttgart Hbf"
+ },
+ "tu": {
+  "eva": "08029103",
+  "name": "Ulm Hbf"
+ },
+ "twl": {
+  "eva": "08400599",
+  "name": "Twello"
+ },
+ "uhm": {
+  "eva": "08400618",
+  "name": "Uithuizermeeden"
+ },
+ "uhz": {
+  "eva": "08400617",
+  "name": "Uithuizen"
+ },
+ "ust": {
+  "eva": "08400619",
+  "name": "Usquert"
+ },
+ "ut": {
+  "eva": "08400621",
+  "name": "Utrecht Centraal"
+ },
+ "utg": {
+  "eva": "08400615",
+  "name": "Uitgeest"
+ },
+ "utln": {
+  "eva": "08400623",
+  "name": "Utrecht Lunetten"
+ },
+ "utlr": {
+  "eva": "08400607",
+  "name": "Utrecht Leidsche Rijn"
+ },
+ "utm": {
+  "eva": "08400624",
+  "name": "Utrecht Maliebaan"
+ },
+ "uto": {
+  "eva": "08400620",
+  "name": "Utrecht Overvecht"
+ },
+ "utt": {
+  "eva": "08400614",
+  "name": "Utrecht Terwijde"
+ },
+ "utvr": {
+  "eva": "08400606",
+  "name": "Utrecht Vaartsche Rijn"
+ },
+ "utzl": {
+  "eva": "08400613",
+  "name": "Utrecht Zuilen"
+ },
+ "valtgv": {
+  "eva": "08776302",
+  "name": "Valence TGV"
+ },
+ "vb": {
+  "eva": "08400658",
+  "name": "Voorburg"
+ },
+ "vd": {
+  "eva": "08400661",
+  "name": "Vorden"
+ },
+ "vdl": {
+  "eva": "08400656",
+  "name": "Voerendaal"
+ },
+ "vdm": {
+  "eva": "08400636",
+  "name": "Veendam"
+ },
+ "vem": {
+  "eva": "08400668",
+  "name": "Voorst-Empe"
+ },
+ "vg": {
+  "eva": "08400667",
+  "name": "Vught"
+ },
+ "vh": {
+  "eva": "08400655",
+  "name": "Voorhout"
+ },
+ "vhp": {
+  "eva": "08400666",
+  "name": "Vroomshoop"
+ },
+ "viers": {
+  "eva": "08015122",
+  "name": "Viersen"
+ },
+ "vk": {
+  "eva": "08400632",
+  "name": "Valkenburg"
+ },
+ "vl": {
+  "eva": "08400644",
+  "name": "Venlo"
+ },
+ "vlb": {
+  "eva": "08400647",
+  "name": "Vierlingsbeek"
+ },
+ "vndc": {
+  "eva": "08400627",
+  "name": "Veenendaal Centrum"
+ },
+ "vndw": {
+  "eva": "08400628",
+  "name": "Veenendaal West"
+ },
+ "vp": {
+  "eva": "08400640",
+  "name": "Velp"
+ },
+ "vry": {
+  "eva": "08400646",
+  "name": "Venray"
+ },
+ "vs": {
+  "eva": "08400652",
+  "name": "Vlissingen"
+ },
+ "vss": {
+  "eva": "08400653",
+  "name": "Vlissingen Souburg"
+ },
+ "vst": {
+  "eva": "08400659",
+  "name": "Voorschoten"
+ },
+ "vsv": {
+  "eva": "08400635",
+  "name": "Varsseveld"
+ },
+ "vtn": {
+  "eva": "08400651",
+  "name": "Vleuten"
+ },
+ "vz": {
+  "eva": "08400664",
+  "name": "Vriezenveen"
+ },
+ "wad": {
+  "eva": "08400675",
+  "name": "Waddinxveen"
+ },
+ "wadn": {
+  "eva": "08400674",
+  "name": "Waddinxveen Noord"
+ },
+ "wadt": {
+  "eva": "08400677",
+  "name": "Waddinxveen Triangel"
+ },
+ "wbf": {
+  "eva": "08101003",
+  "name": "Wien Hbf"
+ },
+ "wc": {
+  "eva": "08400710",
+  "name": "Wijchen"
+ },
+ "wd": {
+  "eva": "08400702",
+  "name": "Woerden"
+ },
+ "wdn": {
+  "eva": "08400691",
+  "name": "Wierden"
+ },
+ "wels": {
+  "eva": "08101081",
+  "name": "Wels Hbf"
+ },
+ "wesel": {
+  "eva": "08010275",
+  "name": "Wesel"
+ },
+ "wf": {
+  "eva": "08400704",
+  "name": "Wolfheze"
+ },
+ "wfm": {
+  "eva": "08400679",
+  "name": "Warffum"
+ },
+ "wh": {
+  "eva": "08400711",
+  "name": "Wijhe"
+ },
+ "wienh": {
+  "eva": "08101008",
+  "name": "Wien Hütteldorf"
+ },
+ "wk": {
+  "eva": "08400706",
+  "name": "Workum"
+ },
+ "wl": {
+  "eva": "08400686",
+  "name": "Wehl"
+ },
+ "wm": {
+  "eva": "08400707",
+  "name": "Wormerveer"
+ },
+ "worgl": {
+  "eva": "08101170",
+  "name": "Wörgl"
+ },
+ "wp": {
+  "eva": "08400685",
+  "name": "Weesp"
+ },
+ "wr": {
+  "eva": "08021239",
+  "name": "Weener"
+ },
+ "ws": {
+  "eva": "08400696",
+  "name": "Winschoten"
+ },
+ "wsm": {
+  "eva": "08400697",
+  "name": "Winsum"
+ },
+ "wt": {
+  "eva": "08400684",
+  "name": "Weert"
+ },
+ "wtv": {
+  "eva": "08400688",
+  "name": "Westervoort"
+ },
+ "wupph": {
+  "eva": "08008143",
+  "name": "Wuppertal Hbf"
+ },
+ "wuppv": {
+  "eva": "08008082",
+  "name": "Wuppertal-Vohwinkel"
+ },
+ "wurzb": {
+  "eva": "08022534",
+  "name": "Würzburg Hbf"
+ },
+ "wv": {
+  "eva": "08400705",
+  "name": "Wolvega"
+ },
+ "ww": {
+  "eva": "08400698",
+  "name": "Winterswijk"
+ },
+ "www": {
+  "eva": "08400700",
+  "name": "Winterswijk West"
+ },
+ "wz": {
+  "eva": "08400690",
+  "name": "Wezep"
+ },
+ "ypb": {
+  "eva": "08400379",
+  "name": "Den Haag Ypenburg"
+ },
+ "za": {
+  "eva": "08400734",
+  "name": "Zetten-Andelst"
+ },
+ "zb": {
+  "eva": "08400742",
+  "name": "Zuidbroek"
+ },
+ "zbm": {
+  "eva": "08400732",
+  "name": "Zaltbommel"
+ },
+ "zd": {
+  "eva": "08400731",
+  "name": "Zaandam"
+ },
+ "zdk": {
+  "eva": "08400728",
+  "name": "Zaandam Kogerveld"
+ },
+ "zh": {
+  "eva": "08400743",
+  "name": "Zuidhorn"
+ },
+ "zl": {
+  "eva": "08400747",
+  "name": "Zwolle"
+ },
+ "zlsh": {
+  "eva": "08400746",
+  "name": "Zwolle Stadshagen"
+ },
+ "zlw": {
+  "eva": "08400382",
+  "name": "Lage Zwaluwe"
+ },
+ "zp": {
+  "eva": "08400744",
+  "name": "Zutphen"
+ },
+ "ztm": {
+  "eva": "08400741",
+  "name": "Zoetermeer"
+ },
+ "ztmo": {
+  "eva": "08400740",
+  "name": "Zoetermeer Oost"
+ },
+ "zue": {
+  "eva": "08503000",
+  "name": "Zürich HB"
+ },
+ "zv": {
+  "eva": "08400735",
+  "name": "Zevenaar"
+ },
+ "zvb": {
+  "eva": "08400737",
+  "name": "Zevenbergen"
+ },
+ "zvt": {
+  "eva": "08400733",
+  "name": "Zandvoort aan Zee"
+ },
+ "zwd": {
+  "eva": "08400752",
+  "name": "Zwijndrecht"
+ },
+ "zzs": {
+  "eva": "08400364",
+  "name": "Zaandijk Zaanse Schans"
+ }
+}
