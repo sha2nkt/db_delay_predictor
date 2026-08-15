@@ -43,8 +43,8 @@ const DONATE_ENABLED = false;
 
 const I18N = {
   de: {
-    pageTitle: "DB Verbindungssuche mit Verspätungsstatistik",
-    pageTitlePast: "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen",
+    pageTitle: "DelayBahn – DB Verbindungssuche mit Verspätungsstatistik",
+    pageTitlePast: "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen | DelayBahn",
     headerTitle: "Verbindungssuche",
     headerSubtitle: "mit Verspätungsstatistik",
     tagline: "Den Zug buchen, nicht die Verspätung",
@@ -213,8 +213,8 @@ const I18N = {
     installDismiss: "Schließen",
   },
   en: {
-    pageTitle: "DB Connection Search with Delay Statistics",
-    pageTitlePast: "Check DB delay compensation – delay check for past journeys",
+    pageTitle: "DelayBahn – DB Connection Search with Delay Statistics",
+    pageTitlePast: "Check DB delay compensation – delay check for past journeys | DelayBahn",
     headerTitle: "Connection Search",
     headerSubtitle: "with delay statistics",
     tagline: "Book the train, not the delay",
