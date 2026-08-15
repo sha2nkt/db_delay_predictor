@@ -665,7 +665,7 @@ async def coverage():
 # past-specific head tags and the past-mode body class, so the two pages can
 # never drift apart.
 PAST_URL = "https://delaybahn.com/entschaedigung"
-PAST_TITLE = "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen | delaybahn.com"
+PAST_TITLE = "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen | DelayBahn"
 PAST_DESCRIPTION = (
     "Vergangene DB-Reise eingeben und sehen, wie sie wirklich verlief: Verspätungen, "
     "verpasste Anschlüsse und Entschädigung nach EU-Fahrgastrechten – "
