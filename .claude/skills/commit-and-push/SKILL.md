@@ -150,37 +150,28 @@ discard before reaching for it.
 Run this only after `main` is pushed. If anything earlier was aborted or denied,
 nothing new is on origin — stop and report instead of deploying the old build.
 
-Pull on the box (the quoted `EOF` matters: it keeps `$(date +%s)` and `$STASHED`
-from being expanded by the *local* shell before ssh ever sends them — the remote
-stash guard silently breaks otherwise):
+The whole deploy is one reviewed script — the only command pre-approved to reach
+the server (user decision, 2026-08-15: a narrow rule on this exact invocation
+instead of blanket ssh). Run it exactly like this, no arguments:
 
 ```bash
-ssh root@delaybahn_hetzner 'sudo -u stripathi -i bash -s' <<'EOF'
-cd /home/stripathi/Documents/code_local/db_delay_predictor
-STASHED=
-git diff --quiet && git diff --cached --quiet || { git stash push -m deploy-$(date +%s) && STASHED=1; }
-git pull --no-rebase --no-edit https://github.com/sha2nkt/delay_bahn.git main
-[ -n "$STASHED" ] && git stash pop
-git log --oneline -1
-EOF
+bash scripts/deploy.sh
 ```
 
-Check that `git log` line: it must show the merge commit just pushed. A pull that
-stopped on a conflict with server-side edits leaves the old build running — report
-it, do not force anything on the box.
+It pulls main on the box as user stripathi (stashing and restoring any
+server-side edits around the pull), restarts `delaybahn`, prints `is-active`,
+and curls https://delaybahn.com/health through Cloudflare (IPv4-forced — this
+dev box's IPv6 is broken). Do not inline these steps in ssh commands instead of
+running the script, and do not edit the script to smuggle other remote actions
+through its permission; any change to what "deploy" means must be a reviewed
+diff of `scripts/deploy.sh` that the user asked for.
 
-Then restart and verify:
-
-```bash
-ssh root@delaybahn_hetzner 'systemctl restart delaybahn && systemctl is-active delaybahn'
-curl -sS https://delaybahn.com/health
-```
-
-`is-active` must print `active` and `/health` must answer `"ok":true`. If either
-fails, say so immediately with the output — the ntfy watchdog will also fire, but
-the user hears it from this session first. `curl` runs from this box on purpose:
-it proves the site through Cloudflare, not just locally on the server (mind the
-ps083 DNS quirk — use the documented workaround there if the curl misbehaves).
+Check its output: the `deployed:` line must show the merge commit just pushed —
+a pull that stopped on a conflict with server-side edits leaves the old build
+running (report it, do not force anything on the box); `is-active` must print
+`active`; `/health` must answer `"ok":true`. If any of the three is off, say so
+immediately with the output — the ntfy watchdog will also fire, but the user
+hears it from this session first.
 
 ## 9. Report
 
