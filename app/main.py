@@ -692,7 +692,7 @@ def _past_page_html() -> str:
 
 @app.get("/entschaedigung")
 async def entschaedigung_page() -> HTMLResponse:
-    return HTMLResponse(_past_page_html())
+    return HTMLResponse(_past_page_html(), headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/entschaedigung/")
@@ -778,4 +778,18 @@ async def service_worker() -> FileResponse:
     )
 
 
-app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+class HtmlNoCacheStatic(StaticFiles):
+    """The HTML documents carry no ?v= buster, and StaticFiles sends them with a
+    Last-Modified but no Cache-Control. Browsers then fall back to heuristic
+    freshness (~10 % of the file's age), so a page untouched for weeks can be
+    served from the local cache for days and never picks up markup changes.
+    no-cache only forces revalidation — Last-Modified still yields cheap 304s."""
+
+    def file_response(self, *args, **kwargs) -> Response:
+        response = super().file_response(*args, **kwargs)
+        if (response.media_type or "").startswith("text/html"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/", HtmlNoCacheStatic(directory=STATIC_DIR, html=True), name="static")
