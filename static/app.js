@@ -89,11 +89,11 @@ const I18N = {
     heroHeadline: "Setz auf den pünktlicheren Zug.",
     heroClaimLate: "Verspätete Züge bleiben verspätet.",
     heroClaimPunctual: "Pünktliche Züge bleiben pünktlich.",
-    heroSubScope: "41.138 Züge im Mai und Juni 2026 verglichen:",
-    heroSubFinding: "Wer im Mai zu spät kam, kam auch im Juni zu spät.",
+    heroSubScope: "39.143 Züge im Juni und Juli 2026 verglichen:",
+    heroSubFinding: "Wer im Juni zu spät kam, kam auch im Juli zu spät.",
     chartSwitchLabel: "Daten ansehen",
-    chartAlt: "Verspätete Züge bleiben verspätet: Züge, die im Mai verspätet waren, waren es auch im Juni.",
-    violinAlt: "Pünktlich bleibt pünktlich, verspätet bleibt verspätet: Züge, gruppiert nach ihrer Mai-Verspätung, zeigen im Juni dieselbe Rangfolge.",
+    chartAlt: "Verspätete Züge bleiben verspätet: Züge, die im Juni verspätet waren, waren es auch im Juli.",
+    violinAlt: "Pünktlich bleibt pünktlich, verspätet bleibt verspätet: Züge, gruppiert nach ihrer Juni-Verspätung, zeigen im Juli dieselbe Rangfolge.",
     chartScatter: "Punktwolke",
     chartViolin: "Verteilung",
     favAdd: "Zu Favoriten hinzufügen",
@@ -259,11 +259,11 @@ const I18N = {
     heroHeadline: "Choose the train with the better track record.",
     heroClaimLate: "Late trains stay late.",
     heroClaimPunctual: "Punctual trains stay punctual.",
-    heroSubScope: "41,138 trains compared across May and June 2026",
-    heroSubFinding: "the ones that ran late in May ran late again in June.",
+    heroSubScope: "39,143 trains compared across June and July 2026",
+    heroSubFinding: "the ones that ran late in June ran late again in July.",
     chartSwitchLabel: "See the data",
-    chartAlt: "Delayed trains stay delayed: trains that ran late in May also ran late in June.",
-    violinAlt: "Punctual stays punctual, late stays late: trains grouped by their May delay show the same ranking in June.",
+    chartAlt: "Delayed trains stay delayed: trains that ran late in June also ran late in July.",
+    violinAlt: "Punctual stays punctual, late stays late: trains grouped by their June delay show the same ranking in July.",
     chartScatter: "Scatter",
     chartViolin: "Distribution",
     favAdd: "Add to favourites",
@@ -543,8 +543,8 @@ function reasonText(code) {
 }
 
 const chartSrcs = {
-  scatter: { de: "delay-correlation.svg?v=4", en: "delay-correlation-en.svg?v=4", alt: "chartAlt" },
-  violin: { de: "delay-violin.svg?v=3", en: "delay-violin-en.svg?v=3", alt: "violinAlt" },
+  scatter: { de: "delay-correlation.svg?v=5", en: "delay-correlation-en.svg?v=5", alt: "chartAlt" },
+  violin: { de: "delay-violin.svg?v=4", en: "delay-violin-en.svg?v=4", alt: "violinAlt" },
 };
 
 function updateChartImg() {

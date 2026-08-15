@@ -1,6 +1,7 @@
-"""Generate homepage violin SVGs (DE + EN): June delay distributions for trains
-grouped by their May delay — the distributional version of the scatter's claim
-that punctual trains stay punctual and late trains stay late.
+"""Generate homepage violin SVGs (DE + EN): month-y delay distributions for trains
+grouped by their month-x delay — the distributional version of the scatter's claim
+that punctual trains stay punctual and late trains stay late. Defaults to the two
+most recent complete months.
 
 Source data: monthly processed releases from the HuggingFace dataset
 piebro/deutsche-bahn-data (see make_delay_scatter.py). Output is deterministic.
@@ -12,29 +13,35 @@ from pathlib import Path
 import duckdb
 import numpy as np
 
+from month_utils import default_months, month_end, month_start, name_de, name_en, range_de, range_en
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_X, DEFAULT_Y = default_months()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--parquet-x", default=PROJECT_ROOT / "data" / "monthly_processed_data" / "data-2026-05.parquet")
-parser.add_argument("--parquet-y", default=PROJECT_ROOT / "data" / "monthly_processed_data" / "data-2026-06.parquet")
+parser.add_argument("--month-x", default=DEFAULT_X, help="earlier month, YYYY-MM")
+parser.add_argument("--month-y", default=DEFAULT_Y, help="later month, YYYY-MM")
 parser.add_argument("--out-dir", default=PROJECT_ROOT / "static")
 parser.add_argument("--axis-max", type=float, default=12.0)
 parser.add_argument("--bandwidth", type=float, default=0.4)
 args = parser.parse_args()
 
+parquet_x = PROJECT_ROOT / "data" / "monthly_processed_data" / f"data-{args.month_x}.parquet"
+parquet_y = PROJECT_ROOT / "data" / "monthly_processed_data" / f"data-{args.month_y}.parquet"
+
 df = duckdb.sql(f"""
     WITH events AS (
         SELECT train_type || ' ' || ltrim(train_number, '0') AS train,
                CAST(time AS DATE) AS day, delay_in_min
-        FROM read_parquet(['{args.parquet_x}', '{args.parquet_y}'])
+        FROM read_parquet(['{parquet_x}', '{parquet_y}'])
         WHERE NOT is_canceled AND delay_in_min IS NOT NULL
           AND train_number IS NOT NULL AND train_number != ''
-          AND CAST(time AS DATE) BETWEEN DATE '2026-05-01' AND DATE '2026-06-30'
+          AND CAST(time AS DATE) BETWEEN DATE '{month_start(args.month_x)}' AND DATE '{month_end(args.month_y)}'
     )
-    SELECT avg(delay_in_min) FILTER (WHERE day <  DATE '2026-06-01') AS h1,
-           avg(delay_in_min) FILTER (WHERE day >= DATE '2026-06-01') AS h2,
-           count(*) FILTER (WHERE day <  DATE '2026-06-01') AS n1,
-           count(*) FILTER (WHERE day >= DATE '2026-06-01') AS n2
+    SELECT avg(delay_in_min) FILTER (WHERE day <  DATE '{month_start(args.month_y)}') AS h1,
+           avg(delay_in_min) FILTER (WHERE day >= DATE '{month_start(args.month_y)}') AS h2,
+           count(*) FILTER (WHERE day <  DATE '{month_start(args.month_y)}') AS n1,
+           count(*) FILTER (WHERE day >= DATE '{month_start(args.month_y)}') AS n2
     FROM events GROUP BY train
     HAVING n1 >= 40 AND n2 >= 40
 """).df()
@@ -80,30 +87,32 @@ yticks = "\n".join(
 
 n_total = f"{len(df):,}"
 last = groups[-1]
+de_x, de_y = name_de(args.month_x), name_de(args.month_y)
+en_x, en_y = name_en(args.month_x), name_en(args.month_y)
 
 TEXTS = {
     "de": dict(
-        aria="Violinplot: Züge, die im Mai pünktlich waren, sind es auch im Juni — Züge, die im Mai verspätet waren, bleiben verspätet.",
-        sub1="Züge sind nach ihrer Ø-Verspätung im Mai gruppiert: links die pünktlichen, rechts die verspäteten.",
-        sub2="Jede Form zeigt, wie sich ihre Ø-Verspätung im Juni verteilt: je breiter, desto häufiger. Punkt = Median.",
-        ylab="Ø Verspätung Juni (Minuten)",
+        aria=f"Violinplot: Züge, die im {de_x} pünktlich waren, sind es auch im {de_y} — Züge, die im {de_x} verspätet waren, bleiben verspätet.",
+        sub1=f"Züge sind nach ihrer Ø-Verspätung im {de_x} gruppiert: links die pünktlichen, rechts die verspäteten.",
+        sub2=f"Jede Form zeigt, wie sich ihre Ø-Verspätung im {de_y} verteilt: je breiter, desto häufiger. Punkt = Median.",
+        ylab=f"Ø Verspätung {de_y} (Minuten)",
         names=["unter 1 min", "1–2 min", "2–4 min", "4–6 min", "über 6 min"],
-        med=lambda m: f"Juni: {m:.1f} min".replace(".", ","),
-        note=(f"{last['pct_over']:.0f} % dieser Züge:", "im Juni über 12 min"),
-        xcaption="Ø Verspätung im Mai",
-        footer=f"{n_total.replace(',', '.')} Züge mit mind. 40 Halten pro Monat · Datenquelle: Deutsche-Bahn-Fahrplandaten (IRIS) · Mai–Juni 2026",
+        med=lambda m: f"{de_y}: {m:.1f} min".replace(".", ","),
+        note=(f"{last['pct_over']:.0f} % dieser Züge:", f"im {de_y} über 12 min"),
+        xcaption=f"Ø Verspätung im {de_x}",
+        footer=f"{n_total.replace(',', '.')} Züge mit mind. 40 Halten pro Monat · Datenquelle: Deutsche-Bahn-Fahrplandaten (IRIS) · {range_de(args.month_x, args.month_y)}",
         fname="delay-violin.svg",
     ),
     "en": dict(
-        aria="Violin plot: trains that were punctual in May stay punctual in June — trains that were late in May stay late.",
-        sub1="Trains are grouped by their average May delay: punctual ones on the left, late ones on the right.",
-        sub2="Each shape shows how their average June delay is distributed: the wider, the more frequent. Dot = median.",
-        ylab="avg delay June (minutes)",
+        aria=f"Violin plot: trains that were punctual in {en_x} stay punctual in {en_y} — trains that were late in {en_x} stay late.",
+        sub1=f"Trains are grouped by their average {en_x} delay: punctual ones on the left, late ones on the right.",
+        sub2=f"Each shape shows how their average {en_y} delay is distributed: the wider, the more frequent. Dot = median.",
+        ylab=f"avg delay {en_y} (minutes)",
         names=["under 1 min", "1–2 min", "2–4 min", "4–6 min", "over 6 min"],
-        med=lambda m: f"June: {m:.1f} min",
-        note=(f"{last['pct_over']:.0f}% of these trains:", "over 12 min in June"),
-        xcaption="avg delay in May",
-        footer=f"{n_total} trains with at least 40 stops per month · Data: Deutsche Bahn timetable data (IRIS) · May–June 2026",
+        med=lambda m: f"{en_y}: {m:.1f} min",
+        note=(f"{last['pct_over']:.0f}% of these trains:", f"over 12 min in {en_y}"),
+        xcaption=f"avg delay in {en_x}",
+        footer=f"{n_total} trains with at least 40 stops per month · Data: Deutsche Bahn timetable data (IRIS) · {range_en(args.month_x, args.month_y)}",
         fname="delay-violin-en.svg",
     ),
 }
@@ -158,4 +167,4 @@ for t in TEXTS.values():
     print(f"wrote {out}")
 
 for g, name in zip(groups, TEXTS["en"]["names"]):
-    print(f"{name}: n={g['n']}, june median={g['med']:.2f}, >12min={g['pct_over']:.1f}%")
+    print(f"{name}: n={g['n']}, {en_y} median={g['med']:.2f}, >12min={g['pct_over']:.1f}%")
