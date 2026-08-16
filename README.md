@@ -1,4 +1,4 @@
-# DB Delay Predictor
+# DelayBahn
 
 [![Live at delaybahn.com](https://img.shields.io/badge/live-delaybahn.com-FD1C17)](https://delaybahn.com)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
