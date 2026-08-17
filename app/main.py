@@ -688,24 +688,24 @@ OG_LOCALE = {"de": "de_DE", "en": "en_US"}
 PAGE_META = {
     ("future", "de"): (
         "DelayBahn – DB Verbindungssuche mit Verspätungsstatistik",
-        "DB-Verbindungen suchen und vorab sehen, wie pünktlich die Züge in den letzten "
-        "Wochen wirklich waren. Verspätungs-Check für vergangene Reisen und "
-        "Entschädigung nach EU-Fahrgastrechten.",
+        "DelayBahn zeigt vor der Buchung, wie verspätet deine DB-Verbindung in den "
+        "letzten Wochen wirklich war – damit du auf den Zug mit der besseren Bilanz "
+        "setzen kannst. Den Zug buchen, nicht die Verspätung.",
         "DB-Verbindungen suchen und vorab sehen, wie pünktlich die Züge in den letzten "
         "Wochen wirklich waren. Den Zug buchen, nicht die Verspätung.",
     ),
     ("future", "en"): (
         "DelayBahn – DB Connection Search with Delay Statistics",
-        "Search Deutsche Bahn connections and see up front how punctual the trains "
-        "really were over the past weeks. Delay check for past journeys and "
-        "compensation under EU passenger rights.",
+        "DelayBahn shows before you book how delayed your DB connection really was "
+        "over the past weeks, so that you can choose the train with the better track "
+        "record. Book the train, not the delay.",
         "Search DB connections and see up front how punctual the trains really were. "
         "Book the train, not the delay.",
     ),
     ("past", "de"): (
         "Bahn-Entschädigung prüfen – Verspätungs-Check für vergangene Reisen | DelayBahn",
-        "Vergangene DB-Reise eingeben und sehen, wie sie wirklich verlief: Verspätungen, "
-        "verpasste Anschlüsse und Entschädigung nach EU-Fahrgastrechten – "
+        "Vergangene DB-Reise bei DelayBahn eingeben und sehen, wie sie wirklich verlief: "
+        "Verspätungen, verpasste Anschlüsse und Entschädigung nach EU-Fahrgastrechten – "
         "25 % ab 60 min, 50 % ab 120 min Verspätung am Ziel.",
         "Vergangene DB-Reise eingeben und sehen, wie sie wirklich verlief: Verspätungen, "
         "verpasste Anschlüsse und Entschädigung nach EU-Fahrgastrechten – "
@@ -713,9 +713,9 @@ PAGE_META = {
     ),
     ("past", "en"): (
         "Check DB delay compensation – delay check for past journeys | DelayBahn",
-        "Enter a past Deutsche Bahn journey and see how it actually went: delays, missed "
-        "connections and compensation under EU passenger rights – 25% from 60 min, "
-        "50% from 120 min delay on arrival.",
+        "Enter a past Deutsche Bahn journey on DelayBahn and see how it actually went: "
+        "delays, missed connections and compensation under EU passenger rights – "
+        "25% from 60 min, 50% from 120 min delay on arrival.",
         "Enter a past Deutsche Bahn journey and see how it actually went: delays, missed "
         "connections and compensation under EU passenger rights – 25% from 60 min, "
         "50% from 120 min delay on arrival.",
