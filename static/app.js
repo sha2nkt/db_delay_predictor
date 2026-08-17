@@ -158,7 +158,7 @@ const I18N = {
     feedbackNo: "Nein, nicht hilfreich",
     feedbackDismiss: "Ausblenden",
     feedbackFollowUp: "Danke! Was können wir besser machen?",
-    feedbackPlaceholder: "Optional, ein Satz genügt",
+    feedbackPlaceholder: "Was war hilfreich, was hat gefehlt oder gestört? Je konkreter, desto besser.",
     feedbackSend: "Senden",
     feedbackThanks: "Danke für dein Feedback.",
     footerLegal: "Impressum & Datenschutz",
@@ -324,7 +324,7 @@ const I18N = {
     feedbackNo: "No, not helpful",
     feedbackDismiss: "Dismiss",
     feedbackFollowUp: "Thanks! What could be better?",
-    feedbackPlaceholder: "Optional, one sentence is plenty",
+    feedbackPlaceholder: "What helped, what was missing or in the way? The more specific, the better.",
     feedbackSend: "Send",
     feedbackThanks: "Thanks for your feedback.",
     footerLegal: "Legal notice & privacy",
@@ -939,6 +939,11 @@ feedbackEl.querySelectorAll(".feedback-vote").forEach((btn) => {
     feedbackForm.classList.remove("hidden");
     feedbackInput.focus();
   });
+});
+
+// Enter now inserts a newline, so keep the keyboard path open the usual way
+feedbackInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) feedbackForm.requestSubmit();
 });
 
 feedbackForm.addEventListener("submit", (e) => {

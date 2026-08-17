@@ -58,7 +58,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=66">
+<link rel="stylesheet" href="/style.css?v=67">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -194,7 +194,7 @@ try {
       <button id="feedback-skip" class="feedback-skip" type="button" data-i18n-title="feedbackDismiss" data-i18n-aria="feedbackDismiss">✕</button>
     </div>
     <form id="feedback-form" class="feedback-form hidden">
-      <input id="feedback-text" type="text" maxlength="1000" data-i18n-placeholder="feedbackPlaceholder">
+      <textarea id="feedback-text" rows="4" maxlength="1000" data-i18n-placeholder="feedbackPlaceholder"></textarea>
       <button type="submit" class="feedback-send" data-i18n="feedbackSend">Senden</button>
     </form>
   </div>
@@ -344,7 +344,7 @@ try {
   </p>
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
 </footer>
-<script src="/app.js?v=91"></script>
+<script src="/app.js?v=92"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

@@ -605,31 +605,40 @@ body.past-mode .trip-steps { display: none; }
 .donate-nudge a { color: var(--text-muted); text-decoration: underline; }
 body.nudge-on #donate-footer-item { display: none; }
 
-/* post-result feedback ask: deliberately as quiet as the donate nudge above */
-.feedback-nudge { margin: 12px 0 0; font-size: 12px; color: var(--text-muted); }
-.feedback-nudge.hidden { display: none; }
-.feedback-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; }
-.feedback-vote, .feedback-skip {
-  font-family: inherit; background: none; border: none; cursor: pointer;
-  line-height: 1; padding: 5px 7px; border-radius: 6px; color: var(--text-muted);
+/* post-result feedback ask: no card, just a hairline rule — legible without
+   competing with the results above it */
+.feedback-nudge {
+  margin: 18px auto 0; max-width: 520px; padding-top: 14px;
+  border-top: 1px solid var(--gray-border);
+  font-size: 14px; color: var(--text-muted);
 }
-.feedback-vote { font-size: 15px; }
-.feedback-skip { font-size: 12px; }
-.feedback-vote:hover, .feedback-skip:hover { background: var(--gray-bg); color: var(--text); }
+.feedback-nudge.hidden { display: none; }
+.feedback-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+#feedback-lead { font-weight: 600; color: var(--text); }
+.feedback-vote, .feedback-skip {
+  font-family: inherit; background: none; cursor: pointer;
+  line-height: 1; border-radius: 6px; color: var(--text-muted);
+  border: 1px solid transparent;
+}
+.feedback-vote { font-size: 18px; padding: 6px 10px; border-color: var(--gray-border); background: #fff; }
+.feedback-skip { font-size: 12px; padding: 7px 9px; }
+.feedback-vote:hover { color: var(--text); border-color: var(--brand-red); }
+.feedback-skip:hover { background: var(--gray-bg); color: var(--text); }
 .feedback-vote:focus-visible, .feedback-skip:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
 .feedback-voted .feedback-vote { display: none; }
 .feedback-done .feedback-skip { display: none; }
 
-.feedback-form { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.feedback-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .feedback-form.hidden { display: none; }
-.feedback-form input {
-  font-family: inherit; font-size: 12px; width: 320px; max-width: 100%;
-  padding: 7px 9px; color: var(--text);
-  border: 1px solid var(--gray-border); border-radius: 4px;
+.feedback-form textarea {
+  font-family: inherit; font-size: 14px; line-height: 1.45; width: 100%;
+  min-height: 100px; resize: vertical; padding: 9px 10px; color: var(--text);
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 4px;
 }
-.feedback-form input:focus { outline: none; border-color: var(--brand-red); }
+.feedback-form textarea:focus { outline: none; border-color: var(--brand-red); }
 .feedback-send {
-  font-family: inherit; font-size: 12px; padding: 7px 14px; cursor: pointer;
+  font-family: inherit; font-size: 13px; padding: 7px 16px;
+  align-self: center; cursor: pointer;
   background: #fff; color: var(--brand-red);
   border: 1px solid var(--brand-red); border-radius: 4px;
 }
