@@ -112,10 +112,12 @@ const I18N = {
     noResults: "Keine Verbindungen gefunden.",
     error: (msg) => `Fehler: ${msg}`,
     overloadRetryIn: (s) => `DB-Server überlastet – neuer Versuch in ${s} s…`,
+    overloadRetryAgainIn: (n, s) => `DB-Server weiterhin überlastet – ${n}. Versuch in ${s} s…`,
     overloadFail: "Die DB-Server sind gerade überlastet. Bitte versuch es in einer Minute noch einmal.",
     staleNotice: (min) => `DB-Server überlastet – Ergebnisse vom Stand vor ${min} Min.`,
     returnChecking: "Prüfe Verbindungen für die Rückfahrt…",
     returnRetryIn: (s) => `Rückfahrt noch nicht abrufbar – neuer Versuch in ${s} s…`,
+    returnRetryAgainIn: (n, s) => `Rückfahrt weiterhin nicht abrufbar – ${n}. Versuch in ${s} s…`,
     returnUnavailable: "Die Rückfahrt lässt sich gerade nicht abrufen – die DB-Server sind überlastet. Bitte versuch es in einer Minute noch einmal.",
     noData: "keine Daten",
     notTracked: "nicht erfasst",
@@ -278,10 +280,12 @@ const I18N = {
     noResults: "No connections found.",
     error: (msg) => `Error: ${msg}`,
     overloadRetryIn: (s) => `DB's servers are busy – retrying in ${s} s…`,
+    overloadRetryAgainIn: (n, s) => `DB's servers are still busy – retry ${n} in ${s} s…`,
     overloadFail: "DB's servers are overloaded right now. Please try again in a minute.",
     staleNotice: (min) => `DB servers busy – results as of ${min} min ago.`,
     returnChecking: "Checking connections for the return journey…",
     returnRetryIn: (s) => `Return journey not available yet – retrying in ${s} s…`,
+    returnRetryAgainIn: (n, s) => `Return journey still not available – retry ${n} in ${s} s…`,
     returnUnavailable: "The return journey can't be loaded right now – DB's servers are overloaded. Please try again in a minute.",
     noData: "no data",
     notTracked: "not tracked",
@@ -1031,21 +1035,23 @@ function retryAfterSeconds(resp) {
 // Counts the wait down in the status line: a visible "retrying in 41 s" reads as
 // progress, where a frozen spinner for the same 45 s reads as a hang.
 // Resolves false when a newer search superseded this one.
-async function waitBeforeRetry(seconds, gen, statusKey) {
+async function waitBeforeRetry(seconds, gen, statusKey, ...params) {
   for (let left = Math.ceil(seconds); left > 0; left--) {
     if (gen !== searchGen) return false;
     statusEl.classList.remove("error");
-    setStatus(statusKey, left);
+    setStatus(statusKey, ...params, left);
     await new Promise((r) => setTimeout(r, 1000));
   }
   return gen === searchGen;
 }
 
 // opts: {leg} to fetch a leg other than the one on screen (the return preflight),
-// {maxTotal, retryStatusKey} to give that fetch its own retry budget and wording.
+// {maxTotal, retryStatusKey, retryAgainStatusKey} to give that fetch its own
+// retry budget and wording.
 async function fetchJourneys(pagingRef, opts = {}) {
   const maxTotal = opts.maxTotal ?? RETRY_MAX_TOTAL_S;
   const retryStatusKey = opts.retryStatusKey ?? "overloadRetryIn";
+  const retryAgainStatusKey = opts.retryAgainStatusKey ?? "overloadRetryAgainIn";
   const win = document.getElementById("window").value;
   // the toggle is hidden in past mode: a leftover checked state must not filter
   const dticket = state.mode !== "past" && document.getElementById("dticket").checked;
@@ -1059,6 +1065,7 @@ async function fetchJourneys(pagingRef, opts = {}) {
 
   const gen = searchGen;
   let waited = 0;
+  let attempt = 0;
   for (;;) {
     const resp = await fetch(`/api/journeys?${params}`);
     if (resp.ok) {
@@ -1076,7 +1083,13 @@ async function fetchJourneys(pagingRef, opts = {}) {
       throw err;
     }
     waited += wait;
-    if (!(await waitBeforeRetry(wait, gen, retryStatusKey))) {
+    attempt++;
+    // from the second round on, a numbered "still busy" message keeps a fresh
+    // countdown from reading as the first one looping
+    const ok = attempt === 1
+      ? await waitBeforeRetry(wait, gen, retryStatusKey)
+      : await waitBeforeRetry(wait, gen, retryAgainStatusKey, attempt);
+    if (!ok) {
       // a newer search took over: end this one quietly, it owns no UI any more
       throw Object.assign(new Error("superseded"), { superseded: true });
     }
@@ -1286,6 +1299,7 @@ async function preflightReturn() {
       leg,
       maxTotal: PREFLIGHT_MAX_TOTAL_S,
       retryStatusKey: "returnRetryIn",
+      retryAgainStatusKey: "returnRetryAgainIn",
     });
     state.returnPrefetch = { departure: leg.departure, data };
   } catch (e) {
