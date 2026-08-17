@@ -163,6 +163,11 @@ const I18N = {
     feedbackThanks: "Danke für dein Feedback.",
     footerLegal: "Impressum & Datenschutz",
     footerContact: "Kontakt",
+    // English on the German page by choice, not an untranslated string
+    followFeatures: "New features:",
+    followInstagram: "DelayBahn auf Instagram",
+    followLinkedIn: "DelayBahn auf LinkedIn",
+    followX: "DelayBahn auf X",
     footerDisclaimer: "DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.",
     navRefund: "Entschädigung beantragen",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
@@ -329,6 +334,10 @@ const I18N = {
     feedbackThanks: "Thanks for your feedback.",
     footerLegal: "Legal notice & privacy",
     footerContact: "Contact us",
+    followFeatures: "New features:",
+    followInstagram: "DelayBahn on Instagram",
+    followLinkedIn: "DelayBahn on LinkedIn",
+    followX: "DelayBahn on X",
     footerDisclaimer: "DelayBahn is an independent project and is not affiliated with Deutsche Bahn AG. “DB” and “Deutsche Bahn” are trademarks of Deutsche Bahn AG.",
     navRefund: "Apply delay compensation",
     refundCtaTitle: "Hit by over 1 hour of delay?",
@@ -895,6 +904,23 @@ function resetFeedback() {
   feedbackLead.textContent = t("feedbackAsk");
 }
 
+// The follow row rides in the ask's own line, inserted before the dismiss button so
+// ✕ stays the trailing affordance. Cloned from the footer rather than repeated in
+// the markup, so the brand marks exist exactly once. Mounted once: the vote buttons
+// hide themselves after a vote but this row stays for every state of the ask.
+// The footer row is bare icons; next to "Hat dir das geholfen?" they need a word to
+// say what clicking them does, so the label is added here rather than cloned.
+(function mountFollowRow() {
+  const row = document.querySelector(".footer-social").cloneNode(true);
+  row.classList.remove("footer-social");
+  row.classList.add("feedback-follow");
+  const lead = document.createElement("span");
+  lead.dataset.i18n = "followFeatures";
+  lead.textContent = t("followFeatures");
+  row.prepend(lead);
+  feedbackEl.querySelector(".feedback-row").insertBefore(row, document.getElementById("feedback-skip"));
+})();
+
 // results have landed and the visitor isn't already looking at a donate ask
 function setFeedbackNudge(show) {
   show = show && !DONATE_ENABLED;
@@ -965,6 +991,14 @@ document.getElementById("feedback-skip").addEventListener("click", () => {
 
 // the mailto lives in the markup; JS only records the click
 document.getElementById("contact-link").addEventListener("click", () => track("contact"));
+
+// --- follow links ---
+
+// delegated, so the row cloned into the feedback ask is covered too
+document.addEventListener("click", (e) => {
+  const link = e.target.closest(".social-link");
+  if (link) track(`follow-${link.dataset.net}`);
+});
 
 // the sub-page's body class, banner and search-button label are baked into the
 // served HTML; only the coverage-dependent date bounds need JS on load
