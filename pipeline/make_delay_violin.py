@@ -34,7 +34,7 @@ df = duckdb.sql(f"""
         SELECT train_type || ' ' || ltrim(train_number, '0') AS train,
                CAST(time AS DATE) AS day, delay_in_min
         FROM read_parquet(['{parquet_x}', '{parquet_y}'])
-        WHERE NOT is_canceled AND delay_in_min IS NOT NULL
+        WHERE NOT (arrival_is_canceled OR departure_is_canceled) AND delay_in_min IS NOT NULL
           AND train_number IS NOT NULL AND train_number != ''
           AND CAST(time AS DATE) BETWEEN DATE '{month_start(args.month_x)}' AND DATE '{month_end(args.month_y)}'
     )
