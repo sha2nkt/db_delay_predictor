@@ -58,7 +58,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=65">
+<link rel="stylesheet" href="/style.css?v=66">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -210,15 +210,6 @@ try {
     <p class="claim-modal-alt"><span id="claim-modal-alt-pre"></span> <a id="claim-modal-alt" target="_blank" rel="noopener"></a></p>
   </div>
 </dialog>
-<dialog id="contact-modal" class="claim-modal">
-  <div class="claim-modal-inner">
-    <button id="contact-close" class="claim-modal-close" type="button" aria-label="Schließen">✕</button>
-    <h2 class="claim-modal-title" data-i18n="contactTitle">Schreib uns</h2>
-    <p class="claim-modal-lead" data-i18n="contactLead">Fragen, Ideen oder etwas kaputt? Deine Nachricht öffnet sich gleich in deinem E-Mail-Programm.</p>
-    <textarea id="contact-text" class="contact-text" rows="5" autofocus data-i18n-placeholder="contactPlaceholder"></textarea>
-    <button id="contact-send" class="claim-modal-go contact-send" type="button" data-i18n="contactSend">Per E-Mail senden</button>
-  </div>
-</dialog>
 <dialog id="ios-install-sheet" class="ios-sheet">
   <div class="ios-sheet-inner">
     <div class="ios-sheet-grip"></div>
@@ -337,7 +328,7 @@ try {
   <a href="https://github.com/sha2nkt/delay_bahn" target="_blank" rel="noopener" data-i18n="footerOpenSource">Open Source – Quellcode auf GitHub</a> ·
   <span id="donate-footer-item"><a href="https://ko-fi.com/delaybahn" target="_blank" rel="noopener" id="donate-footer" data-i18n="footerDonate">☕ Spendier mir einen Kaffee</a> ·</span>
   <a href="/impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a> ·
-  <a href="#" id="contact-link" data-i18n="footerContact">Kontakt</a>
+  <a href="mailto:kontakt&#64;delaybahn.com?subject=DelayBahn%20Feedback" id="contact-link" data-i18n="footerContact">Kontakt</a>
   <p class="footer-data">
     <span data-i18n="footerData">Verspätungsdaten:</span>
     <a href="https://github.com/piebro/deutsche-bahn-data" target="_blank" rel="noopener">Deutsche Bahn (IRIS)</a> ·
@@ -350,7 +341,7 @@ try {
   </p>
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
 </footer>
-<script src="/app.js?v=90"></script>
+<script src="/app.js?v=91"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

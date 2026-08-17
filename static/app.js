@@ -163,10 +163,6 @@ const I18N = {
     feedbackThanks: "Danke für dein Feedback.",
     footerLegal: "Impressum & Datenschutz",
     footerContact: "Kontakt",
-    contactTitle: "Schreib uns",
-    contactLead: "Fragen, Ideen oder etwas kaputt? Deine Nachricht öffnet sich gleich in deinem E-Mail-Programm.",
-    contactPlaceholder: "Deine Nachricht",
-    contactSend: "Per E-Mail senden",
     footerDisclaimer: "DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.",
     navRefund: "Entschädigung beantragen",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
@@ -333,10 +329,6 @@ const I18N = {
     feedbackThanks: "Thanks for your feedback.",
     footerLegal: "Legal notice & privacy",
     footerContact: "Contact us",
-    contactTitle: "Write to us",
-    contactLead: "Questions, ideas or something broken? Your message will open in your email app.",
-    contactPlaceholder: "Your message",
-    contactSend: "Send by email",
     footerDisclaimer: "DelayBahn is an independent project and is not affiliated with Deutsche Bahn AG. “DB” and “Deutsche Bahn” are trademarks of Deutsche Bahn AG.",
     navRefund: "Apply delay compensation",
     refundCtaTitle: "Hit by over 1 hour of delay?",
@@ -966,28 +958,8 @@ document.getElementById("feedback-skip").addEventListener("click", () => {
 
 // --- contact ---
 
-// assembled at click time so the address never sits in the HTML for scrapers
-const CONTACT_ADDR = ["kontakt", "delaybahn.com"].join("@");
-
-const contactModal = document.getElementById("contact-modal");
-const contactText = document.getElementById("contact-text");
-
-document.getElementById("contact-link").addEventListener("click", (e) => {
-  e.preventDefault();
-  track("contact", { step: "open" });
-  contactModal.showModal();
-});
-
-document.getElementById("contact-close").addEventListener("click", () => contactModal.close());
-contactModal.addEventListener("click", (e) => { if (e.target === contactModal) contactModal.close(); });
-
-document.getElementById("contact-send").addEventListener("click", () => {
-  track("contact", { step: "send" });
-  location.href = `mailto:${CONTACT_ADDR}` +
-    `?subject=${encodeURIComponent("DelayBahn Feedback")}` +
-    `&body=${encodeURIComponent(contactText.value)}`;
-  contactModal.close();
-});
+// the mailto lives in the markup; JS only records the click
+document.getElementById("contact-link").addEventListener("click", () => track("contact"));
 
 // the sub-page's body class, banner and search-button label are baked into the
 // served HTML; only the coverage-dependent date bounds need JS on load
