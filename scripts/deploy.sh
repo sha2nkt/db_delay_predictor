@@ -16,6 +16,8 @@ echo "deployed: $(git log --oneline -1)"
 EOF
 
 ssh root@delaybahn_hetzner 'systemctl restart delaybahn && systemctl is-active delaybahn'
-# -4: this dev box (ps083) has broken IPv6; the check must go through Cloudflare
-curl -4 -sS --max-time 20 https://delaybahn.com/health
+# -4: this dev box (ps083) has broken IPv6; the check must go through Cloudflare.
+# --retry rides out the restart race (502 until uvicorn binds); -f turns a health
+# check that still fails after that into a nonzero exit instead of a silent pass.
+curl -4 -sS -f --retry 6 --retry-delay 3 --max-time 20 https://delaybahn.com/health
 echo
