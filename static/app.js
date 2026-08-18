@@ -160,8 +160,11 @@ const I18N = {
     feedbackNo: "Nein, nicht hilfreich",
     feedbackDismiss: "Ausblenden",
     feedbackFollowUp: "Danke! Was können wir besser machen?",
-    feedbackPlaceholder: "Was war hilfreich, was hat gefehlt oder gestört? Je konkreter, desto besser.",
+    feedbackPlaceholder: "Was war hilfreich, was hat gefehlt oder gestört? Je konkreter, desto besser. Screenshots kannst du direkt hier einfügen.",
     feedbackSend: "Senden",
+    feedbackAttach: "📎 Screenshot anhängen",
+    feedbackShotRemove: "Screenshot entfernen",
+    feedbackShotError: "Screenshot konnte nicht angehängt werden.",
     feedbackThanks: "Danke für dein Feedback.",
     footerLegal: "Impressum & Datenschutz",
     footerContact: "Kontakt",
@@ -333,8 +336,11 @@ const I18N = {
     feedbackNo: "No, not helpful",
     feedbackDismiss: "Dismiss",
     feedbackFollowUp: "Thanks! What could be better?",
-    feedbackPlaceholder: "What helped, what was missing or in the way? The more specific, the better.",
+    feedbackPlaceholder: "What helped, what was missing or in the way? The more specific, the better. You can paste a screenshot right here.",
     feedbackSend: "Send",
+    feedbackAttach: "📎 Attach a screenshot",
+    feedbackShotRemove: "Remove screenshot",
+    feedbackShotError: "Couldn't attach that screenshot.",
     feedbackThanks: "Thanks for your feedback.",
     footerLegal: "Legal notice & privacy",
     footerContact: "Contact us",
@@ -888,6 +894,14 @@ const feedbackEl = document.getElementById("feedback-nudge");
 const feedbackLead = document.getElementById("feedback-lead");
 const feedbackForm = document.getElementById("feedback-form");
 const feedbackInput = document.getElementById("feedback-text");
+const shotInput = document.getElementById("feedback-shot-input");
+const shotAttach = document.getElementById("feedback-attach");
+const shotChip = document.getElementById("feedback-shot-chip");
+const shotThumb = document.getElementById("feedback-shot-thumb");
+const shotError = document.getElementById("feedback-shot-error");
+
+// optional screenshot riding along with the comment, as a base64 data URL
+let feedbackShot = null;
 
 // one id per prompt, so the vote and the comment that may follow become one row
 let feedbackSid = null;
@@ -904,9 +918,96 @@ function resetFeedback() {
   feedbackEl.classList.remove("feedback-voted", "feedback-done");
   feedbackForm.classList.add("hidden");
   feedbackInput.value = "";
+  setShot(null);
+  shotError.classList.add("hidden");
   feedbackLead.dataset.i18n = "feedbackAsk";
   feedbackLead.textContent = t("feedbackAsk");
 }
+
+// --- feedback screenshot ---
+
+// the server refuses anything bigger, so the client shrinks until it fits
+const SHOT_MAX_BYTES = 500 * 1024;
+const SHOT_MAX_EDGE = 1600;
+
+function setShot(url) {
+  feedbackShot = url;
+  shotThumb.src = url || "";
+  shotChip.classList.toggle("hidden", !url);
+  shotAttach.classList.toggle("hidden", !!url);
+}
+
+// via an <img> rather than createImageBitmap for the sake of older Safari
+function loadShotImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("not a decodable image")); };
+    img.src = url;
+  });
+}
+
+function readAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+// decoded size of a data URL's payload: base64 spends 4 chars per 3 bytes
+const dataUrlBytes = (url) => ((url.length - url.indexOf(",") - 1) * 3) / 4;
+
+async function shrinkShot(file) {
+  const img = await loadShotImage(file); // rejects files that only claim to be images
+  // small enough already: keep the original, PNG screenshots stay crisp that way
+  if (file.size <= SHOT_MAX_BYTES && ["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    return readAsDataURL(file);
+  }
+  // shrink dimensions and JPEG quality together until it fits
+  let scale = Math.min(1, SHOT_MAX_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
+  for (const quality of [0.85, 0.7, 0.55]) {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+    const url = canvas.toDataURL("image/jpeg", quality);
+    if (dataUrlBytes(url) <= SHOT_MAX_BYTES) return url;
+    scale *= 0.75;
+  }
+  throw new Error("still too large after shrinking");
+}
+
+async function attachShot(file) {
+  if (!file) return;
+  shotError.classList.add("hidden");
+  try {
+    setShot(await shrinkShot(file));
+    track("feedback-shot");
+  } catch {
+    shotError.classList.remove("hidden");
+  }
+}
+
+shotAttach.addEventListener("click", () => shotInput.click());
+
+shotInput.addEventListener("change", () => {
+  const file = shotInput.files[0];
+  shotInput.value = ""; // so the same file can be picked again after a remove
+  attachShot(file);
+});
+
+// an image pasted into the comment box counts as an attachment, not as text
+feedbackInput.addEventListener("paste", (e) => {
+  const item = [...e.clipboardData.items].find((i) => i.type.startsWith("image/"));
+  if (!item) return;
+  e.preventDefault();
+  attachShot(item.getAsFile()); // getAsFile must happen before the event expires
+});
+
+document.getElementById("feedback-shot-remove").addEventListener("click", () => setShot(null));
 
 // The follow row rides in the ask's own line, inserted before the dismiss button so
 // ✕ stays the trailing affordance. Cloned from the footer rather than repeated in
@@ -933,13 +1034,13 @@ function setFeedbackNudge(show) {
 }
 
 // the visitor is doing us a favour: a failed send must never surface as an error
-async function sendFeedback(vote, text) {
+async function sendFeedback(vote, text, shot) {
   try {
     await fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sid: feedbackSid, vote, text,
+        sid: feedbackSid, vote, text, shot: shot || "",
         lang: state.lang,
         context: PAST_PAGE ? "past" : "future",
       }),
@@ -979,9 +1080,9 @@ feedbackInput.addEventListener("keydown", (e) => {
 feedbackForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const text = feedbackInput.value.trim();
-  if (text) {
+  if (text || feedbackShot) {
     track("feedback-text", { vote: feedbackEl.dataset.vote });
-    sendFeedback(feedbackEl.dataset.vote, text);
+    sendFeedback(feedbackEl.dataset.vote, text, feedbackShot);
   }
   thankFeedback();
 });

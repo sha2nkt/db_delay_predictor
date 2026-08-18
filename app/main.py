@@ -97,6 +97,51 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# 1 MiB fits the worst-case submission (512 KiB screenshot as base64, plus text)
+FEEDBACK_BODY_MAX = 1024 * 1024
+
+
+class FeedbackBodyLimit:
+    """Refuse oversized POSTs to /api/feedback before their body is read.
+
+    Pydantic's max_length only fires after Starlette has buffered the whole
+    body in memory, and Cloudflare forwards bodies up to 100 MB. Content-Length
+    is trustworthy here because h11 frames the body by it; length-less
+    (chunked) posts get 411 - browsers always send a length for string bodies.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if (
+            scope["type"] == "http"
+            and scope["method"] == "POST"
+            and scope["path"].rstrip("/") == "/api/feedback"
+        ):
+            length = next(
+                (v for k, v in scope["headers"] if k == b"content-length"), None
+            )
+            status = 0
+            if length is None or not length.isdigit():
+                status = 411
+            elif int(length) > FEEDBACK_BODY_MAX:
+                status = 413
+            if status:
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": status,
+                        "headers": [(b"content-length", b"0")],
+                    }
+                )
+                await send({"type": "http.response.body", "body": b""})
+                return
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(FeedbackBodyLimit)
+
 
 @app.get("/api/locations")
 async def locations(query: str, response: Response):
@@ -931,6 +976,9 @@ class Feedback(BaseModel):
     sid: str = Field(min_length=8, max_length=64)
     vote: Literal["up", "down"]
     text: str = Field("", max_length=1000)
+    # optional screenshot as a base64 image data URL; the length bound is the
+    # 512 KiB binary cap in base64 clothing plus header slack
+    shot: str = Field("", max_length=720_000)
     lang: Literal["de", "en"] = "de"
     context: Literal["future", "past"] = "future"
 
@@ -950,13 +998,24 @@ async def submit_feedback(fb: Feedback, request: Request) -> Response:
     if feedback.throttled(client_ip(request)):
         raise HTTPException(429, "too many submissions")
     text = fb.text.strip()
+    try:
+        shot = feedback.decode_shot(fb.shot)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
     # sqlite3 blocks and /health doubles as an event-loop canary: keep the write off it
-    await anyio.to_thread.run_sync(
-        feedback.save, fb.sid, fb.vote, text, fb.lang, fb.context
+    dropped = await anyio.to_thread.run_sync(
+        feedback.save, fb.sid, fb.vote, text, fb.lang, fb.context,
+        shot[0] if shot else None,
     )
-    # only a written comment is worth a phone buzz, and never on the request's clock
-    if text:
-        _spawn(feedback.notify(fb.vote, text, fb.lang, fb.context))
+    if dropped:
+        # budget full: don't forward the image to ntfy either - under a flood
+        # the image pushes would just move the spam to the phone
+        shot = None
+        if feedback.budget_warn_due():
+            _spawn(feedback.notify_budget())
+    # only a comment or screenshot is worth a phone buzz, and never on the request's clock
+    if text or shot:
+        _spawn(feedback.notify(fb.vote, text, fb.lang, fb.context, shot))
     return Response(status_code=204)
 
 

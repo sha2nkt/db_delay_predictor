@@ -657,6 +657,21 @@ body.nudge-on #donate-footer-item { display: none; }
 }
 .feedback-send:hover { background: var(--brand-red); color: #fff; }
 
+.feedback-shot-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.feedback-attach {
+  font-family: inherit; font-size: 13px; padding: 0;
+  background: none; border: none; cursor: pointer; color: var(--text-muted);
+}
+.feedback-attach:hover { color: var(--text); }
+.feedback-attach:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.feedback-shot-chip { display: inline-flex; align-items: flex-start; gap: 4px; }
+.feedback-shot-thumb {
+  display: block; max-height: 56px; max-width: 120px;
+  border: 1px solid var(--gray-border); border-radius: 4px;
+}
+.feedback-shot-error { font-size: 13px; color: var(--red); }
+.feedback-attach.hidden, .feedback-shot-chip.hidden, .feedback-shot-error.hidden { display: none; }
+
 .legal-card {
   background: #fff; border-radius: 8px; padding: 24px 28px;
   box-shadow: 0 1px 4px rgba(0,0,0,.12);
