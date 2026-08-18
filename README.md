@@ -105,3 +105,9 @@ Open http://localhost:8000, search a connection (e.g. Berlin Hbf → München Hb
 - `feature_list.md` — what the product does, feature by feature, with status
 - `progress.md` — current state snapshot, verification status, known limitations
 - `log.md` — append-only change log (newest entry last; never rewrite old entries)
+
+## License
+
+This project is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International](https://creativecommons.org/licenses/by-nc/4.0/) license (CC BY-NC 4.0) — see [LICENSE](LICENSE) for the full text. You may share and adapt this work for non-commercial purposes with attribution; commercial use requires separate permission.
+
+The external data sources listed above remain under their own licenses (ODbL, CC BY 4.0, CC0, and provider terms).
