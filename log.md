@@ -897,3 +897,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - Tests: 60 pass. New: the force_open escalation ladder (30→60→120→240→300→300, streak reset on a successful close) and persistent blocks paging exactly once. Two stale tests hardcoded 400 s as "past the fresh TTL" and now derive from `JOURNEYS_TTL`.
 - Busters: none — backend only.
 - Deliberate non-goals: no identity rotation or fingerprint tricks (rate-limit evasion, removed once already on 2026-08-13), no widening of the 30-min stale-route skew (wrong-time answers are worse than errors), no /health ok:false while blocked (the watchdog would read it as the site being down). Whether Akamai unblocks the IP is their call; the structural fix — official DB API access — stays open.
+
+## 2026-08-19 — Reverted: the Akamai block hardening (939a0a7)
+
+- User decision, same day it shipped: the commit is unwanted; revert and redeploy. Reverted wholesale via git revert (code, tests, progress.md, feature_list.md back to the 2026-08-18 state) — only this file keeps both entries, being append-only.
+- Live behavior returns to: journeys TTL 300 s / 512-entry cache, stale fallback ≤ 1 h / 256 entries, fixed 30 s cooldown after an all-profiles 403 block, and no ntfy paging for blocked windows (429 paging stays). The 2026-08-17→19 incident analysis in the previous entry remains valid: sustained Akamai blocks will again 503 most searches without alerting monitoring.
+- Busters: none — backend only.
