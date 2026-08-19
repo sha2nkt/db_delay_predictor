@@ -33,21 +33,26 @@ PROFILES = ["firefox135", "safari17_0", "chrome"]
 # Every piece of state in this module — caches, breaker, counters — is
 # per-process; the app runs as a single uvicorn worker, so in practice these
 # limits are global. With multiple workers each process would keep its own.
-JOURNEYS_TTL = env_int("BAHN_CACHE_TTL_SECONDS", 300)
+JOURNEYS_TTL = env_int("BAHN_CACHE_TTL_SECONDS", 600)
 LOCATIONS_TTL = 600
-CACHE_MAX = 512
+CACHE_MAX = 1024
 
-# how long to stop calling bahn.de after every profile has been blocked
+# initial pause after every profile has been blocked; consecutive blocked
+# windows escalate it (doubling, capped at the max cooldown) because each
+# probe is more upstream traffic feeding Akamai's verdict
 BLOCK_COOLDOWN = 30
 
 # spike insurance: bound how many requests we fan out to bahn.de at once
 MAX_UPSTREAM_CONCURRENCY = env_int("BAHN_MAX_CONCURRENCY", 4)
 
 # When bahn.de refuses (429/403/timeouts), a search that has an earlier answer
-# should degrade to it instead of erroring: journeys are kept for an hour past
-# their cache TTL and served with their age, which the frontend discloses.
-STALE_TTL = env_int("BAHN_STALE_CACHE_TTL_SECONDS", 3600)
-STALE_MAX = 256
+# should degrade to it instead of erroring: journeys are kept for two hours and
+# served with their age, which the frontend discloses. Capacity has to cover the
+# TTL at real traffic (~1200 successful fetches/hour during the Aug 2026 blocks,
+# when 256 entries meant ~12 minutes of retention and almost every fallback
+# lookup missed).
+STALE_TTL = env_int("BAHN_STALE_CACHE_TTL_SECONDS", 7200)
+STALE_MAX = 2048
 
 # A route-level fallback answers a *different* departure time than the one asked
 # for, so it may only stand in for a near-enough one: a 22:00 return served from
@@ -75,6 +80,13 @@ ALERT_THRESHOLD = 8
 ALERT_WINDOW = 300
 ALERT_COOLDOWN = 1800
 
+# likewise when Akamai keeps blocking every impersonation profile: one blocked
+# window is transient noise that clears on its own, several inside the window
+# is an outage users can feel. The window must span the escalated cooldowns,
+# which space blocked windows up to RATE_MAX_COOLDOWN apart.
+BLOCK_ALERT_THRESHOLD = 3
+BLOCK_ALERT_WINDOW = 900
+
 # One long-lived AsyncSession per impersonation profile: keeps TLS/HTTP2
 # connection pooling and stays on one upstream identity per profile for the
 # process lifetime — every app user deliberately shares it. Load is managed by
@@ -91,6 +103,8 @@ _stale: OrderedDict[tuple, tuple[float, dict]] = OrderedDict()  # key -> (stored
 _stale_route: OrderedDict[tuple, tuple[float, str, dict]] = OrderedDict()
 _rate_events: deque[float] = deque()
 _last_alert = float("-inf")
+_block_events: deque[float] = deque()
+_last_block_alert = float("-inf")
 
 # Pipeline counters, exposed via status() on /health. Keys are a small fixed
 # set (no station names, IPs or full journey keys).
@@ -202,10 +216,13 @@ class CircuitBreaker:
             self._open(cooldown_floor)
 
     def force_open(self, cooldown: float) -> None:
-        """Open for a fixed cooldown regardless of failure counts (the 403
-        every-profile-blocked path)."""
-        self._cooldown = cooldown
-        self._until = self._clock() + cooldown
+        """Open regardless of failure counts (the 403 every-profile-blocked
+        path). Consecutive forced opens without a successful close escalate
+        the cooldown like counted failures do — a sustained block gets probed
+        ever less often instead of every `cooldown` seconds."""
+        self._cooldown = min(self._max, cooldown * (2 ** self._streak))
+        self._streak += 1
+        self._until = self._clock() + self._cooldown
         metrics["circuit_opened"] += 1
         self._transition("open")
 
@@ -310,6 +327,25 @@ def _note_429(profile: str, path: str, retry_after: float | None) -> None:
         ))
 
 
+def _note_block() -> None:
+    """Track every all-profiles-blocked window and page via ntfy when they
+    persist. The 429 alert above never fires for these: an Akamai block is
+    403s, so without this path a full outage stays invisible to monitoring
+    (as on 2026-08-17/19, when ~45% of searches failed unalerted)."""
+    global _last_block_alert
+    now = time.monotonic()
+    _block_events.append(now)
+    while _block_events and now - _block_events[0] > BLOCK_ALERT_WINDOW:
+        _block_events.popleft()
+    if len(_block_events) >= BLOCK_ALERT_THRESHOLD and now - _last_block_alert > ALERT_COOLDOWN:
+        _last_block_alert = now
+        asyncio.ensure_future(_alert(
+            f"bahn.de (Akamai) is blocking every impersonation profile: "
+            f"{len(_block_events)} blocked windows in the last {BLOCK_ALERT_WINDOW // 60} min. "
+            f"Searches are degrading to cached/stale results."
+        ))
+
+
 def _retry_after_seconds(resp) -> float | None:
     """Seconds bahn.de asks us to wait, from either Retry-After form
     (delta-seconds or HTTP-date); None when absent or unparsable."""
@@ -343,6 +379,7 @@ async def _request(method: str, path: str, **kwargs) -> dict:
     except UpstreamBlocked:
         # wholesale Akamai block: not a rolling-window signal, pause outright
         _breaker.force_open(BLOCK_COOLDOWN)
+        _note_block()
         raise
     except (UpstreamUnavailable, UpstreamProtocolError):
         _breaker.record_failure(probe)

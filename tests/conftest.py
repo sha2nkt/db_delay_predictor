@@ -97,10 +97,12 @@ def bahn(clock, monkeypatch):
     monkeypatch.setattr(bahn_api, "_rotate_lock", asyncio.Lock())
     monkeypatch.setattr(bahn_api, "_profile_idx", 0)
     monkeypatch.setattr(bahn_api, "_last_alert", float("-inf"))
+    monkeypatch.setattr(bahn_api, "_last_block_alert", float("-inf"))
     bahn_api._cache.clear()
     bahn_api._stale.clear()
     bahn_api._stale_route.clear()
     bahn_api._rate_events.clear()
+    bahn_api._block_events.clear()
     bahn_api.metrics.clear()
 
     def use(*script):

@@ -64,11 +64,11 @@ async def test_departure_minutes_bucketed_into_one_key(bahn):
 async def test_stale_served_when_rate_limited(bahn):
     bahn.use(FakeResponse(payload=PAYLOAD))
     await search()
-    bahn.clock.advance(400)  # fresh TTL over, stale window not
+    bahn.clock.advance(bahn_api.JOURNEYS_TTL + 100)  # fresh TTL over, stale window not
     bahn.use(FakeResponse(429))
     data, age = await search()
     assert data == PAYLOAD
-    assert age == 400
+    assert age == bahn_api.JOURNEYS_TTL + 100
     assert bahn_api.metrics["stale_hits"] == 1
 
 
@@ -85,10 +85,10 @@ async def test_stale_not_served_after_stale_ttl(bahn):
 async def test_stale_served_while_circuit_open_without_upstream_call(bahn):
     sess = bahn.use(FakeResponse(payload=PAYLOAD))
     await search()
-    bahn.clock.advance(400)
+    bahn.clock.advance(bahn_api.JOURNEYS_TTL + 100)
     bahn_api._breaker.force_open(30)
     data, age = await search()
-    assert data == PAYLOAD and age == 400
+    assert data == PAYLOAD and age == bahn_api.JOURNEYS_TTL + 100
     assert sess.calls == 1  # the open circuit kept bahn.de untouched
     assert bahn_api.metrics["circuit_rejected"] == 1
 
@@ -290,6 +290,23 @@ async def test_all_profiles_403_forces_circuit_open_then_recovers(bahn):
     bahn.clock.advance(31)
     assert await search() == (PAYLOAD, 0)  # half-open probe succeeded
     assert bahn_api._breaker.state == "closed"
+
+
+async def test_persistent_blocks_page_via_ntfy_once(bahn, monkeypatch):
+    alerts = []
+
+    async def capture(text):
+        alerts.append(text)
+
+    monkeypatch.setattr(bahn_api, "_alert", capture)
+    bahn.use(FakeResponse(403))
+    for _ in range(bahn_api.BLOCK_ALERT_THRESHOLD):
+        with pytest.raises(bahn_api.UpstreamBlocked):
+            await search()
+        bahn.clock.advance(bahn_api.RATE_MAX_COOLDOWN + 1)
+    await asyncio.sleep(0)  # let the fire-and-forget alert task run
+    assert len(alerts) == 1
+    assert "blocking every impersonation profile" in alerts[0]
 
 
 # --- Retry-After parsing (sync) ---

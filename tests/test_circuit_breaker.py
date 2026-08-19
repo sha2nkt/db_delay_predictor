@@ -176,3 +176,18 @@ def test_force_open_blocks_for_given_cooldown():
         breaker.acquire()
     clock.advance(31)
     assert breaker.acquire() is True  # half-open probe
+
+
+def test_force_open_escalates_then_success_resets():
+    clock = FakeClock()
+    breaker = make(clock)
+    for expected in [30, 60, 120, 240, 300, 300]:
+        breaker.force_open(30)
+        assert breaker._until - clock() == expected
+        clock.advance(expected + 1)
+        assert breaker.acquire() is True  # half-open probe
+    breaker.record_success(probe=True)
+    assert breaker.state == "closed"
+    breaker.force_open(30)
+    # the successful close reset the streak, so escalation starts over
+    assert breaker._until - clock() == 30
