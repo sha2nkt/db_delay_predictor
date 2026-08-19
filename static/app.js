@@ -349,7 +349,7 @@ const I18N = {
     followLinkedIn: "DelayBahn on LinkedIn",
     followX: "DelayBahn on X",
     footerDisclaimer: "DelayBahn is an independent project and is not affiliated with Deutsche Bahn AG. “DB” and “Deutsche Bahn” are trademarks of Deutsche Bahn AG.",
-    navRefund: "Apply delay compensation",
+    navRefund: "Apply for delay compensation",
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
     refundCtaSub: "Get your money back from DB in 3 easy clicks",
