@@ -18,6 +18,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -33,14 +34,30 @@ EN = "|".join(MONTHS_EN)
 
 DEFAULT_X, DEFAULT_Y = default_months()
 
+
+def _default_ntfy_topic() -> str:
+    """An ntfy topic is a bearer secret — knowing the name is enough to read the
+    alerts and to post fake ones — and this repo is public, so it is never
+    hardcoded here. Falls back to empty, which disables the notifications rather
+    than failing a run that is otherwise fine."""
+    env = os.environ.get("NTFY_TOPIC", "").strip()
+    if env:
+        return env
+    try:
+        return (Path.home() / ".config" / "delaybahn" / "ntfy-topic").read_text().strip()
+    except OSError:
+        return ""
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--month-x", default=DEFAULT_X, help="earlier month, YYYY-MM")
 parser.add_argument("--month-y", default=DEFAULT_Y, help="later month, YYYY-MM")
 parser.add_argument("--push", action="store_true", help="commit, push main and deploy to delaybahn.com")
 parser.add_argument("--grace-days", type=int, default=12,
                     help="through this day of the month, a release missing upstream exits 0 (cron retries next day)")
-parser.add_argument("--ntfy-topic", default="delaybahn-alerts-c15a42b3",
-                    help="ntfy topic for --push failures/success; empty string disables")
+parser.add_argument("--ntfy-topic", default=_default_ntfy_topic(),
+                    help="ntfy topic for --push failures/success; empty string disables. "
+                         "Defaults to $NTFY_TOPIC, else ~/.config/delaybahn/ntfy-topic")
 args = parser.parse_args()
 
 
