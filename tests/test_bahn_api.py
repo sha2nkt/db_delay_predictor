@@ -7,6 +7,7 @@ from email.utils import formatdate
 from types import SimpleNamespace
 
 import pytest
+from curl_cffi.requests.exceptions import ConnectionError as CurlConnectionError
 from curl_cffi.requests.exceptions import RequestException, Timeout
 
 from app import bahn_api
@@ -258,6 +259,68 @@ async def test_timeout_maps_to_unavailable(bahn):
     with pytest.raises(bahn_api.UpstreamUnavailable):
         await search()
     assert bahn_api.metrics["upstream_network_errors"] == 1
+
+
+# --- transport retry: a connection dropped mid-request is a blip on the wire,
+#     not a verdict on bahn.de, so it gets one more attempt before the user
+#     sees a 503 ---
+
+
+def _capture_sleeps(bahn_module, monkeypatch):
+    sleeps = []
+    real_sleep = asyncio.sleep
+
+    async def fake_sleep(seconds):
+        sleeps.append(seconds)
+        await real_sleep(0)
+
+    monkeypatch.setattr(bahn_module, "asyncio", SimpleNamespace(
+        sleep=fake_sleep, ensure_future=asyncio.ensure_future, shield=asyncio.shield))
+    return sleeps
+
+
+async def test_dropped_connection_reconnects_once_then_succeeds(bahn, monkeypatch):
+    sleeps = _capture_sleeps(bahn_api, monkeypatch)
+    sess = bahn.use(CurlConnectionError("connection reset by peer"),
+                    FakeResponse(payload=PAYLOAD))
+    assert await search() == (PAYLOAD, 0)
+    assert sess.calls == 2
+    assert len(sleeps) == 1 and 0.25 <= sleeps[0] <= 0.5  # backoff + jitter
+    # the wire failure is still recorded; the point is the user never saw it
+    assert bahn_api.metrics["upstream_network_errors"] == 1
+    assert bahn_api.metrics["upstream_network_recovered"] == 1
+    # a blip that recovered is not evidence against bahn.de
+    assert bahn_api._breaker.state == "closed"
+
+
+async def test_reconnect_is_bounded_never_a_loop(bahn, monkeypatch):
+    _capture_sleeps(bahn_api, monkeypatch)
+    sess = bahn.use(CurlConnectionError("connection reset by peer"))
+    with pytest.raises(bahn_api.UpstreamUnavailable):
+        await search()
+    assert sess.calls == bahn_api.NET_RETRIES + 1
+    assert bahn_api.metrics["upstream_network_errors"] == bahn_api.NET_RETRIES + 1
+    assert bahn_api.metrics["upstream_network_recovered"] == 0
+
+
+async def test_timeout_is_never_retried(bahn, monkeypatch):
+    """bahn.de did answer the connect and then took too long; trying again only
+    doubles the user's wait, so the timeout path must stay single-shot."""
+    sleeps = _capture_sleeps(bahn_api, monkeypatch)
+    sess = bahn.use(Timeout("timed out"), FakeResponse(payload=PAYLOAD))
+    with pytest.raises(bahn_api.UpstreamUnavailable):
+        await search()
+    assert sess.calls == 1
+    assert sleeps == []
+
+
+async def test_unclassified_request_exception_is_not_retried(bahn, monkeypatch):
+    """Only connection-level classes are retried; the base class stays fail-fast."""
+    _capture_sleeps(bahn_api, monkeypatch)
+    sess = bahn.use(RequestException("something else"), FakeResponse(payload=PAYLOAD))
+    with pytest.raises(bahn_api.UpstreamUnavailable):
+        await search()
+    assert sess.calls == 1
 
 
 async def test_malformed_response_maps_to_protocol_error(bahn):

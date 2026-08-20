@@ -10,6 +10,7 @@ from typing import Awaitable, Callable
 
 import httpx
 from curl_cffi import requests
+from curl_cffi.requests.exceptions import ConnectionError as CurlConnectionError
 from curl_cffi.requests.exceptions import RequestException
 
 from app.config import env_int
@@ -68,6 +69,19 @@ HALF_OPEN_PROBES = env_int("BAHN_HALF_OPEN_PROBES", 1)
 # a 429 whose Retry-After promises relief within this many seconds is worth
 # waiting out once inside the same request; anything longer fails over to stale
 QUICK_RETRY_MAX_WAIT = 2.0
+
+# A connection that dies mid-request carries no verdict on bahn.de: the socket
+# never completed an exchange, and libcurl drops the dead one from the pool, so a
+# second attempt opens a fresh connection and usually lands. Without this, every
+# transport blip reached the user as a "servers are busy" 503, indistinguishable
+# from real rate limiting.
+NET_RETRIES = env_int("BAHN_NETWORK_RETRIES", 1)
+NET_RETRY_BACKOFF = 0.25
+
+# Only connection-level failures are worth a second attempt. Timeout is
+# deliberately absent: the connection stood and bahn.de simply took too long, so
+# retrying would double the user's wait for the same likely outcome.
+RETRYABLE_NETWORK_ERRORS = (CurlConnectionError,)
 
 # page via ntfy when 429s keep coming: that means the demand-side mitigations
 # are exhausted and users are seeing degraded results
@@ -395,10 +409,13 @@ async def _request(method: str, path: str, *, source: str, **kwargs) -> dict:
 async def _issue(method: str, path: str, source: str, **kwargs) -> dict:
     """Issue one request to bahn.de, rotating impersonation profiles on 403 as
     before, and translate every failure mode into the UpstreamError taxonomy.
-    The only retry is a single same-session wait when a 429 carries a
-    Retry-After of at most QUICK_RETRY_MAX_WAIT seconds."""
+    Retries are bounded and never loop: a single same-session wait when a 429
+    carries a Retry-After of at most QUICK_RETRY_MAX_WAIT seconds, and up to
+    NET_RETRIES reconnects when the connection drops mid-request."""
     rotations = 0
     quick_retried = False
+    net_retries = 0
+    reconnected = False  # a transport retry whose outcome is not yet known
     while True:
         profile = PROFILES[_profile_idx]
         # counted per loop pass, not per call: a 403 rotation and a quick 429 retry
@@ -412,7 +429,20 @@ async def _issue(method: str, path: str, source: str, **kwargs) -> dict:
             metrics["upstream_network_errors"] += 1
             log.warning("bahn.de unreachable: profile=%s path=%s error=%s",
                         profile, path, type(e).__name__)
+            if net_retries < NET_RETRIES and isinstance(e, RETRYABLE_NETWORK_ERRORS):
+                # sleep outside the semaphore so a retry never holds a slot idle
+                net_retries += 1
+                reconnected = True
+                await asyncio.sleep(NET_RETRY_BACKOFF * net_retries + random.uniform(0, 0.25))
+                continue
             raise UpstreamUnavailable(f"bahn.de unreachable: {type(e).__name__}") from e
+
+        if reconnected:
+            # counted apart from upstream_network_errors, which stays a tally of
+            # what happened on the wire: this is the subset the user never saw
+            reconnected = False
+            metrics["upstream_network_recovered"] += 1
+            log.info("bahn.de reachable again after %d reconnect(s): path=%s", net_retries, path)
 
         status = resp.status_code
         if status == 403:
