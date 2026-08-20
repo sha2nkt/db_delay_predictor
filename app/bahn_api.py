@@ -37,11 +37,15 @@ JOURNEYS_TTL = env_int("BAHN_CACHE_TTL_SECONDS", 300)
 LOCATIONS_TTL = 600
 CACHE_MAX = 512
 
-# Nearby-stop lookup. bahn.de answers 422 for a radius past 10 km, and it ranks
-# purely by distance — in a town the rail stops sit behind dozens of bus stops,
-# so ask for a large page and pick the rail ones out of it ourselves.
+# Nearby-stop lookup. bahn.de answers 422 for a radius past 10 km and caps maxNo
+# at 100, and it ranks strictly by distance — so the count, not the radius, is the
+# binding limit: 2 km up the hill in Tübingen the hundred nearest stops are all
+# city buses and no railway station is in the answer at all. `products` is what
+# makes the radius usable; it must be repeated per value, since bahn.de 422s a
+# comma-joined list (and on a bare "IC" — long distance is "EC_IC").
 NEARBY_RADIUS_M = 9999
 NEARBY_MAX_RESULTS = 50
+NEARBY_PRODUCTS = ["ICE", "EC_IC", "IR", "REGIONAL", "SBAHN"]
 
 # how long to stop calling bahn.de after every profile has been blocked
 BLOCK_COOLDOWN = 30
@@ -468,16 +472,18 @@ async def locations(query: str) -> list[dict]:
 
 
 async def nearby(lat: float, lon: float) -> list[dict]:
-    """Stops around a coordinate as bahn.de ranks them — nearest first, every
-    mode of transport, each entry carrying its own lat/lon and product list."""
+    """Rail stops around a coordinate as bahn.de ranks them — nearest first, each
+    entry carrying its own lat/lon and product list. Bus-only stops are excluded
+    upstream; what survives can still be a bus stop bahn.de labels REGIONAL."""
     # shield for the same reason locations() does. Callers round the coordinates,
     # so a cache entry covers a grid cell rather than one visitor's exact position
     return await asyncio.shield(_cached(
         ("nearby", lat, lon),
         LOCATIONS_TTL,
         lambda: _request("get", "/reiseloesung/orte/nearby",
-                         params={"lat": lat, "long": lon,
-                                 "radius": NEARBY_RADIUS_M, "maxNo": NEARBY_MAX_RESULTS}),
+                         params=[("lat", lat), ("long", lon),
+                                 ("radius", NEARBY_RADIUS_M), ("maxNo", NEARBY_MAX_RESULTS),
+                                 *(("products", p) for p in NEARBY_PRODUCTS)]),
     ))
 
 
