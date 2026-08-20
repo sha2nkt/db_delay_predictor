@@ -10,7 +10,7 @@ import pytest
 from curl_cffi.requests.exceptions import RequestException, Timeout
 
 from app import bahn_api
-from tests.conftest import FakeResponse, FakeSession
+from tests.conftest import FakeResponse
 
 pytestmark = pytest.mark.anyio
 
@@ -305,31 +305,6 @@ def test_retry_after_parsing_forms():
     assert 55 <= parse(FakeResponse(429, headers={"Retry-After": future})) <= 61
     past = formatdate(real_time.time() - 60, usegmt=True)
     assert parse(FakeResponse(429, headers={"Retry-After": past})) == 0.0
-
-
-# --- nearby stops ---
-
-
-async def test_nearby_asks_upstream_for_rail_stops_only(bahn):
-    """The count cap binds long before the radius does: bahn.de returns at most
-    100 stops strictly nearest-first, so unfiltered, a town's bus stops fill the
-    whole answer and no station comes back at all — 2 km from Tübingen Hbf the
-    nearest hundred stops were all city buses."""
-    seen = {}
-
-    class Recording(FakeSession):
-        async def get(self, url, **kwargs):
-            seen.update(kwargs)
-            return await super().get(url, **kwargs)
-
-    bahn.session = Recording(FakeResponse(payload=[]))
-    await bahn_api.nearby(48.536, 9.058)
-    params = seen["params"]
-    # one repeated key, never a comma-joined value — bahn.de 422s the latter,
-    # and 422s a bare "IC" too (long distance is "EC_IC")
-    assert [v for k, v in params if k == "products"] == bahn_api.NEARBY_PRODUCTS
-    assert ("radius", bahn_api.NEARBY_RADIUS_M) in params
-    assert ("maxNo", bahn_api.NEARBY_MAX_RESULTS) in params
 
 
 # --- upstream volume logging ---

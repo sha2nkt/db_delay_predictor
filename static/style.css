@@ -139,16 +139,6 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .fav-star:hover { color: var(--brand-red); }
 .fav-star.on { color: var(--brand-red); }
 
-/* "use my location", pinned above the saved stations it is an alternative to */
-.geo-item { color: var(--brand-red); font-weight: 600; }
-.geo-item:not(:last-child) { border-bottom: 1px solid var(--gray-border); }
-.geo-icon { flex: none; display: flex; }
-/* mid-lookup and after a failure the row states a fact rather than offering an action */
-.geo-item.busy, .geo-item.error { color: var(--text-muted); font-weight: 400; }
-.geo-item.busy { cursor: default; }
-.geo-item.busy .geo-icon { animation: geo-pulse 1.1s ease-in-out infinite; }
-@keyframes geo-pulse { 50% { opacity: .25; } }
-
 .hero-chart {
   background: #fff; border-radius: 10px; padding: 30px 24px 26px;
   box-shadow: 0 1px 4px rgba(0,0,0,.12);
@@ -827,7 +817,6 @@ body.nudge-on #donate-footer-item { display: none; }
   .ts-train { transform: translateX(var(--ts-stop)); }
   .ts-smoke { opacity: 0; }
   .badge-caret { transition: none; }
-  .geo-item.busy .geo-icon { animation: none; }
 }
 
 @media (max-width: 700px) {
