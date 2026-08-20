@@ -63,6 +63,12 @@ const I18N = {
     toPlaceholder: "z.B. München Hbf",
     swapTitle: "Richtung tauschen",
     clearInput: "Eingabe löschen",
+    geoCurrent: "Aktueller Standort",
+    geoLocating: "Standort wird ermittelt…",
+    geoDenied: "Standortzugriff nicht erlaubt",
+    geoImprecise: "Standort zu ungenau",
+    geoUnavailable: "Standort nicht verfügbar",
+    geoNoStation: "Kein Bahnhof in der Nähe gefunden",
     date: "Datum",
     time: "Uhrzeit",
     returnAdd: "+ Rückfahrt hinzufügen",
@@ -239,6 +245,12 @@ const I18N = {
     toPlaceholder: "e.g. München Hbf",
     swapTitle: "Swap direction",
     clearInput: "Clear input",
+    geoCurrent: "Current position",
+    geoLocating: "Getting your location…",
+    geoDenied: "Location access denied",
+    geoImprecise: "Location too imprecise",
+    geoUnavailable: "Location unavailable",
+    geoNoStation: "No station found nearby",
     date: "Date",
     time: "Time",
     returnAdd: "+ Add return journey",
@@ -656,10 +668,30 @@ function paintStar(button, on) {
 
 // --- autocomplete ---
 
-function setupAutocomplete(inputId, dropdownId, key) {
+// crosshair, the mark the DB app puts on the same shortcut. Static markup that
+// nothing interpolates into, so assigning it via innerHTML is safe.
+const GEO_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none"'
+  + ' stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">'
+  + '<circle cx="12" cy="12" r="5"/>'
+  + '<circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/>'
+  + '<path d="M12 1.8v3.3M12 18.9v3.3M1.8 12h3.3M18.9 12h3.3"/></svg>';
+
+// a fix younger than this is reused instead of waiting for a new one
+const GEO_MAX_AGE = 5 * 60 * 1000;
+const GEO_TIMEOUT = 10 * 1000;
+// Uncertainty past which a fix cannot name a station: bahn.de searches at most
+// 10 km around a point, so a position vaguer than that says nothing about which
+// station is nearest. A wired desktop geolocates by IP and lands here, often on
+// a country-level fallback coordinate that has no railway within the radius at
+// all — "no station nearby" would blame the map for a useless fix.
+const GEO_ACCURACY_MAX = 10000;
+
+function setupAutocomplete(inputId, dropdownId, key, { geolocate = false } = {}) {
   const input = document.getElementById(inputId);
   const dropdown = document.getElementById(dropdownId);
   let timer = null;
+  // null while idle, else {busy: true} or {error: "<i18n key>"}
+  let geo = null;
 
   function makeRow(item) {
     const row = document.createElement("div");
@@ -693,24 +725,95 @@ function setupAutocomplete(inputId, dropdownId, key) {
     return row;
   }
 
-  function showItems(items) {
-    dropdown.innerHTML = "";
-    items.forEach((item) => dropdown.appendChild(makeRow(item)));
-    dropdown.classList.toggle("open", items.length > 0);
+  // "Aktueller Standort" / "Current position": the row that resolves the device's
+  // position to the nearest station, and reports back in place when it can't
+  function makeGeoRow() {
+    const row = document.createElement("div");
+    row.className = "dropdown-item geo-item";
+
+    const icon = document.createElement("span");
+    icon.className = "geo-icon";
+    icon.innerHTML = GEO_ICON;
+    row.appendChild(icon);
+
+    const label = document.createElement("span");
+    label.className = "dropdown-name";
+    const msgKey = geo?.busy ? "geoLocating" : geo?.error || "geoCurrent";
+    // data-i18n so switching language mid-lookup relabels this row like any other
+    label.dataset.i18n = msgKey;
+    label.textContent = t(msgKey);
+    row.appendChild(label);
+
+    if (geo?.busy) {
+      row.classList.add("busy");
+    } else {
+      if (geo?.error) row.classList.add("error");  // a tap retries
+      row.addEventListener("mousedown", (e) => {
+        e.preventDefault();  // keeps the focus — and the open dropdown — on the input
+        locate();
+      });
+    }
+    return row;
   }
 
-  // one list: favourites on top, then the recents that aren't already favourites
+  function setGeo(next) {
+    geo = next;
+    if (input.value.trim() !== "") return;  // the visitor moved on to typing
+    // the permission prompt can take the focus with it, and the dropdown then
+    // has no blur left to close it — take it back so the row is seen and dismissable
+    input.focus();
+    showSaved();
+  }
+
+  function locate() {
+    if (!navigator.geolocation) return setGeo({ error: "geoUnavailable" });
+    setGeo({ busy: true });
+    track("geolocate");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      if (pos.coords.accuracy > GEO_ACCURACY_MAX) return setGeo({ error: "geoImprecise" });
+      // 3 decimals is ~110 m: enough to find the nearest station, and it keeps
+      // the visitor's exact position out of the request
+      const lat = pos.coords.latitude.toFixed(3);
+      const lon = pos.coords.longitude.toFixed(3);
+      try {
+        const resp = await fetch(`/api/locations/nearby?lat=${lat}&lon=${lon}`);
+        if (!resp.ok) throw new Error(resp.status);
+        const items = await resp.json();
+        if (!items.length) return setGeo({ error: "geoNoStation" });
+        geo = null;
+        state[key] = items[0];
+        input.value = items[0].name;
+        dropdown.classList.remove("open");
+      } catch {
+        setGeo({ error: "geoUnavailable" });
+      }
+    }, (err) => {
+      // denial is the one outcome the visitor can act on, so it gets its own words
+      setGeo({ error: err.code === err.PERMISSION_DENIED ? "geoDenied" : "geoUnavailable" });
+    }, { timeout: GEO_TIMEOUT, maximumAge: GEO_MAX_AGE });
+  }
+
+  function showItems(items, withGeo = false) {
+    dropdown.innerHTML = "";
+    if (withGeo) dropdown.appendChild(makeGeoRow());
+    items.forEach((item) => dropdown.appendChild(makeRow(item)));
+    dropdown.classList.toggle("open", dropdown.childElementCount > 0);
+  }
+
+  // one list: the location shortcut, then favourites, then the recents that
+  // aren't already favourites
   function showSaved() {
     if (input.value.trim() !== "") return;
     const favorites = getFavorites();
     showItems([...favorites,
-      ...getRecents().filter((s) => !favorites.some((f) => f.id === s.id))]);
+      ...getRecents().filter((s) => !favorites.some((f) => f.id === s.id))], geolocate);
   }
 
   input.addEventListener("focus", showSaved);
 
   input.addEventListener("input", () => {
     state[key] = null;
+    geo = null;  // a stale "denied"/"nothing nearby" must not outlive the attempt
     clearTimeout(timer);
     const q = input.value.trim();
     if (q.length < 2) {
@@ -734,13 +837,14 @@ function setupAutocomplete(inputId, dropdownId, key) {
   input.parentElement.querySelector(".input-clear").addEventListener("mousedown", (e) => {
     e.preventDefault();
     state[key] = null;
+    geo = null;
     input.value = "";
     input.focus();
     showSaved();
   });
 }
 
-setupAutocomplete("from", "from-dropdown", "from");
+setupAutocomplete("from", "from-dropdown", "from", { geolocate: true });
 setupAutocomplete("to", "to-dropdown", "to");
 
 document.getElementById("swap").addEventListener("click", () => {

@@ -23,6 +23,9 @@ _cache: "OrderedDict[tuple[str, str, int], dict | None]" = OrderedDict()
 _date_cache: "OrderedDict[tuple[str, str, date], dict | None]" = OrderedDict()
 _dep_date_cache: "OrderedDict[tuple[str, str, date], dict | None]" = OrderedDict()
 _stations: list[dict] = []
+# every EVA we hold observations for, unpadded — _stations only keeps the busiest
+# one per station name, which is too narrow to answer "do we know this stop?"
+_station_evas: set[str] = set()
 
 
 def _remember(cache: OrderedDict, key: tuple, value):
@@ -147,7 +150,7 @@ def _build_station_index():
     """Every station in the delay data as an autocomplete entry, deduped by name (the
     multi-level Hbf EVAs collapse to one — journey search resolves any level the same)
     and ranked by observation volume. Lets /api/locations answer without calling bahn.de."""
-    global _stations
+    global _stations, _station_evas
     rows = _conn.execute(
         """
         SELECT eva, station_name, count(*) AS cnt
@@ -156,6 +159,7 @@ def _build_station_index():
         GROUP BY eva, station_name
         """
     ).fetchall()
+    _station_evas = {eva.lstrip("0") for eva, _, _ in rows}
 
     # one entry per folded name: keep the busiest EVA/spelling, sum volume across levels
     best: dict[str, tuple[str, str, int]] = {}  # norm -> (eva, display name, its count)
@@ -200,6 +204,12 @@ def station_search(query: str, limit: int = 8) -> list[dict]:
         scored.append((rank, 0 if s["is_hbf"] else 1, -s["total"], s))
     scored.sort(key=lambda x: x[:3])
     return [{"id": s["id"], "extId": s["extId"], "name": s["name"]} for *_, s in scored[:limit]]
+
+
+def has_delay_data(ext_id: str) -> bool:
+    """Whether we hold observations for this bahn.de extId. Nearby-station ranking
+    uses it to prefer stops our statistics can speak about."""
+    return ext_id.lstrip("0") in _station_evas
 
 
 def pad_eva(stop_id: str) -> str:

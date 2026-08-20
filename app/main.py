@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from functools import lru_cache
 from html import escape
-from math import ceil
+from math import asin, ceil, cos, radians, sin, sqrt
 from pathlib import Path
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -45,6 +45,21 @@ _search_limiter = ratelimit.SlidingWindowLimiter(
     burst_limit=CLIENT_SEARCH_BURST_LIMIT,
     burst_window=CLIENT_SEARCH_BURST_WINDOW,
     sustained_limit=CLIENT_SEARCH_PER_MINUTE_LIMIT,
+    sustained_window=60,
+)
+
+# Tighter budget for the nearby lookup. Unlike autocomplete it can never be
+# answered from the local index, and every distinct coordinate is a guaranteed
+# cache miss, so a coordinate sweep would be one bahn.de call apiece. A visitor
+# taps it once, twice if the first fix was poor.
+CLIENT_NEARBY_BURST_LIMIT = env_int("CLIENT_NEARBY_BURST_LIMIT", 3)
+CLIENT_NEARBY_BURST_WINDOW = 10
+CLIENT_NEARBY_PER_MINUTE_LIMIT = env_int("CLIENT_NEARBY_PER_MINUTE_LIMIT", 15)
+
+_nearby_limiter = ratelimit.SlidingWindowLimiter(
+    burst_limit=CLIENT_NEARBY_BURST_LIMIT,
+    burst_window=CLIENT_NEARBY_BURST_WINDOW,
+    sustained_limit=CLIENT_NEARBY_PER_MINUTE_LIMIT,
     sustained_window=60,
 )
 
@@ -166,6 +181,83 @@ async def locations(query: str, response: Response):
         for r in results
         if r.get("id") and r.get("extId") and r.get("name")
     ]
+
+
+# How many stations the "current position" shortcut answers with. The frontend
+# fills the first one in; the rest are there for a caller that wants a choice.
+NEARBY_LIMIT = 5
+
+# Everything the delay data covers — DE/AT/CH/FR/NL/IT and their neighbours —
+# with room to spare. A coordinate outside it can only be a mistake or a sweep,
+# and answering it locally keeps both off bahn.de.
+NEARBY_BOUNDS = (35.0, 56.5, -6.0, 20.0)  # lat min/max, lon min/max
+
+
+def _distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance in metres."""
+    p1, p2 = radians(lat1), radians(lat2)
+    a = (sin((p2 - p1) / 2) ** 2
+         + cos(p1) * cos(p2) * sin(radians(lon2 - lon1) / 2) ** 2)
+    return 2 * 6_371_000 * asin(sqrt(a))
+
+
+@app.get("/api/locations/nearby")
+async def locations_nearby(
+    request: Request,
+    response: Response,
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+):
+    """Stations around a coordinate, nearest first, for the search mask's
+    "current position" shortcut."""
+    # ~110 m is all a nearest-station lookup needs. The frontend already rounds;
+    # repeating it here makes the cache key a grid cell whatever a caller sends.
+    lat, lon = round(lat, 3), round(lon, 3)
+    response.headers["Cache-Control"] = "public, max-age=600"
+    lat_min, lat_max, lon_min, lon_max = NEARBY_BOUNDS
+    if not (lat_min <= lat <= lat_max and lon_min <= lon <= lon_max):
+        # an empty list is the truth out there — we hold no stations — and the
+        # frontend already words it as "no station found nearby"
+        return []
+    # our own limit on this client, distinct from bahn.de throttling us (503)
+    wait = _nearby_limiter.retry_after(client_ip(request))
+    if wait is not None:
+        bahn_api.metrics["client_rate_limited"] += 1
+        # the injected response is discarded once an exception propagates, so a
+        # header meant for an error status has to travel on the exception itself
+        raise HTTPException(
+            429, "too many location lookups; please slow down",
+            headers={"Retry-After": str(wait), "Cache-Control": "no-store"},
+        )
+    try:
+        results = await bahn_api.nearby(lat, lon)
+    except bahn_api.UpstreamError as e:
+        # Unlike autocomplete this answers a deliberate tap, so a failure is worth
+        # saying out loud rather than degrading to "no station near you".
+        error = _upstream_http_error(e)
+        error.headers = {**(error.headers or {}), "Cache-Control": "no-store"}
+        raise error
+
+    ranked = []
+    for r in results:
+        ext = r.get("extId")
+        if not (r.get("id") and ext and r.get("name")):
+            continue
+        # most of what bahn.de returns around a coordinate are municipal bus
+        # stops; only rail ones can ever carry a delay statistic
+        if not set(r.get("products") or []) - UNTRACKED_PRODUCTS:
+            continue
+        far = r.get("lat") is None or r.get("lon") is None
+        # a stop we hold data for beats a closer one we know nothing about:
+        # bahn.de labels some bus stops REGIONAL, and their 6-digit municipal
+        # ids never appear in the delay data
+        ranked.append((
+            0 if delays.has_delay_data(ext) else 1,
+            float("inf") if far else _distance_m(lat, lon, r["lat"], r["lon"]),
+            {"id": r["id"], "extId": ext, "name": r["name"]},
+        ))
+    ranked.sort(key=lambda x: x[:2])
+    return [station for *_, station in ranked[:NEARBY_LIMIT]]
 
 
 def normalize_leg(abschnitt: dict, window: int, past: bool = False, live: bool = False) -> dict:
