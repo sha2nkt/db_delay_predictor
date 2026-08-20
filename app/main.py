@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from collections import OrderedDict
 from contextlib import asynccontextmanager
@@ -20,6 +21,20 @@ from pydantic import BaseModel, Field
 
 from app import bahn_api, delays, feedback, live_delays, ratelimit
 from app.config import env_int
+
+log = logging.getLogger(__name__)
+
+# uvicorn configures only its own loggers, so records from app.* fall through to
+# logging.lastResort, which drops everything below WARNING — operational INFO could
+# never reach the journal. Give the package a handler of its own. The bare
+# "%(message)s" is what lastResort already emits, so existing warning lines keep
+# the exact shape anything grepping the journal expects.
+_app_log = logging.getLogger("app")
+if not _app_log.handlers:
+    _app_handler = logging.StreamHandler()
+    _app_handler.setFormatter(logging.Formatter("%(message)s"))
+    _app_log.addHandler(_app_handler)
+    _app_log.setLevel(logging.INFO)
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -395,6 +410,40 @@ REPLAN_CACHE_MAX = 500
 
 _replan_cache: "OrderedDict[tuple, dict]" = OrderedDict()
 
+# The answer _if_missed_connection derives from such a payload is ~1KB, so caching it
+# instead of re-deriving it costs a few hundredths of what the payload above does and
+# earns a far larger cap. It also caches much better: the key below is timetable-derived
+# (planned arrival plus a median delay off the local parquet), never the searcher's
+# clock, so two people searching the same route hours apart share one entry — where a
+# journey search key carries a departure bucket that rolls every 5 minutes.
+IF_MISSED_CACHE_MAX = env_int("BAHN_IF_MISSED_CACHE_MAX", 10000)
+
+# One rollup line per this many lookups, rather than a line each: there are hundreds
+# of lookups an hour, and what anyone reading the journal wants is the hit rate moving
+# over the day, next to the 429s it is meant to reduce.
+IF_MISSED_LOG_EVERY = env_int("BAHN_IF_MISSED_LOG_EVERY", 200)
+
+_if_missed_cache: "OrderedDict[tuple, dict | None]" = OrderedDict()
+_if_missed_logged = (0, 0)  # (hits, misses) as of the last rollup line
+
+
+def _note_if_missed(hit: bool) -> None:
+    """Count an if-missed cache lookup, and roll the tally into the log periodically."""
+    global _if_missed_logged
+    bahn_api.metrics["if_missed_hits" if hit else "if_missed_misses"] += 1
+    hits = bahn_api.metrics["if_missed_hits"]
+    misses = bahn_api.metrics["if_missed_misses"]
+    was_hits, was_misses = _if_missed_logged
+    span = (hits - was_hits) + (misses - was_misses)
+    if span < IF_MISSED_LOG_EVERY:
+        return
+    _if_missed_logged = (hits, misses)
+    log.info(
+        "if-missed cache: hit_rate=%.0f%% over last %d, hits=%d misses=%d size=%d/%d",
+        100 * (hits - was_hits) / span, span, hits, misses,
+        len(_if_missed_cache), IF_MISSED_CACHE_MAX,
+    )
+
 
 def _planned_dt(leg: dict, key: str):
     return delays.to_berlin_naive(leg[key]) if leg.get(key) else None
@@ -431,8 +480,10 @@ def _flix(leg: dict) -> bool:
             or str(line.get("name") or "").upper().startswith("FLX"))
 
 
-async def _replan(origin: dict, dest: dict, ready) -> dict | None:
-    """Next connections origin -> dest from `ready` on, cached per request minute."""
+async def _replan(origin: dict, dest: dict, ready, source: str) -> dict | None:
+    """Next connections origin -> dest from `ready` on, cached per request minute.
+    `source` only tags the upstream call for the log; it is deliberately absent from
+    the cache key, so a walk replan and an if-missed lookup still share an answer."""
     key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"))
     if key in _replan_cache:
         _replan_cache.move_to_end(key)
@@ -443,6 +494,7 @@ async def _replan(origin: dict, dest: dict, ready) -> dict | None:
             f"A=1@O={origin['name']}@L={origin['id']}@",
             f"A=1@O={dest['name']}@L={dest['id']}@",
             ready.strftime("%Y-%m-%dT%H:%M:%S"),
+            source=source,
         )
     except bahn_api.UpstreamError:
         return None  # transient: don't cache failures
@@ -460,7 +512,7 @@ async def _next_connection(origin: dict, dest: dict, ready, window: int, live: b
     passenger just rode, continuing onward — are considered too."""
     best_arrival, best_legs = None, None
     for probe in (ready - timedelta(minutes=45), ready):
-        data = await _replan(origin, dest, probe)
+        data = await _replan(origin, dest, probe, "walk")
         if live:
             await _warm_live(data)
         for verbindung in (data or {}).get("verbindungen", []):
@@ -501,9 +553,22 @@ async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict
     if arr is None or not origin["id"] or not dest["id"]:
         return None
     ready = arr + timedelta(minutes=_walk_minutes(legs, a, b) + tt["medianDelay"])
-    data = await _replan(origin, dest, ready)
+    # `window` belongs in the key: it decides the span leg_delay_stats summarises
+    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"), window)
+    if key in _if_missed_cache:
+        _if_missed_cache.move_to_end(key)
+        _note_if_missed(True)
+        # the entry is serialized straight into the response and never mutated on
+        # the way out, so callers may share one object
+        return _if_missed_cache[key]
+    _note_if_missed(False)
+    data = await _replan(origin, dest, ready, "if-missed")
+    if data is None:
+        # upstream refused: transient, and caching it would suppress the panel for
+        # everyone on this route until the process restarts
+        return None
     best_arrival, best_legs = None, None
-    for verbindung in (data or {}).get("verbindungen", []):
+    for verbindung in data.get("verbindungen", []):
         rlegs = [normalize_leg(x, window) for x in verbindung.get("verbindungsAbschnitte", [])]
         rtrain = [l for l in rlegs if not l["walking"]]
         if not rtrain or any(_flix(l) for l in rtrain):
@@ -517,9 +582,14 @@ async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict
             continue
         if best_arrival is None or last_arr < best_arrival:
             best_arrival, best_legs = last_arr, rlegs
-    if best_legs is None:
-        return None
-    return {"legs": best_legs, "arrival": best_arrival.isoformat()}
+    # "no catchable connection" is a real answer off a real payload, not a failure,
+    # so it is cached too — otherwise every such transfer re-asks bahn.de forever
+    result = None if best_legs is None else {"legs": best_legs, "arrival": best_arrival.isoformat()}
+    _if_missed_cache[key] = result
+    _if_missed_cache.move_to_end(key)
+    while len(_if_missed_cache) > IF_MISSED_CACHE_MAX:
+        _if_missed_cache.popitem(last=False)
+    return result
 
 
 async def _simulate_walk(legs: list[dict], window: int, replans_left: int, live: bool = False) -> dict:
@@ -779,6 +849,7 @@ async def health():
         "caches": {
             "bahn": len(bahn_api._cache),
             "replan": len(_replan_cache),
+            "ifMissed": len(_if_missed_cache),
             "delayStats": len(delays._cache),
             "delayOnDate": len(delays._date_cache),
             "departureOnDate": len(delays._dep_date_cache),

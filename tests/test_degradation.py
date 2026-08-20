@@ -1,6 +1,8 @@
 """Endpoint behavior when bahn.de is straining: autocomplete degrades quietly,
 and the optional if-missed replans stop spending upstream budget."""
 
+import logging
+
 import pytest
 from fastapi import HTTPException
 
@@ -191,3 +193,104 @@ async def test_if_missed_replans_skipped_when_answer_is_stale(monkeypatch):
     _transfers, calls = await _journeys_with_one_tight_transfer(
         monkeypatch, healthy=True, stale=300)
     assert calls == []  # a degraded answer must not trigger fresh upstream work
+
+
+async def _if_missed_over(monkeypatch, replies: list):
+    """Runs _if_missed_connection against a scripted _replan; returns (results, calls).
+    Each reply is either a payload dict or None (upstream refused)."""
+    main._if_missed_cache.clear()
+    calls: list[tuple] = []
+
+    async def fake_replan(origin, dest, ready, source):
+        calls.append((origin["id"], dest["id"], ready, source))
+        return replies[min(len(calls) - 1, len(replies) - 1)]
+
+    monkeypatch.setattr(main, "_replan", fake_replan)
+    legs = [
+        {"walking": False, "line": {"product": "ICE"}, "plannedArrival": "2026-08-13T12:00:00",
+         "origin": {"id": "8011160", "name": "Berlin Hbf"},
+         "destination": {"id": "8000105", "name": "Frankfurt Hbf"}},
+        {"walking": False, "line": {"product": "ICE"}, "plannedDeparture": "2026-08-13T12:05:00",
+         "origin": {"id": "8000105", "name": "Frankfurt Hbf"},
+         "destination": {"id": "8000261", "name": "München Hbf"}},
+    ]
+    tt = {"legIndex": 0, "depLegIndex": 1, "medianDelay": 9}
+    out = [await main._if_missed_connection(legs, tt, 7) for _ in replies]
+    return out, calls
+
+
+def _replacement(depart: str, arrive: str) -> dict:
+    return {"verbindungen": [{"verbindungsAbschnitte": [{
+        "verkehrsmittel": {"typ": "PUBLICTRANSPORT", "mittelText": "ICE 9", "nummer": "9",
+                           "produktGattung": "ICE"},
+        "abfahrtsOrtExtId": "8000105", "abfahrtsOrt": "Frankfurt Hbf",
+        "ankunftsOrtExtId": "8000261", "ankunftsOrt": "München Hbf",
+        "abfahrt": {"sollzeit": depart}, "ankunft": {"sollzeit": arrive},
+    }]}]}
+
+
+async def test_if_missed_answer_is_cached_across_searches(monkeypatch):
+    payload = _replacement("2026-08-13T12:40:00", "2026-08-13T16:00:00")
+    out, calls = await _if_missed_over(monkeypatch, [payload, payload])
+    # the key is timetable-derived, so the second search reuses the first one's answer
+    assert len(calls) == 1
+    assert out[0] is out[1]
+    assert out[0]["arrival"] == "2026-08-13T16:00:00"
+
+
+async def test_if_missed_caches_the_absence_of_a_connection(monkeypatch):
+    # a payload whose only option departs too soon to be catchable
+    payload = _replacement("2026-08-13T12:09:00", "2026-08-13T16:00:00")
+    out, calls = await _if_missed_over(monkeypatch, [payload, payload])
+    assert out == [None, None]
+    assert len(calls) == 1  # "no connection" is an answer, not a reason to re-ask
+
+
+async def test_if_missed_never_caches_an_upstream_refusal(monkeypatch):
+    payload = _replacement("2026-08-13T12:40:00", "2026-08-13T16:00:00")
+    out, calls = await _if_missed_over(monkeypatch, [None, payload])
+    assert out[0] is None and out[1] is not None
+    assert len(calls) == 2  # the refusal must not stick to the route
+
+
+async def test_if_missed_cache_evicts_oldest_past_the_cap(monkeypatch):
+    monkeypatch.setattr(main, "IF_MISSED_CACHE_MAX", 1)
+    main._if_missed_cache.clear()
+    calls: list[str] = []
+
+    async def fake_replan(origin, dest, ready, source):
+        calls.append(dest["id"])
+        return _replacement("2026-08-13T12:40:00", "2026-08-13T16:00:00")
+
+    monkeypatch.setattr(main, "_replan", fake_replan)
+
+    async def ask(dest_id: str):
+        legs = [
+            {"walking": False, "line": {"product": "ICE"}, "plannedArrival": "2026-08-13T12:00:00",
+             "origin": {"id": "8011160", "name": "Berlin Hbf"},
+             "destination": {"id": "8000105", "name": "Frankfurt Hbf"}},
+            {"walking": False, "line": {"product": "ICE"}, "plannedDeparture": "2026-08-13T12:05:00",
+             "origin": {"id": "8000105", "name": "Frankfurt Hbf"},
+             "destination": {"id": dest_id, "name": "dest"}},
+        ]
+        return await main._if_missed_connection(
+            legs, {"legIndex": 0, "depLegIndex": 1, "medianDelay": 9}, 7)
+
+    await ask("8000261")
+    await ask("8000207")  # evicts the first at a cap of one
+    await ask("8000261")
+    assert calls == ["8000261", "8000207", "8000261"]
+    assert len(main._if_missed_cache) == 1
+
+
+async def test_if_missed_cache_rollup_reaches_the_log(monkeypatch, caplog):
+    monkeypatch.setattr(main, "IF_MISSED_LOG_EVERY", 4)
+    # start the interval from wherever the shared counters already stand
+    base = (bahn_api.metrics["if_missed_hits"], bahn_api.metrics["if_missed_misses"])
+    monkeypatch.setattr(main, "_if_missed_logged", base)
+    with caplog.at_level(logging.INFO, logger="app.main"):
+        for i in range(8):
+            main._note_if_missed(i % 2 == 0)
+    lines = [r.getMessage() for r in caplog.records if "if-missed cache" in r.getMessage()]
+    assert len(lines) == 2  # one rollup per 4 lookups, not a line per lookup
+    assert "hit_rate=50%" in lines[0] and "over last 4" in lines[0]

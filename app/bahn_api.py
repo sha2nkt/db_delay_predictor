@@ -85,6 +85,12 @@ ALERT_THRESHOLD = 8
 ALERT_WINDOW = 300
 ALERT_COOLDOWN = 1800
 
+# One rollup line per this many calls actually sent to bahn.de, so the journal carries
+# a time series of our real upstream volume — the quantity the 429s answer — instead of
+# only the running totals /health reports. Piggybacked on the calls themselves, so a
+# quiet night logs nothing at all.
+UPSTREAM_LOG_EVERY = env_int("BAHN_UPSTREAM_LOG_EVERY", 100)
+
 # One long-lived AsyncSession per impersonation profile: keeps TLS/HTTP2
 # connection pooling and stays on one upstream identity per profile for the
 # process lifetime — every app user deliberately shares it. Load is managed by
@@ -101,6 +107,9 @@ _stale: OrderedDict[tuple, tuple[float, dict]] = OrderedDict()  # key -> (stored
 _stale_route: OrderedDict[tuple, tuple[float, str, dict]] = OrderedDict()
 _rate_events: deque[float] = deque()
 _last_alert = float("-inf")
+_upstream_since: Counter[str] = Counter()  # per-source calls since the last rollup line
+_upstream_logged_at = time.monotonic()
+_upstream_logged_429 = 0
 
 # Pipeline counters, exposed via status() on /health. Keys are a small fixed
 # set (no station names, IPs or full journey keys).
@@ -300,6 +309,33 @@ async def _alert(text: str) -> None:
         log.warning("ntfy alert failed: %s", exc)
 
 
+def _note_upstream(source: str) -> None:
+    """Count one request actually put on the wire to bahn.de and roll the tally into
+    the log every UPSTREAM_LOG_EVERY calls.
+
+    Counted here, at the one point requests are issued, so everything that spares
+    bahn.de a call — cache hits, coalesced waiters, circuit-rejected calls, stale
+    fallbacks — is correctly absent from the total. `source` attributes the call to
+    what wanted it: a user's own search, the if-missed enrichment, a past-mode walk
+    replan, or autocomplete falling past the local station index.
+    """
+    global _upstream_logged_at, _upstream_logged_429
+    metrics["upstream_requests"] += 1
+    metrics[f"upstream_from_{source}"] += 1
+    _upstream_since[source] += 1
+    total = sum(_upstream_since.values())
+    if total < UPSTREAM_LOG_EVERY:
+        return
+    now = time.monotonic()
+    span = max(now - _upstream_logged_at, 1e-6)
+    refused = metrics["upstream_429"] - _upstream_logged_429
+    _upstream_logged_at, _upstream_logged_429 = now, metrics["upstream_429"]
+    breakdown = " ".join(f"{k}={v}" for k, v in sorted(_upstream_since.items()))
+    _upstream_since.clear()
+    log.info("bahn.de upstream: %d calls in %.0fs (%.1f/min) %s, 429s=%d",
+             total, span, 60 * total / span, breakdown, refused)
+
+
 def _note_429(profile: str, path: str, retry_after: float | None) -> None:
     """Log every upstream 429 distinctly from other failures and page via ntfy
     when they keep coming. Never logs cookies or response bodies."""
@@ -341,12 +377,13 @@ def _retry_after_seconds(resp) -> float | None:
     return max(0.0, (dt - datetime.now(timezone.utc)).total_seconds())
 
 
-async def _request(method: str, path: str, **kwargs) -> dict:
+async def _request(method: str, path: str, *, source: str, **kwargs) -> dict:
     """One upstream call under the circuit breaker: fails fast while the
-    circuit is open, otherwise issues the request and feeds the outcome back."""
+    circuit is open, otherwise issues the request and feeds the outcome back.
+    `source` is what asked for it — see _note_upstream."""
     probe = _breaker.acquire()
     try:
-        data = await _issue(method, path, **kwargs)
+        data = await _issue(method, path, source, **kwargs)
     except UpstreamRateLimited as e:
         _breaker.record_failure(probe, cooldown_floor=e.retry_after)
         raise
@@ -365,7 +402,7 @@ async def _request(method: str, path: str, **kwargs) -> dict:
     return data
 
 
-async def _issue(method: str, path: str, **kwargs) -> dict:
+async def _issue(method: str, path: str, source: str, **kwargs) -> dict:
     """Issue one request to bahn.de, rotating impersonation profiles on 403 as
     before, and translate every failure mode into the UpstreamError taxonomy.
     The only retry is a single same-session wait when a 429 carries a
@@ -374,7 +411,9 @@ async def _issue(method: str, path: str, **kwargs) -> dict:
     quick_retried = False
     while True:
         profile = PROFILES[_profile_idx]
-        metrics["upstream_requests"] += 1
+        # counted per loop pass, not per call: a 403 rotation and a quick 429 retry
+        # each put another request on the wire, which is what we are tracking
+        _note_upstream(source)
         try:
             async with _upstream_sem:
                 resp = await getattr(_session(profile), method)(f"{BASE_URL}{path}", **kwargs)
@@ -467,7 +506,8 @@ async def locations(query: str) -> list[dict]:
     return await asyncio.shield(_cached(
         ("locations", query.strip().lower()),
         LOCATIONS_TTL,
-        lambda: _request("get", "/reiseloesung/orte", params={"suchbegriff": query, "typ": "ALL", "limit": 8}),
+        lambda: _request("get", "/reiseloesung/orte", source="locations",
+                         params={"suchbegriff": query, "typ": "ALL", "limit": 8}),
     ))
 
 
@@ -480,7 +520,7 @@ async def nearby(lat: float, lon: float) -> list[dict]:
     return await asyncio.shield(_cached(
         ("nearby", lat, lon),
         LOCATIONS_TTL,
-        lambda: _request("get", "/reiseloesung/orte/nearby",
+        lambda: _request("get", "/reiseloesung/orte/nearby", source="nearby",
                          params=[("lat", lat), ("long", lon),
                                  ("radius", NEARBY_RADIUS_M), ("maxNo", NEARBY_MAX_RESULTS),
                                  *(("products", p) for p in NEARBY_PRODUCTS)]),
@@ -497,7 +537,7 @@ def _departure_skew(a: str, b: str) -> float:
 
 
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
-                   dticket: bool = False) -> tuple[dict, int]:
+                   dticket: bool = False, source: str = "search") -> tuple[dict, int]:
     """Returns (data, stale_age_seconds); age is 0 for a fresh answer, else how
     old the served fallback is. from_id/to_id are full HAFAS location ids
     (A=1@O=...@L=...@) from locations().
@@ -559,7 +599,7 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
         # so one waiter's disconnect must not cancel it for everyone else
         data = await asyncio.shield(_cached(
             key, JOURNEYS_TTL,
-            lambda: _request("post", "/angebote/fahrplan", json=body),
+            lambda: _request("post", "/angebote/fahrplan", source=source, json=body),
             on_success=keep,
         ))
     except UpstreamError:

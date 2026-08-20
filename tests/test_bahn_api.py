@@ -330,3 +330,43 @@ async def test_nearby_asks_upstream_for_rail_stops_only(bahn):
     assert [v for k, v in params if k == "products"] == bahn_api.NEARBY_PRODUCTS
     assert ("radius", bahn_api.NEARBY_RADIUS_M) in params
     assert ("maxNo", bahn_api.NEARBY_MAX_RESULTS) in params
+
+
+# --- upstream volume logging ---
+
+
+async def test_upstream_calls_are_attributed_to_their_source(bahn):
+    bahn.use(FakeResponse(payload=PAYLOAD))
+    await search()                                   # defaults to source="search"
+    await bahn_api.journeys("A=1@O=Berlin@L=8011160@", "A=1@O=Koeln@L=8000207@",
+                            "2026-08-13T11:00:00", source="if-missed")
+    assert bahn_api.metrics["upstream_from_search"] == 1
+    assert bahn_api.metrics["upstream_from_if-missed"] == 1
+    assert bahn_api.metrics["upstream_requests"] == 2
+
+
+async def test_cache_hits_are_absent_from_the_upstream_count(bahn):
+    bahn.use(FakeResponse(payload=PAYLOAD))
+    await search()
+    await search()  # served from cache
+    assert bahn_api.metrics["upstream_requests"] == 1
+    assert bahn_api.metrics["upstream_from_search"] == 1
+
+
+async def test_upstream_rollup_logs_rate_and_breakdown(bahn, monkeypatch, caplog):
+    import logging
+
+    monkeypatch.setattr(bahn_api, "UPSTREAM_LOG_EVERY", 3)
+    bahn.use(FakeResponse(payload=PAYLOAD))
+    with caplog.at_level(logging.INFO, logger="app.bahn_api"):
+        for i in range(3):
+            bahn.clock.advance(20)  # 3 calls over 60s -> 3.0/min
+            await bahn_api.journeys("A=1@O=Berlin@L=8011160@", "A=1@O=Koeln@L=8000207@",
+                                    f"2026-08-13T1{i}:00:00",
+                                    source="search" if i else "if-missed")
+    lines = [r.getMessage() for r in caplog.records if "bahn.de upstream:" in r.getMessage()]
+    assert len(lines) == 1
+    assert "3 calls in 60s (3.0/min)" in lines[0]
+    assert "if-missed=1 search=2" in lines[0]
+    assert "429s=0" in lines[0]
+    assert not bahn_api._upstream_since  # the interval resets for the next line

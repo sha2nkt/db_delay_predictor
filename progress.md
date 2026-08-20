@@ -2,7 +2,7 @@
 
 Snapshot of the current state. Update this file in place when the state changes; history lives in `log.md`.
 
-## Current state (2026-08-18)
+## Current state (2026-08-20)
 
 Live at delaybahn.com: FastAPI + DuckDB serve the bahn.de journey search enriched with delay history (30 full days, DE+AT+NL+CH+FR+IT) from the file-backed `data/delays.duckdb` the pipeline materializes (in-memory parquet load kept as fallback; 2026-08-07 — startup <1 s / ~0.5 G RSS instead of ~45 s / 6.7 G peak, which had OOM-looped the 8 GB production box); vanilla-JS frontend. Hosted on a Hetzner VPS since 2026-08-06 (previously ps083 since 2026-07-26, still the dev box): `delaybahn-pipeline.timer` (05:30 Europe/Berlin) runs the day-incremental DE→AT→NL→CH→FR→IT→merge flow and restarts the app; the FR GTFS-RT, AT ÖBB-HAFAS, NL OVapi-GTFS-RT and IT ViaggiaTreno pollers run 24/7 under systemd; systemd OnFailure hooks + an external 5-min health watchdog push outage alerts via ntfy (2026-08-07).
 
@@ -82,6 +82,10 @@ Live at delaybahn.com: FastAPI + DuckDB serve the bahn.de journey search enriche
 
 ## Not done / next candidates
 
+- Upstream demand is now instrumented: `bahn.de upstream:` rollup lines carry calls/min plus a per-source breakdown (`search` / `if-missed` / `walk` / `locations` / `nearby`), and `/health` mirrors it as `upstream_from_*`. Read those before proposing any further mitigation — the 2026-08-20 pass rejected heavier journey caching (≤8 % fewer upstream calls at any defensible TTL), a smaller `BAHN_MAX_CONCURRENCY` (a semaphore caps parallelism, not rate, and loosens when 429s return fast) and a bigger stale store, all on measurement.
+- The if-missed derived cache (2026-08-20) is on trial: its hit rate was argued structurally, not measured, since replan keys appear in no log. If `if_missed_hits` stays low against `if_missed_misses`, or `caches.ifMissed` pins at its cap, revert rather than tune. If `if-missed=` in the rollup drops sharply and the 503 rate does not follow, the demand side is exhausted and the remaining answer is official DB API access.
+- Cheap follow-up, deliberately out of scope on 2026-08-20: the if-missed gather slices `pending[:MAX_IF_MISSED_REPLANS]` before consulting the cache, so a cached answer still burns budget and the 4th+ tight transfer stays buttonless even when its answer is in memory. Applying the cap to misses only would add buttons at zero upstream cost.
+
 - Add a startup sanity check (or an alert) for `data/delays.parquet` mtime / `maxDay` age, so a silently stalled pipeline surfaces instead of being noticed six days later.
 - If traffic keeps growing past the 2026-08-13 surge: a Cloudflare cache rule for `/api/journeys` (responses already send `public, max-age`) would absorb popular-route repeats at the edge before they ever reach the box or bahn.de.
 - Deploys run through `scripts/deploy.sh` since 2026-08-15 — the only server command Claude Code is pre-approved for (exact-match rule in settings.local.json, added by the user; blanket ssh was deliberately rejected). The commit-and-push skill's step 8 invokes it and forbids inlining ssh around it or editing it to widen its reach; changing what "deploy" means requires a reviewed diff of that script. Since 2026-08-17 its health check retries through the post-restart 502 race (`-f --retry 6 --retry-delay 3`) and fails the script on a health check that stays bad, instead of one immediate curl that printed Cloudflare's 502 body and exited 0; two exact settings.local.json rules also allow the ad-hoc health curl outside deploys.
@@ -100,7 +104,7 @@ Live at delaybahn.com: FastAPI + DuckDB serve the bahn.de journey search enriche
 - Live same-day lookups are Germany-only — IRIS has no Swiss or French stops, so a CH/FR leg on today's date stays "noch offen" until the next morning's build.
 - delays.py in-process cache never invalidates; fine while the server restarts after each pipeline run.
 - Akamai's 429s may omit `Retry-After` in practice, leaving the breaker's threshold path (5/60 s) to carry the load — tune `BAHN_CIRCUIT_*` against real logs after a few days. Cache/breaker/limiter state is per-process; adding uvicorn workers would silently multiply every budget.
-- A hardening pass for the 2026-08-17→19 wholesale Akamai block (403 blocking of all three profiles for hours; ~45 % of searches 503ed, unalerted since only 429s page) shipped and was reverted the same day at the user's request (log.md 2026-08-19, both entries). The gaps it addressed are open again: blocked windows do not page, the stale fallback holds ~12 min of answers at current traffic, and a sustained block is re-probed every 30 s.
+- A hardening pass for the 2026-08-17→19 wholesale Akamai block (403 blocking of all three profiles for hours; ~45 % of searches 503ed, unalerted since only 429s page) shipped and was reverted the same day at the user's request (log.md 2026-08-19, both entries). Blocked windows still do not page and a sustained block is still re-probed every 30 s. The stale half of that pass is now known not to help: measured 2026-08-20 against 21,119 real searches, growing `STALE_MAX` from 256 to **unlimited** rescues 1.3 % → 2.1 % of the 503s and a 24 h `STALE_TTL` reaches only 3.9 %, because the store can hold only routes that succeeded before and an outage is mostly searching routes that never did. Do not re-raise those two knobs expecting relief.
 
 ## How to resume work
 
