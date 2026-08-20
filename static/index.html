@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=70">
+<link rel="stylesheet" href="/style.css?v=71">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -137,6 +137,18 @@ try {
         <option value="7" selected data-i18n="days7">7 Tage</option>
         <option value="15" data-i18n="days15">15 Tage</option>
         <option value="30" data-i18n="days30">30 Tage</option>
+      </select>
+    </div>
+    <div class="field field-transfer">
+      <label for="transfer-time" data-i18n="transferTime">Umstiegszeit</label>
+      <select id="transfer-time" data-i18n-title="transferTimeTooltip" title="Nur Verbindungen mit mindestens so viel Umstiegszeit anzeigen">
+        <option value="0" selected data-i18n="transferAny">egal</option>
+        <option value="5" data-i18n="transferMin5">mind. 5 Min.</option>
+        <option value="10" data-i18n="transferMin10">mind. 10 Min.</option>
+        <option value="15" data-i18n="transferMin15">mind. 15 Min.</option>
+        <option value="20" data-i18n="transferMin20">mind. 20 Min.</option>
+        <option value="30" data-i18n="transferMin30">mind. 30 Min.</option>
+        <option value="40" data-i18n="transferMin40">mind. 40 Min.</option>
       </select>
     </div>
     <label class="dticket-toggle" data-i18n-title="dticketTooltip">
@@ -374,7 +386,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=95"></script>
+<script src="/app.js?v=96"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

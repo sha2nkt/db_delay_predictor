@@ -471,7 +471,7 @@ def _departure_skew(a: str, b: str) -> float:
 
 
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
-                   dticket: bool = False) -> tuple[dict, int]:
+                   dticket: bool = False, transfer_time: int = 0) -> tuple[dict, int]:
     """Returns (data, stale_age_seconds); age is 0 for a fresh answer, else how
     old the served fallback is. from_id/to_id are full HAFAS location ids
     (A=1@O=...@L=...@) from locations().
@@ -481,6 +481,13 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
 
     dticket=True restricts results to Deutschland-Ticket-valid connections — the same
     two flags the bahn.de search mask toggle sends.
+
+    transfer_time is bahn.de's minUmstiegszeit: the *absolute* minimum minutes a
+    transfer may have, not an addition to the station's default. Probed against
+    the live API on Hamburg -> Konstanz: at 0 the results include 4- and 8-minute
+    transfers, at 8 the smallest is 11, at 12 the smallest is 26 — an 11-minute
+    gap surviving a request for 8 rules the additive reading out. bahn.de's own
+    mask labels it "+X Min.", which is why the UI says "at least" instead.
     """
     # Searches default to "now", so the departure minute fragments the cache: the
     # same route searched a minute apart misses every time. Floor to 5-minute
@@ -507,13 +514,17 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
         "reservierungsKontingenteVorhanden": False,
         "deutschlandTicketVorhanden": dticket,
         "nurDeutschlandTicketVerbindungen": dticket,
+        "minUmstiegszeit": transfer_time,
     }
     if paging_ref:
         body["pagingReference"] = paging_ref
-    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket)
+    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket, transfer_time)
     # paged responses are offsets into a result list, so they only ever stand in
-    # for the same page (exact key), never for the route's primary answer
-    route = (from_id, to_id, dticket) if paging_ref is None else None
+    # for the same page (exact key), never for the route's primary answer.
+    # transfer_time is part of the route identity: a list filtered at 0 must never
+    # be served to someone who asked for a 30-minute buffer — the tight connections
+    # it contains are exactly the ones they excluded.
+    route = (from_id, to_id, dticket, transfer_time) if paging_ref is None else None
 
     def keep(data: dict) -> None:
         now = time.monotonic()

@@ -56,6 +56,7 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .field-date input::-webkit-date-and-time-value,
 .field-time input::-webkit-date-and-time-value { text-align: left; }
 .field-window select { min-width: 110px; }
+.field-transfer select { min-width: 120px; }
 .field input:focus, .field select:focus { outline: 2px solid var(--brand-red); outline-offset: -1px; }
 
 #swap {
@@ -503,6 +504,9 @@ body.past-mode .field-window { display: none; }
 /* D-Ticket journeys carry no Fahrgastrechte compensation, so the filter is
    meaningless in the compensation check */
 body.past-mode .dticket-toggle { display: none; }
+/* the compensation check reconstructs a journey that was already taken: a
+   minimum-transfer filter could hide the very itinerary being checked */
+body.past-mode .field-transfer { display: none; }
 /* the compensation check looks back at one journey that already happened */
 body.past-mode .return-add,
 body.past-mode .return-fields,

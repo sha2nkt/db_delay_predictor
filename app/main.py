@@ -289,6 +289,13 @@ def tight_transfers(legs: list[dict]) -> list[dict]:
     return out
 
 
+# Minimum-transfer-time options offered in the search mask, in minutes (0 = whatever
+# bahn.de considers feasible at that station). Passed through as bahn.de's
+# minUmstiegszeit, which is an absolute floor rather than an addition to the
+# station default — see bahn_api.journeys. A closed set rather than a range so a
+# crafted value can't fragment the upstream cache into arbitrarily many keys.
+TRANSFER_TIME_CHOICES = (0, 5, 10, 15, 20, 30, 40)
+
 # how often a past journey may be re-planned after missed connections
 MAX_REPLANS = 3
 
@@ -536,11 +543,15 @@ async def journeys(
     paging_ref: str | None = Query(None, alias="pagingRef"),
     mode: str = Query("future"),
     dticket: bool = Query(False),
+    transfer_time: int = Query(0, alias="transferTime"),
 ):
     if window not in (7, 15, 30):
         raise HTTPException(422, "window must be 7, 15 or 30")
     if mode not in ("future", "past"):
         raise HTTPException(422, "mode must be future or past")
+    if transfer_time not in TRANSFER_TIME_CHOICES:
+        raise HTTPException(
+            422, f"transferTime must be one of {list(TRANSFER_TIME_CHOICES)}")
     # our own limit on this client, distinct from bahn.de throttling us (503)
     wait = _search_limiter.retry_after(client_ip(request))
     if wait is not None:
@@ -554,8 +565,13 @@ async def journeys(
     # the D-Ticket is excluded from Fahrgastrechte compensation, so the filter
     # has no place in the past-journey compensation check
     dticket = dticket and not past
+    # past mode reconstructs a journey that was actually taken: filtering it by a
+    # transfer buffer the traveller never asked for could hide the very itinerary
+    # being checked
+    transfer_time = transfer_time if not past else 0
     try:
-        data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket)
+        data, stale_age = await bahn_api.journeys(
+            from_id, to_id, departure, paging_ref, dticket, transfer_time)
     except bahn_api.UpstreamError as e:
         raise _upstream_http_error(e)
     if stale_age:

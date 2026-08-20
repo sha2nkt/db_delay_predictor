@@ -135,6 +135,15 @@ const I18N = {
     train: "Zug",
     priceFrom: (price) => `ab ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Preis auf bahn.de",
+    transferTime: "Umstiegszeit",
+    transferTimeTooltip: "Nur Verbindungen mit mindestens so viel Umstiegszeit anzeigen",
+    transferAny: "egal",
+    transferMin5: "mind. 5 Min.",
+    transferMin10: "mind. 10 Min.",
+    transferMin15: "mind. 15 Min.",
+    transferMin20: "mind. 20 Min.",
+    transferMin30: "mind. 30 Min.",
+    transferMin40: "mind. 40 Min.",
     dticket: "D-Ticket",
     dticketTooltip: "Nur Verbindungen anzeigen, die mit dem Deutschland-Ticket nutzbar sind",
     dticketIncluded: "D-Ticket",
@@ -311,6 +320,15 @@ const I18N = {
     train: "Train",
     priceFrom: (price) => `from ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Price on bahn.de",
+    transferTime: "Transfer time",
+    transferTimeTooltip: "Only show connections with at least this much time to change trains",
+    transferAny: "any",
+    transferMin5: "5 min or more",
+    transferMin10: "10 min or more",
+    transferMin15: "15 min or more",
+    transferMin20: "20 min or more",
+    transferMin30: "30 min or more",
+    transferMin40: "40 min or more",
     dticket: "D-Ticket",
     dticketTooltip: "Only show connections valid with the Deutschland-Ticket",
     dticketIncluded: "D-Ticket",
@@ -816,6 +834,20 @@ document.getElementById("dticket").addEventListener("change", () => {
   refetchCurrentLeg();
 });
 
+// bahn.de's minUmstiegszeit values, mirrored from TRANSFER_TIME_CHOICES in
+// app/main.py — the server rejects anything else with a 422
+const TRANSFER_TIMES = [0, 5, 10, 15, 20, 30, 40];
+
+function transferTimeValue() {
+  const v = Number(document.getElementById("transfer-time").value);
+  return TRANSFER_TIMES.includes(v) ? v : 0;
+}
+
+document.getElementById("transfer-time").addEventListener("change", () => {
+  // bahn.de applies the buffer, so the whole result list changes: refetch
+  refetchCurrentLeg();
+});
+
 // --- return journey ---
 
 const dateEl = document.getElementById("date");
@@ -1190,12 +1222,14 @@ async function fetchJourneys(pagingRef, opts = {}) {
   const win = document.getElementById("window").value;
   // the toggle is hidden in past mode: a leftover checked state must not filter
   const dticket = state.mode !== "past" && document.getElementById("dticket").checked;
+  const transferTime = state.mode !== "past" ? transferTimeValue() : 0;
   const leg = opts.leg ?? searchLeg();
   const params = new URLSearchParams({
     from: leg.from.id, to: leg.to.id, departure: leg.departure, window: win,
   });
   if (state.mode === "past") params.set("mode", "past");
   if (dticket) params.set("dticket", "1");
+  if (transferTime) params.set("transferTime", String(transferTime));
   if (pagingRef) params.set("pagingRef", pagingRef);
 
   const gen = searchGen;
@@ -1290,6 +1324,7 @@ function syncUrl() {
     window: document.getElementById("window").value,
   });
   if (state.mode !== "past" && document.getElementById("dticket").checked) params.set("dticket", "1");
+  if (state.mode !== "past" && transferTimeValue()) params.set("tt", String(transferTimeValue()));
   if (state.returnTrip && returnDateEl.value) {
     params.set("rdate", returnDateEl.value);
     params.set("rtime", returnTimeEl.value);
@@ -1360,6 +1395,7 @@ async function search() {
     window: Number(document.getElementById("window").value),
     mode: state.mode,
     dticket: state.mode !== "past" && document.getElementById("dticket").checked,
+    transferTime: state.mode !== "past" ? transferTimeValue() : 0,
     returnTrip: state.returnTrip,
   });
   await runSearch();
@@ -2798,6 +2834,9 @@ const qp = new URLSearchParams(location.search);
     if (qp.get("time")) document.getElementById("time").value = qp.get("time");
     if (["7", "15", "30"].includes(qp.get("window"))) document.getElementById("window").value = qp.get("window");
     document.getElementById("dticket").checked = qp.get("dticket") === "1";
+    if (TRANSFER_TIMES.includes(Number(qp.get("tt")))) {
+      document.getElementById("transfer-time").value = qp.get("tt");
+    }
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1
