@@ -37,6 +37,12 @@ JOURNEYS_TTL = env_int("BAHN_CACHE_TTL_SECONDS", 300)
 LOCATIONS_TTL = 600
 CACHE_MAX = 512
 
+# Nearby-stop lookup. bahn.de answers 422 for a radius past 10 km, and it ranks
+# purely by distance — in a town the rail stops sit behind dozens of bus stops,
+# so ask for a large page and pick the rail ones out of it ourselves.
+NEARBY_RADIUS_M = 9999
+NEARBY_MAX_RESULTS = 50
+
 # how long to stop calling bahn.de after every profile has been blocked
 BLOCK_COOLDOWN = 30
 
@@ -458,6 +464,20 @@ async def locations(query: str) -> list[dict]:
         ("locations", query.strip().lower()),
         LOCATIONS_TTL,
         lambda: _request("get", "/reiseloesung/orte", params={"suchbegriff": query, "typ": "ALL", "limit": 8}),
+    ))
+
+
+async def nearby(lat: float, lon: float) -> list[dict]:
+    """Stops around a coordinate as bahn.de ranks them — nearest first, every
+    mode of transport, each entry carrying its own lat/lon and product list."""
+    # shield for the same reason locations() does. Callers round the coordinates,
+    # so a cache entry covers a grid cell rather than one visitor's exact position
+    return await asyncio.shield(_cached(
+        ("nearby", lat, lon),
+        LOCATIONS_TTL,
+        lambda: _request("get", "/reiseloesung/orte/nearby",
+                         params={"lat": lat, "long": lon,
+                                 "radius": NEARBY_RADIUS_M, "maxNo": NEARBY_MAX_RESULTS}),
     ))
 
 
