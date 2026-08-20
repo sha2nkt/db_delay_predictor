@@ -195,11 +195,11 @@ def commit_and_deploy(n_trains, app_v):
         '[ -n "$STASHED" ] && git stash pop\n'
         "git log --oneline -1\n"
     )
-    out = run(["ssh", "-o", "BatchMode=yes", "root@delaybahn_hetzner", "sudo -u stripathi -i bash -s"],
+    out = run(["ssh", "-o", "BatchMode=yes", "root@delaybahn_hetzner2", "sudo -u stripathi -i bash -s"],
               input=pull_script)
     if local_head not in out:
         raise RuntimeError(f"server HEAD after pull does not match pushed commit {local_head}: {out.strip()}")
-    out = run(["ssh", "-o", "BatchMode=yes", "root@delaybahn_hetzner",
+    out = run(["ssh", "-o", "BatchMode=yes", "root@delaybahn_hetzner2",
                "systemctl restart delaybahn && systemctl is-active delaybahn"])
     if "active" not in out:
         raise RuntimeError(f"delaybahn service not active after restart: {out.strip()}")

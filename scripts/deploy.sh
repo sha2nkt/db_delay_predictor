@@ -5,7 +5,7 @@
 # action must live in this reviewed, version-controlled file.
 set -euo pipefail
 
-ssh root@delaybahn_hetzner 'sudo -u stripathi -i bash -s' <<'EOF'
+ssh root@delaybahn_hetzner2 'sudo -u stripathi -i bash -s' <<'EOF'
 set -euo pipefail
 cd /home/stripathi/Documents/code_local/db_delay_predictor
 STASHED=
@@ -15,7 +15,7 @@ if [ -n "$STASHED" ]; then git stash pop; fi
 echo "deployed: $(git log --oneline -1)"
 EOF
 
-ssh root@delaybahn_hetzner 'systemctl restart delaybahn && systemctl is-active delaybahn'
+ssh root@delaybahn_hetzner2 'systemctl restart delaybahn && systemctl is-active delaybahn'
 # -4: this dev box (ps083) has broken IPv6; the check must go through Cloudflare.
 # --retry rides out the restart race (502 until uvicorn binds); -f turns a health
 # check that still fails after that into a nonzero exit instead of a silent pass.
