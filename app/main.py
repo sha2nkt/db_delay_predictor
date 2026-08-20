@@ -684,6 +684,8 @@ async def health():
     return {
         "ok": True,
         "rows": _row_count(),
+        # per-country newest day: a stalled producer shows as a date behind the rest
+        "maxDayByCountry": delays.coverage_by_country(),
         "caches": {
             "bahn": len(bahn_api._cache),
             "replan": len(_replan_cache),

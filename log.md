@@ -903,3 +903,15 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - User decision, same day it shipped: the commit is unwanted; revert and redeploy. Reverted wholesale via git revert (code, tests, progress.md, feature_list.md back to the 2026-08-18 state) — only this file keeps both entries, being append-only.
 - Live behavior returns to: journeys TTL 300 s / 512-entry cache, stale fallback ≤ 1 h / 256 entries, fixed 30 s cooldown after an all-profiles 403 block, and no ntfy paging for blocked windows (429 paging stays). The 2026-08-17→19 incident analysis in the previous entry remains valid: sustained Akamai blocks will again 503 most searches without alerting monitoring.
 - Busters: none — backend only.
+
+## 2026-08-20 — The stats window is anchored per country, not on the global newest day
+
+- Found on the live site: `/api/coverage` advertised `maxDay: 2026-08-19`, but **no German train had a single 2026-08-19 observation**. A past-mode Berlin→Hamburg check on 08-19 returned `delayOnDate: null` for every leg, while 08-18 returned full data (`ICE 604 +19`, `ICE 2596 +67`, `ICE 602 +40`) and an Amsterdam→Utrecht check on 08-19 returned Dutch data fine. The Dutch/Austrian/Italian pollers had the day; the German build did not.
+- `_max_day` is a global `max()` over every row, so a country that runs ahead sets the window anchor for the countries that lag. Two visible symptoms: every German badge silently lost a day of its window — **every card on a fresh search read "6/7 Tage"**, and `window=30` read 29/30 — and the day chart drew a trailing empty slot for a day Germany was never going to report.
+- `merge_delays.py` already cuts every source at last midnight so none can push the anchor *past* what the app can serve. That guards the top edge only; it has nothing to say about one producer falling behind.
+- `delays.max_day_for(eva)` returns the newest day for that station's country (the padded-eva prefix, the same partition `merge_delays.SOURCES` uses) and `leg_delay_stats` anchors `cutoff`/`windowEnd` there. A lagging country now gets a full, honest window ending on the last day it actually has; the countries ahead of it are untouched.
+- `coverage_by_country()` is on `/health` as `maxDayByCountry`, which is what a stall alert should hang off — this is the failure the "startup sanity check for maxDay age" item in progress.md predicted, and it went unnoticed because the site looked healthy.
+- `/api/coverage` still reports the global max: the date picker is shared by all countries and a Dutch journey on 08-19 genuinely works.
+- **Not fixed here**: why the German 08-19 ingest is missing. That is on the box, not in this repo — the 05:30 `delaybahn-pipeline` run or the HuggingFace publish behind it. This change makes the gap honest and visible rather than silently costing every German leg a day.
+- Tests: 63 pass, 5 new (`tests/test_delay_window.py`, a two-country fixture where Germany ends a day early). Confirmed the regression test fails against the old global anchor before it passed against the new one.
+- Busters: none — backend only.

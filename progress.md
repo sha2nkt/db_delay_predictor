@@ -97,6 +97,11 @@ Live at delaybahn.com: FastAPI + DuckDB serve the bahn.de journey search enriche
 - After the 2026-08-15 Puls de-risk, the header logo is the most DB-evoking element left (white rounded box, red DB-style monogram) — a redesign would touch logo.png, favicon.png, static/icons/* (five files) and the og:image reference together.
 - Compensation checker only reaches back as far as the live parquet (~30 days); DB accepts claims up to 1 year — wiring up `data/monthly_processed_data/` archives (or HF backfill) would extend it. (The recent end is now covered live; this is the far end.)
 - Live same-day lookups are Germany-only — IRIS has no Swiss or French stops, so a CH/FR leg on today's date stays "noch offen" until the next morning's build.
+- The stats window is anchored per country since 2026-08-20 (`delays.max_day_for`), because the producers run
+  independently and one can fall behind: on 2026-08-20 the NL/AT/IT pollers had 08-19 and the German build did
+  not, so the global `_max_day` silently cost every German leg a day of its window (every card read "6/7 Tage").
+  `/health` now carries `maxDayByCountry`, which is what the long-planned stall alert should watch. The ingest
+  gap itself is an ops question on the box, not a code one — this only makes it honest and visible.
 - delays.py in-process cache never invalidates; fine while the server restarts after each pipeline run.
 - Akamai's 429s may omit `Retry-After` in practice, leaving the breaker's threshold path (5/60 s) to carry the load — tune `BAHN_CIRCUIT_*` against real logs after a few days. Cache/breaker/limiter state is per-process; adding uvicorn workers would silently multiply every budget.
 - A hardening pass for the 2026-08-17→19 wholesale Akamai block (403 blocking of all three profiles for hours; ~45 % of searches 503ed, unalerted since only 429s page) shipped and was reverted the same day at the user's request (log.md 2026-08-19, both entries). The gaps it addressed are open again: blocked windows do not page, the stale fallback holds ~12 min of answers at current traffic, and a sustained block is re-probed every 30 s.

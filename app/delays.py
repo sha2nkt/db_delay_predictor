@@ -19,6 +19,10 @@ CACHE_MAX = 50_000
 _conn: duckdb.DuckDBPyConnection | None = None
 _max_day: date | None = None
 _min_day: date | None = None
+# newest day per country (padded-eva prefix, as in merge_delays.SOURCES). The
+# countries ingest independently, so one falling a day behind must not shorten
+# the stats window of the others - nor pretend it has a day it does not.
+_max_day_by_country: dict[str, date] = {}
 _cache: "OrderedDict[tuple[str, str, int], dict | None]" = OrderedDict()
 _date_cache: "OrderedDict[tuple[str, str, date], dict | None]" = OrderedDict()
 _dep_date_cache: "OrderedDict[tuple[str, str, date], dict | None]" = OrderedDict()
@@ -81,7 +85,7 @@ def build_db_file(parquet_path: Path = DELAYS_PARQUET, db_path: Path = DELAYS_DB
 
 
 def init():
-    global _conn, _max_day, _min_day
+    global _conn, _max_day, _min_day, _max_day_by_country
     conn = None
     if DELAYS_DB.exists():
         try:
@@ -120,7 +124,31 @@ def init():
         "SELECT min(CAST(arrival_planned_time AS DATE)), max(CAST(arrival_planned_time AS DATE))"
         " FROM delays WHERE arrival_planned_time IS NOT NULL"
     ).fetchone()
+    _max_day_by_country = {
+        prefix: day
+        for prefix, day in _conn.execute(
+            "SELECT substr(eva, 1, 3), max(CAST(arrival_planned_time AS DATE))"
+            " FROM delays WHERE arrival_planned_time IS NOT NULL AND eva IS NOT NULL"
+            " GROUP BY 1"
+        ).fetchall()
+        if day is not None
+    }
     _build_station_index()
+
+
+def max_day_for(eva_padded: str) -> date | None:
+    """Newest day the table has for this station's country. The stats window is
+    anchored here rather than on the global max, because the per-country
+    producers run independently: on 2026-08-20 the Dutch poller had 08-19 while
+    the German build did not, and the global anchor silently cost every German
+    leg a day of its window ("6/7 Tage" on every card)."""
+    return _max_day_by_country.get(eva_padded[:3], _max_day)
+
+
+def coverage_by_country() -> dict[str, str]:
+    """Newest day per country prefix, for /health: a producer that stalls shows
+    up here as a date drifting behind the others."""
+    return {prefix: day.isoformat() for prefix, day in sorted(_max_day_by_country.items())}
 
 
 def coverage() -> tuple[date | None, date | None]:
@@ -225,7 +253,8 @@ def leg_delay_stats(
         return _cache[cache_key]
 
     tod = planned_arrival_local.strftime("%H:%M:%S")
-    cutoff = _max_day - timedelta(days=window - 1)
+    anchor = max_day_for(eva_padded)
+    cutoff = anchor - timedelta(days=window - 1)
     rows = _conn.execute(
         """
         WITH candidates AS (
@@ -263,7 +292,7 @@ def leg_delay_stats(
             "daysMatched": len(rows),
             "canceledDays": sum(1 for _, _, canceled, _ in rows if canceled),
             "windowStart": cutoff.isoformat(),
-            "windowEnd": _max_day.isoformat(),
+            "windowEnd": anchor.isoformat(),
             "days": [
                 {
                     "day": day.isoformat(),
