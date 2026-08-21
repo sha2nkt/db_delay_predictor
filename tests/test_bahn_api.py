@@ -11,7 +11,7 @@ from curl_cffi.requests.exceptions import ConnectionError as CurlConnectionError
 from curl_cffi.requests.exceptions import RequestException, Timeout
 
 from app import bahn_api
-from tests.conftest import FakeResponse
+from tests.conftest import FakeResponse, FakeSession
 
 pytestmark = pytest.mark.anyio
 
@@ -199,6 +199,7 @@ async def test_429_without_retry_after_fails_once_no_retry_loop(bahn):
     assert exc.value.retry_after is None
     assert sess.calls == 1  # no rotation, no session swap, no retry storm
     assert bahn_api._profile_idx == 0
+    assert bahn_api.metrics["session_recycled"] == 0  # a 429 never burns the identity
     assert bahn_api._breaker.state == "closed"  # one 429 is below the threshold
 
 
@@ -330,7 +331,7 @@ async def test_malformed_response_maps_to_protocol_error(bahn):
     assert bahn_api.metrics["upstream_malformed"] == 1
 
 
-# --- 403 profile rotation (pre-existing behavior kept) ---
+# --- 403: burn the identity (session + cookies), advance the profile ---
 
 
 async def test_403_rotates_profile_then_succeeds(bahn):
@@ -339,6 +340,7 @@ async def test_403_rotates_profile_then_succeeds(bahn):
     assert sess.calls == 2
     assert bahn_api._profile_idx == 1
     assert bahn_api.metrics["upstream_403"] == 1
+    assert bahn_api.metrics["session_recycled"] == 1  # the whole identity was burned
 
 
 async def test_all_profiles_403_forces_circuit_open_then_recovers(bahn):
@@ -353,6 +355,128 @@ async def test_all_profiles_403_forces_circuit_open_then_recovers(bahn):
     bahn.clock.advance(31)
     assert await search() == (PAYLOAD, 0)  # half-open probe succeeded
     assert bahn_api._breaker.state == "closed"
+
+
+# --- session recycling: one identity = one profile + one cookie jar + one
+#     connection, capped by request budget and age ---
+
+
+async def test_session_recycled_after_request_budget(bahn, monkeypatch):
+    monkeypatch.setattr(bahn_api, "SESSION_MIN_REQUESTS", 2)
+    monkeypatch.setattr(bahn_api, "SESSION_MAX_REQUESTS", 2)
+    fakes = []
+
+    def factory(profile):
+        fakes.append(FakeSession(FakeResponse(payload=PAYLOAD)))
+        return fakes[-1]
+
+    bahn.factory = factory
+    for city in ("Muenchen@L=8000261@", "Hamburg@L=8002549@", "Koeln@L=8000207@"):
+        await search(to=f"A=1@O={city}")
+    assert len(fakes) == 2  # third request spent the budget, drew a new session
+    assert fakes[0].calls == 2 and fakes[1].calls == 1
+    assert bahn_api.metrics["session_recycled"] == 1
+    assert fakes[0] in bahn_api._retiring
+    assert bahn_api._profile_idx == 0  # benign recycle keeps the profile
+
+
+async def test_session_recycled_after_max_age(bahn):
+    fakes = []
+
+    def factory(profile):
+        fakes.append(FakeSession(FakeResponse(payload=PAYLOAD)))
+        return fakes[-1]
+
+    bahn.factory = factory
+    await search()
+    bahn.clock.advance(bahn_api.SESSION_MAX_AGE + 1)
+    await search(to="A=1@O=Hamburg@L=8002549@")
+    assert len(fakes) == 2
+    assert bahn_api.metrics["session_recycled"] == 1
+
+
+async def test_403_burns_session_new_factory_call(bahn):
+    scripts = [[FakeResponse(403)], [FakeResponse(payload=PAYLOAD)]]
+    fakes = []
+
+    def factory(profile):
+        fakes.append(FakeSession(*scripts[len(fakes)]))
+        return fakes[-1]
+
+    bahn.factory = factory
+    assert await search() == (PAYLOAD, 0)
+    assert len(fakes) == 2  # the retry ran on a fresh session, not the flagged one
+    assert fakes[0].calls == 1 and fakes[1].calls == 1
+    assert fakes[0] in bahn_api._retiring
+    assert bahn_api._profile_idx == 1
+    assert bahn_api.metrics["session_recycled"] == 1
+
+
+async def test_429_does_not_swap_session(bahn):
+    sess = bahn.use(FakeResponse(429))
+    with pytest.raises(bahn_api.UpstreamRateLimited):
+        await search()
+    assert bahn_api._ident is not None and bahn_api._ident.session is sess
+    assert bahn_api._retiring == []
+    assert bahn_api.metrics["session_recycled"] == 0
+
+
+async def test_deferred_close_waits_then_closes(bahn, monkeypatch):
+    sleeps = _capture_sleeps(bahn_api, monkeypatch)
+    monkeypatch.setattr(bahn_api, "SESSION_MIN_REQUESTS", 1)
+    monkeypatch.setattr(bahn_api, "SESSION_MAX_REQUESTS", 1)
+    fakes = []
+
+    def factory(profile):
+        fakes.append(FakeSession(FakeResponse(payload=PAYLOAD)))
+        return fakes[-1]
+
+    bahn.factory = factory
+    await search()
+    await search(to="A=1@O=Hamburg@L=8002549@")  # budget spent: retires fakes[0]
+    for _ in range(3):  # let the (stubbed-sleep) close timer run
+        await asyncio.sleep(0)
+    assert bahn_api.SESSION_CLOSE_DELAY in sleeps  # waited out any in-flight request
+    assert fakes[0].closed is True
+    assert fakes[0] not in bahn_api._retiring
+
+
+async def test_retired_session_without_close_is_tolerated(bahn, monkeypatch):
+    _capture_sleeps(bahn_api, monkeypatch)
+    monkeypatch.setattr(bahn_api, "SESSION_MIN_REQUESTS", 1)
+    monkeypatch.setattr(bahn_api, "SESSION_MAX_REQUESTS", 1)
+
+    class NoCloseSession:
+        async def post(self, url, **kwargs):
+            return FakeResponse(payload=PAYLOAD)
+
+        async def get(self, url, **kwargs):
+            return FakeResponse(payload=PAYLOAD)
+
+    bahn.factory = lambda profile: NoCloseSession()
+    await search()
+    await search(to="A=1@O=Hamburg@L=8002549@")
+    for _ in range(3):
+        await asyncio.sleep(0)
+    assert bahn_api._retiring == []  # drained without an AttributeError
+
+
+async def test_close_closes_current_and_retiring(bahn, monkeypatch):
+    monkeypatch.setattr(bahn_api, "SESSION_MIN_REQUESTS", 1)
+    monkeypatch.setattr(bahn_api, "SESSION_MAX_REQUESTS", 1)
+    fakes = []
+
+    def factory(profile):
+        fakes.append(FakeSession(FakeResponse(payload=PAYLOAD)))
+        return fakes[-1]
+
+    bahn.factory = factory
+    await search()
+    await search(to="A=1@O=Hamburg@L=8002549@")  # fakes[0] retiring, timer pending
+    await bahn_api.close()
+    assert fakes[0].closed and fakes[1].closed
+    assert bahn_api._retiring == [] and bahn_api._ident is None
+    assert bahn_api._close_tasks == set()  # no timer left to fire into a dead loop
 
 
 # --- Retry-After parsing (sync) ---

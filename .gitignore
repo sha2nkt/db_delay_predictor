@@ -4,5 +4,6 @@ __pycache__/
 .venv/
 *.pyc
 .claude/settings.local.json
+.claude/worktrees/
 .tmp
 .vscode

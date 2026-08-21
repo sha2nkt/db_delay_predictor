@@ -48,6 +48,10 @@ class FakeSession:
     def __init__(self, *script):
         self.script = list(script) or [FakeResponse()]
         self.calls = 0
+        self.closed = False
+
+    async def close(self):
+        self.closed = True
 
     async def _respond(self, url, **kwargs):
         self.calls += 1
@@ -89,16 +93,22 @@ def bahn(clock, monkeypatch):
     """Isolated bahn_api state per test; returns a namespace whose `session`
     the test points at a FakeSession via use()."""
     holder = SimpleNamespace(session=FakeSession(), clock=clock)
-    monkeypatch.setattr(bahn_api, "_session", lambda profile: holder.session)
+    # factory indirection: recycling tests replace holder.factory to observe
+    # or vary session construction; everyone else keeps the single shared fake
+    holder.factory = lambda profile: holder.session
+    monkeypatch.setattr(bahn_api, "_session", lambda profile: holder.factory(profile))
     # asyncio primitives bind to the running loop on first use; each test gets
     # its own loop, so they must be re-created
     monkeypatch.setattr(bahn_api, "_upstream_sem",
                         asyncio.Semaphore(bahn_api.MAX_UPSTREAM_CONCURRENCY))
     monkeypatch.setattr(bahn_api, "_rotate_lock", asyncio.Lock())
+    monkeypatch.setattr(bahn_api, "_ident", None)
     monkeypatch.setattr(bahn_api, "_profile_idx", 0)
     monkeypatch.setattr(bahn_api, "_last_alert", float("-inf"))
     monkeypatch.setattr(bahn_api, "_upstream_logged_at", clock())
     monkeypatch.setattr(bahn_api, "_upstream_logged_429", 0)
+    bahn_api._retiring.clear()
+    bahn_api._close_tasks.clear()
     bahn_api._upstream_since.clear()
     bahn_api._cache.clear()
     bahn_api._stale.clear()
@@ -108,10 +118,20 @@ def bahn(clock, monkeypatch):
 
     def use(*script):
         holder.session = FakeSession(*script)
+        # drop the cached identity so the new script takes effect immediately,
+        # preserving the pre-recycling semantics where every request consulted
+        # the (monkeypatched) _session factory
+        bahn_api._ident = None
         return holder.session
 
     holder.use = use
     yield holder
+    # deferred-close timers hold real 30s sleeps; cancel them so no task
+    # outlives its test's event loop
+    for task in bahn_api._close_tasks:
+        task.cancel()
+    bahn_api._close_tasks.clear()
+    bahn_api._retiring.clear()
     bahn_api._upstream_since.clear()
     bahn_api._cache.clear()
     bahn_api._stale.clear()

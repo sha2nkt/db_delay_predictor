@@ -6,6 +6,7 @@ import time
 from collections import Counter, OrderedDict, deque
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from types import SimpleNamespace
 from typing import Awaitable, Callable
 
 import httpx
@@ -26,7 +27,8 @@ BASE_URL = "https://www.bahn.de/web/api"
 # Akamai flags one fingerprint at a time: on 2026-07-23 every chrome profile
 # started getting 403 OPS_BLOCKED (fresh sessions too, so it was the
 # fingerprint rather than cookies or rate) while firefox and safari passed.
-# So keep spares and rotate to the next profile whenever one gets blocked.
+# So keep spares and move to the next profile — on a fresh session — whenever
+# one gets blocked.
 PROFILES = ["firefox135", "safari17_0", "chrome"]
 
 # All tunables below read the environment once at import (systemd Environment=
@@ -95,13 +97,33 @@ ALERT_COOLDOWN = 1800
 # quiet night logs nothing at all.
 UPSTREAM_LOG_EVERY = env_int("BAHN_UPSTREAM_LOG_EVERY", 100)
 
-# One long-lived AsyncSession per impersonation profile: keeps TLS/HTTP2
-# connection pooling and stays on one upstream identity per profile for the
-# process lifetime — every app user deliberately shares it. Load is managed by
-# caching, coalescing, the semaphore and the circuit breaker; a 429 never swaps
-# the cookie jar or fingerprint (that would be rate-limit evasion).
-_sessions: dict[str, requests.AsyncSession] = {}
+# Session hygiene: a connection held for the process lifetime accumulates a
+# cookie jar and a request history that Akamai scores as one continuous
+# client, so cap how much any single session carries. The request budget is
+# drawn per session and jittered so recycles don't land on a metronome; the
+# age cap covers quiet hours, when the budget alone would take far too long
+# to spend.
+SESSION_MIN_REQUESTS = env_int("BAHN_SESSION_MIN_REQUESTS", 50)
+SESSION_MAX_REQUESTS = env_int("BAHN_SESSION_MAX_REQUESTS", 100)
+SESSION_MAX_AGE = env_int("BAHN_SESSION_MAX_AGE_SECONDS", 600)
+# longer than the 20s request timeout: nothing can still be in flight on a
+# retired session by the time its deferred close fires
+SESSION_CLOSE_DELAY = 30
+
+# One live identity at a time: one impersonation profile + one implicit cookie
+# jar + one connection, created and discarded as a unit. Recycled once its
+# request budget or age is spent, so no single session accumulates enough
+# history to be scored as a heavy client, and burned outright on a 403 —
+# swapping the fingerprint in place on a jar Akamai has already flagged is
+# itself a bot tell. Load is managed by caching, coalescing, the semaphore and
+# the circuit breaker; a 429 never *causes* a session or fingerprint swap
+# (that would be rate-limit evasion) — count/age recycling is scheduled
+# hygiene, not a reaction to refusals.
+_ident: SimpleNamespace | None = None  # session, profile, created_at, used, budget
+_retiring: list = []  # swapped-out sessions awaiting their deferred close
+_close_tasks: set = set()  # pending _close_later timers, cancelled by close()
 _profile_idx = 0
+# serializes 403 burns so concurrent failures on one identity burn it once
 _rotate_lock = asyncio.Lock()
 _upstream_sem = asyncio.Semaphore(MAX_UPSTREAM_CONCURRENCY)
 _stale: OrderedDict[tuple, tuple[float, dict]] = OrderedDict()  # key -> (stored_at, data)
@@ -278,22 +300,82 @@ ALL_PRODUCTS = ["ICE", "EC_IC", "IR", "REGIONAL", "SBAHN", "BUS", "SCHIFF", "UBA
 
 
 def _session(profile: str) -> requests.AsyncSession:
-    if profile not in _sessions:
-        _sessions[profile] = requests.AsyncSession(
-            impersonate=profile,
-            timeout=20,
-            headers={"Accept": "application/json"},
+    # raw constructor only; identity lifecycle lives in _acquire_identity
+    return requests.AsyncSession(
+        impersonate=profile,
+        timeout=20,
+        headers={"Accept": "application/json"},
+    )
+
+
+def _acquire_identity() -> SimpleNamespace:
+    """Return the current identity, first recycling it if its request budget
+    or age is spent. Sync on purpose: called inside _upstream_sem with no
+    await points, so no interleaving is possible."""
+    global _ident
+    if _ident is not None:
+        age = time.monotonic() - _ident.created_at
+        if _ident.used >= _ident.budget:
+            _retire(_ident, f"count ({_ident.used} requests)")
+        elif age >= SESSION_MAX_AGE:
+            _retire(_ident, f"age ({age:.0f}s)")
+    if _ident is None:
+        profile = PROFILES[_profile_idx]
+        _ident = SimpleNamespace(
+            session=_session(profile),
+            profile=profile,
+            created_at=time.monotonic(),
+            used=0,
+            budget=random.randint(SESSION_MIN_REQUESTS, SESSION_MAX_REQUESTS),
         )
-    return _sessions[profile]
+    _ident.used += 1
+    return _ident
 
 
-async def _rotate(blocked: str) -> None:
+def _retire(ident: SimpleNamespace, reason: str) -> None:
+    """Take an identity out of service and schedule its close. Sync, no
+    awaits: the next _acquire_identity builds a replacement with a fresh
+    connection and an empty cookie jar."""
+    global _ident
+    _ident = None
+    _retiring.append(ident.session)
+    metrics["session_recycled"] += 1
+    log.info("bahn.de session recycled (%s) after %d requests, %.0fs on profile=%s",
+             reason, ident.used, time.monotonic() - ident.created_at, ident.profile)
+    task = asyncio.ensure_future(_close_later(ident.session))
+    _close_tasks.add(task)
+    task.add_done_callback(_close_tasks.discard)
+
+
+async def _close_later(session) -> None:
+    """Close a retired session once anything still in flight on it has
+    finished (bounded by the 20s request timeout). Never raises: a close
+    failure must not surface into a request path."""
+    try:
+        await asyncio.sleep(SESSION_CLOSE_DELAY)
+        close_fn = getattr(session, "close", None)  # test fakes may lack close()
+        if close_fn is not None:
+            await close_fn()
+    except Exception as e:
+        log.warning("closing retired bahn.de session failed: %s", type(e).__name__)
+    finally:
+        if session in _retiring:
+            _retiring.remove(session)
+
+
+async def _burn(ident: SimpleNamespace) -> None:
+    """403: Akamai flagged this session, and the fingerprint and cookie jar
+    are one identity to it — discard both together and move to the next
+    profile, never swapping the fingerprint in place on a session it has
+    already seen."""
     global _profile_idx
     async with _rotate_lock:
-        if PROFILES[_profile_idx] != blocked:
-            return  # another request already rotated away from this profile
+        if _ident is not ident:
+            return  # another request already burned this identity
         _profile_idx = (_profile_idx + 1) % len(PROFILES)
-        log.warning("bahn.de blocked impersonate=%s, switching to %s", blocked, PROFILES[_profile_idx])
+        _retire(ident, "403")
+        log.warning("bahn.de blocked impersonate=%s: discarded the session, "
+                    "next identity uses %s", ident.profile, PROFILES[_profile_idx])
 
 
 async def _alert(text: str) -> None:
@@ -407,28 +489,31 @@ async def _request(method: str, path: str, *, source: str, **kwargs) -> dict:
 
 
 async def _issue(method: str, path: str, source: str, **kwargs) -> dict:
-    """Issue one request to bahn.de, rotating impersonation profiles on 403 as
-    before, and translate every failure mode into the UpstreamError taxonomy.
-    Retries are bounded and never loop: a single same-session wait when a 429
-    carries a Retry-After of at most QUICK_RETRY_MAX_WAIT seconds, and up to
-    NET_RETRIES reconnects when the connection drops mid-request."""
+    """Issue one request to bahn.de, burning the whole session identity
+    (profile + cookies) on a 403, and translate every failure mode into the
+    UpstreamError taxonomy. Retries are bounded and never loop: a
+    single same-session wait when a 429 carries a Retry-After of at most
+    QUICK_RETRY_MAX_WAIT seconds, and up to NET_RETRIES reconnects when the
+    connection drops mid-request."""
     rotations = 0
     quick_retried = False
     net_retries = 0
     reconnected = False  # a transport retry whose outcome is not yet known
     while True:
-        profile = PROFILES[_profile_idx]
-        # counted per loop pass, not per call: a 403 rotation and a quick 429 retry
+        # counted per loop pass, not per call: a 403 burn and a quick 429 retry
         # each put another request on the wire, which is what we are tracking
         _note_upstream(source)
         try:
             async with _upstream_sem:
-                resp = await getattr(_session(profile), method)(f"{BASE_URL}{path}", **kwargs)
+                # acquired inside the semaphore so a task parked on a slot can
+                # never hold a reference to an identity burned under it
+                ident = _acquire_identity()
+                resp = await getattr(ident.session, method)(f"{BASE_URL}{path}", **kwargs)
         except RequestException as e:
             # DNS/connect failures and timeouts land here
             metrics["upstream_network_errors"] += 1
             log.warning("bahn.de unreachable: profile=%s path=%s error=%s",
-                        profile, path, type(e).__name__)
+                        ident.profile, path, type(e).__name__)
             if net_retries < NET_RETRIES and isinstance(e, RETRYABLE_NETWORK_ERRORS):
                 # sleep outside the semaphore so a retry never holds a slot idle
                 net_retries += 1
@@ -449,13 +534,13 @@ async def _issue(method: str, path: str, source: str, **kwargs) -> dict:
             metrics["upstream_403"] += 1
             rotations += 1
             if rotations < len(PROFILES):
-                await _rotate(profile)
+                await _burn(ident)
                 continue
             raise UpstreamBlocked("bahn.de blocked every impersonation profile")
         if status == 429:
             metrics["upstream_429"] += 1
             retry_after = _retry_after_seconds(resp)
-            _note_429(profile, path, retry_after)
+            _note_429(ident.profile, path, retry_after)
             if not quick_retried and retry_after is not None and 0 < retry_after <= QUICK_RETRY_MAX_WAIT:
                 # honor a short advertised wait once, on the same session —
                 # never a retry loop, never a fresh identity
@@ -465,18 +550,18 @@ async def _issue(method: str, path: str, source: str, **kwargs) -> dict:
             raise UpstreamRateLimited("bahn.de rate limit", retry_after=retry_after)
         if status >= 500:
             metrics["upstream_5xx"] += 1
-            log.warning("bahn.de %d: path=%s profile=%s", status, path, profile)
+            log.warning("bahn.de %d: path=%s profile=%s", status, path, ident.profile)
             raise UpstreamUnavailable(f"bahn.de responded {status}")
         if status >= 400:
             metrics["upstream_4xx"] += 1
-            log.warning("bahn.de %d: path=%s profile=%s", status, path, profile)
+            log.warning("bahn.de %d: path=%s profile=%s", status, path, ident.profile)
             raise UpstreamProtocolError(f"bahn.de responded {status}")
         try:
             data = resp.json()
         except Exception as e:
             metrics["upstream_malformed"] += 1
             log.warning("bahn.de malformed response: path=%s profile=%s error=%s",
-                        path, profile, type(e).__name__)
+                        path, ident.profile, type(e).__name__)
             raise UpstreamProtocolError("bahn.de returned a malformed response") from e
         metrics["upstream_200"] += 1
         return data
@@ -515,9 +600,22 @@ def _cached(key: tuple, ttl: int, call: Callable[[], Awaitable],
 
 
 async def close() -> None:
-    for session in _sessions.values():
-        await session.close()
-    _sessions.clear()
+    global _ident
+    # retiring sessions must not outlive shutdown: take over their close and
+    # cancel the pending timers so nothing fires into a closing loop
+    for task in list(_close_tasks):
+        task.cancel()
+    _close_tasks.clear()
+    sessions = list(_retiring)
+    _retiring.clear()
+    if _ident is not None:
+        sessions.append(_ident.session)
+        _ident = None
+    for session in sessions:
+        try:
+            await session.close()
+        except Exception:
+            pass  # a straggling _close_later may have beaten us to it
 
 
 async def locations(query: str) -> list[dict]:
