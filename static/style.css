@@ -70,10 +70,20 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .search-btn:hover { background: var(--brand-red-dark); }
 .search-btn:disabled { opacity: .6; cursor: wait; }
 
+/* The switches and the button travel as one block, so that when the card runs out
+   of width and wraps them to a line of their own, the button still sits right
+   beside the switches instead of being orphaned under the fields. */
+.search-actions { display: flex; align-items: center; gap: 12px; }
+/* the two switches read as one choice, so they sit on a line together; the
+   padding matches the inputs' so they align with the search button beside them */
+.dticket-toggles {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 8px 18px; padding: 10px 0;
+}
 .dticket-toggle {
   display: flex; align-items: center; gap: 8px;
   font-size: 13px; font-weight: 600; color: var(--text-muted);
-  cursor: pointer; padding: 10px 0; user-select: none;
+  cursor: pointer; user-select: none;
 }
 .dticket-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
 .dticket-switch {
@@ -502,7 +512,7 @@ body.past-mode .past-banner { display: flex; }
 body.past-mode .field-window { display: none; }
 /* D-Ticket journeys carry no Fahrgastrechte compensation, so the filter is
    meaningless in the compensation check */
-body.past-mode .dticket-toggle { display: none; }
+body.past-mode .dticket-toggles { display: none; }
 /* the compensation check looks back at one journey that already happened */
 body.past-mode .return-add,
 body.past-mode .return-fields,
@@ -831,6 +841,8 @@ body.nudge-on #donate-footer-item { display: none; }
   .header-inner { flex-wrap: wrap; row-gap: 8px; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
+  /* stacked card: the switches keep their line, the button spans below them */
+  .search-actions { flex-direction: column; align-items: stretch; gap: 4px; }
   .field input, .field select { min-width: 0; width: 100%; }
   #swap { align-self: center; }
   .return-add { align-self: stretch; }
@@ -870,6 +882,17 @@ body.nudge-on #donate-footer-item { display: none; }
     padding: 11px 12px;
   }
   .journey-head .claim-none { grid-column: 1 / -1; }
+}
+
+/* Phone: keep both switches on one line. A hair smaller and tighter buys the
+   ~35px the pair is short of at 360px; the labels take the vertical padding back
+   so the tap targets stay finger-sized. Below ~340px they wrap, which is fine. */
+@media (max-width: 420px) {
+  .dticket-toggles { gap: 6px 12px; }
+  .dticket-toggle { font-size: 12px; gap: 6px; padding: 5px 0; }
+  .dticket-switch { width: 32px; height: 19px; }
+  .dticket-switch::after { width: 15px; height: 15px; }
+  .dticket-toggle input:checked + .dticket-switch::after { left: 15px; }
 }
 
 /* install prompt (PWA) */

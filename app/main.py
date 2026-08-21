@@ -605,12 +605,15 @@ async def journeys(
     window: int = Query(7),
     paging_ref: str | None = Query(None, alias="pagingRef"),
     mode: str = Query("future"),
-    dticket: bool = Query(False),
+    dticket: str = Query("0"),
 ):
     if window not in (7, 15, 30):
         raise HTTPException(422, "window must be 7, 15 or 30")
     if mode not in ("future", "past"):
         raise HTTPException(422, "mode must be future or past")
+    # "1" is the legacy value from before the "all trains" mode existed; links
+    # and cached frontends still send it
+    dticket = {"1": "only", "only": "only", "all": "all"}.get(dticket, "off")
     # our own limit on this client, distinct from bahn.de throttling us (503)
     wait = _search_limiter.retry_after(client_ip(request))
     if wait is not None:
@@ -623,7 +626,8 @@ async def journeys(
     past = mode == "past"
     # the D-Ticket is excluded from Fahrgastrechte compensation, so the filter
     # has no place in the past-journey compensation check
-    dticket = dticket and not past
+    if past:
+        dticket = "off"
     try:
         data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket)
     except bahn_api.UpstreamError as e:
@@ -653,6 +657,14 @@ async def journeys(
             "durationSeconds": verbindung.get("verbindungsDauerInSeconds"),
             "price": price,
         }
+        # MDA-NUR-DT marks a connection fully covered by the Deutschland-Ticket
+        # (only sent when the search declared one); such rows carry no price
+        if any(m.get("code") == "MDA-NUR-DT" for m in verbindung.get("meldungenAsObject") or []):
+            journey["dticketCovered"] = True
+        elif dticket == "all" and verbindung.get("hasTeilpreis"):
+            # partly covered: bahn.de already dropped the D-Ticket legs from the
+            # price, so what is left is the fare for the remaining trains only
+            journey["pricePartial"] = True
         ez_duration = verbindung.get("ezVerbindungsDauerInSeconds")
         if ez_duration and ez_duration != journey["durationSeconds"]:
             journey["ezDurationSeconds"] = ez_duration

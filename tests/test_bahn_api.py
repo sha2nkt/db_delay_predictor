@@ -59,6 +59,23 @@ async def test_departure_minutes_bucketed_into_one_key(bahn):
     assert sess.calls == 1
 
 
+async def test_dticket_modes_send_their_own_flags_and_never_share_a_cache_entry(bahn):
+    sess = bahn.use(FakeResponse(payload=PAYLOAD))
+    bodies = []
+    post = sess.post
+    sess.post = lambda url, **kw: (bodies.append(kw.get("json")), post(url, **kw))[1]
+
+    for mode in ("off", "all", "only"):
+        await bahn_api.journeys("A=1@O=Berlin@L=8011160@", "A=1@O=Muenchen@L=8000261@",
+                                "2026-08-13T10:00:00", dticket=mode)
+    assert sess.calls == 3  # one cache entry per mode, never a shared answer
+    flags = [(b["deutschlandTicketVorhanden"], b["nurDeutschlandTicketVerbindungen"],
+              b["schnelleVerbindungen"]) for b in bodies]
+    # "all" declares the ticket without filtering, and drops the fast-connection
+    # preference that would hide every connection the ticket covers
+    assert flags == [(False, False, True), (True, False, False), (True, True, True)]
+
+
 # --- stale fallback ---
 
 

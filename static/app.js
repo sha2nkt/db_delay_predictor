@@ -16,7 +16,7 @@ const state = {
   journeys: [],
   sort: "departure",
   windowUsed: 7,  // stats window that produced the current results
-  dticketUsed: false,  // whether the current results are D-Ticket-filtered
+  dticketUsed: "off",  // D-Ticket mode of the current results: "off" | "all" | "only"
   departure: null,  // departure ISO of the current search (reused for paging)
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
@@ -135,10 +135,13 @@ const I18N = {
     train: "Zug",
     priceFrom: (price) => `ab ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Preis auf bahn.de",
-    dticket: "D-Ticket",
+    dticket: "Nur D-Ticket",
     dticketTooltip: "Nur Verbindungen anzeigen, die mit dem Deutschland-Ticket nutzbar sind",
+    dticketAll: "D-Ticket + alle Züge",
+    dticketAllTooltip: "Alle Verbindungen anzeigen – Nahverkehr ist mit dem Deutschland-Ticket inklusive, Preise gelten nur für die übrigen Züge",
     dticketIncluded: "D-Ticket",
     dticketIncludedTooltip: "Mit dem Deutschland-Ticket nutzbar – kein Ticketkauf nötig",
+    dticketPartialTooltip: "Preis nur für die Züge, die das Deutschland-Ticket nicht abdeckt",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
     tightTitle: "Knapper Umstieg:",
@@ -311,10 +314,13 @@ const I18N = {
     train: "Train",
     priceFrom: (price) => `from ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Price on bahn.de",
-    dticket: "D-Ticket",
+    dticket: "D-Ticket only",
     dticketTooltip: "Only show connections valid with the Deutschland-Ticket",
+    dticketAll: "D-Ticket + all trains",
+    dticketAllTooltip: "Show all connections – regional legs are covered by the Deutschland-Ticket, prices are for the remaining trains only",
     dticketIncluded: "D-Ticket",
     dticketIncludedTooltip: "Valid with the Deutschland-Ticket – no extra ticket needed",
+    dticketPartialTooltip: "Price covers only the trains the Deutschland-Ticket does not include",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
     tightTitle: "Tight transfer:",
@@ -811,10 +817,23 @@ document.getElementById("window").addEventListener("change", () => {
   refetchCurrentLeg();
 });
 
-document.getElementById("dticket").addEventListener("change", () => {
-  // filtered server-side by bahn.de: refetch, but only if results are showing
-  refetchCurrentLeg();
-});
+// "only" filters to D-Ticket-valid connections; "all" keeps every connection but
+// prices it for a D-Ticket holder. Both toggles are hidden in past mode, where a
+// leftover checked state must not filter.
+function dticketMode() {
+  if (state.mode === "past") return "off";
+  return document.getElementById("dticket").checked ? "only"
+    : document.getElementById("dticket-all").checked ? "all" : "off";
+}
+
+// the two D-Ticket toggles are mutually exclusive ("only" implies the ticket);
+// both are handled server-side by bahn.de: refetch, but only if results are showing
+for (const [id, other] of [["dticket", "dticket-all"], ["dticket-all", "dticket"]]) {
+  document.getElementById(id).addEventListener("change", (e) => {
+    if (e.target.checked) document.getElementById(other).checked = false;
+    refetchCurrentLeg();
+  });
+}
 
 // --- return journey ---
 
@@ -1188,14 +1207,13 @@ async function fetchJourneys(pagingRef, opts = {}) {
   const retryStatusKey = opts.retryStatusKey ?? "overloadRetryIn";
   const retryAgainStatusKey = opts.retryAgainStatusKey ?? "overloadRetryAgainIn";
   const win = document.getElementById("window").value;
-  // the toggle is hidden in past mode: a leftover checked state must not filter
-  const dticket = state.mode !== "past" && document.getElementById("dticket").checked;
+  const dticket = dticketMode();
   const leg = opts.leg ?? searchLeg();
   const params = new URLSearchParams({
     from: leg.from.id, to: leg.to.id, departure: leg.departure, window: win,
   });
   if (state.mode === "past") params.set("mode", "past");
-  if (dticket) params.set("dticket", "1");
+  if (dticket !== "off") params.set("dticket", dticket);
   if (pagingRef) params.set("pagingRef", pagingRef);
 
   const gen = searchGen;
@@ -1289,7 +1307,7 @@ function syncUrl() {
     time: document.getElementById("time").value,
     window: document.getElementById("window").value,
   });
-  if (state.mode !== "past" && document.getElementById("dticket").checked) params.set("dticket", "1");
+  if (dticketMode() !== "off") params.set("dticket", dticketMode());
   if (state.returnTrip && returnDateEl.value) {
     params.set("rdate", returnDateEl.value);
     params.set("rtime", returnTimeEl.value);
@@ -1359,7 +1377,7 @@ async function search() {
     to: state.to.name,
     window: Number(document.getElementById("window").value),
     mode: state.mode,
-    dticket: state.mode !== "past" && document.getElementById("dticket").checked,
+    dticket: dticketMode(),
     returnTrip: state.returnTrip,
   });
   await runSearch();
@@ -1581,8 +1599,21 @@ function selectReturn(journey) {
 // both legs carry the "ab" price of a one-way; a total only means something
 // once bahn.de has priced both
 function tripTotal() {
-  const out = state.outbound?.price, ret = state.returnJourney?.price;
+  // a D-Ticket-covered leg costs nothing on top of the ticket the user holds
+  const price = (j) => j?.dticketCovered ? 0 : j?.price;
+  const out = price(state.outbound), ret = price(state.returnJourney);
   return out != null && ret != null ? out + ret : null;
+}
+
+// how the trip total reads: fully covered only if both legs are, partial as soon
+// as the D-Ticket paid for any part of the trip
+function tripPriceKind() {
+  const out = state.outbound, ret = state.returnJourney;
+  const covered = (j) => !!j?.dticketCovered;
+  return {
+    dticketCovered: covered(out) && covered(ret),
+    pricePartial: covered(out) || covered(ret) || out?.pricePartial || ret?.pricePartial,
+  };
 }
 
 function restoreList(cached) {
@@ -1726,11 +1757,14 @@ function sortedJourneys() {
       return (a.maxLegMedianDelay ?? 0) - (b.maxLegMedianDelay ?? 0);
     });
   } else if (state.sort === "price") {
+    // a D-Ticket-covered journey carries no price but costs nothing on top of the
+    // ticket, so it is the cheapest option, not an unpriced one
+    const price = (j) => (j.dticketCovered ? 0 : j.price);
     js.sort((a, b) => {
-      const aMissing = a.price == null, bMissing = b.price == null;
+      const aMissing = price(a) == null, bMissing = price(b) == null;
       if (aMissing !== bMissing) return aMissing ? 1 : -1;  // no price last
       if (aMissing && bMissing) return 0;
-      return a.price - b.price;  // stable sort keeps departure order on ties
+      return price(a) - price(b);  // stable sort keeps departure order on ties
     });
   } else if (state.sort === "transfers") {
     const transferCount = (j) =>
@@ -2153,7 +2187,8 @@ function bahnDeUrl(journey, outbound) {
   const zoid = encodeURIComponent(`A=1@O=${toName}@L=${toEva}@`);
   // dlt/dltv mirror the bahn.de search-mask toggles ("nur Deutschland-Ticket-
   // Verbindungen" / "Deutschland-Ticket vorhanden") so the filter carries over
-  const dt = state.dticketUsed ? "&dlt=true&dltv=true" : "";
+  const dt = state.dticketUsed === "only" ? "&dlt=true&dltv=true"
+    : state.dticketUsed === "all" ? "&dltv=true" : "";
   // rd switches the mask to "Hin- und Rückfahrt"; hza/rza pin both dates to a
   // departure time rather than an arrival time
   const returnDep = outbound ? ((journey.legs || [])[0]?.plannedDeparture || "").slice(0, 19) : "";
@@ -2261,14 +2296,22 @@ document.getElementById("claim-modal-go").addEventListener("click", () => {
   });
 });
 
-// price slot: an offer price, the D-Ticket label when the filter is on, or a
-// pointer to bahn.de when the search turned up no price
-function priceNode(value) {
+// price slot: the D-Ticket label when the connection is covered by the ticket,
+// an offer price, or a pointer to bahn.de when the search turned up no price.
+// `journey` is the row the price belongs to; the trip total passes the combined
+// verdict for its two legs instead.
+function priceNode(value, journey) {
   const price = document.createElement("span");
   price.className = "price";
-  if (value != null) {
+  if (journey?.dticketCovered) {
+    price.classList.add("price-dticket");
+    price.textContent = t("dticketIncluded");
+    price.title = t("dticketIncludedTooltip");
+  } else if (value != null) {
     price.textContent = t("priceFrom", value);
-  } else if (state.dticketUsed) {
+    // the D-Ticket already paid for part of this journey: say what the rest costs
+    if (journey?.pricePartial) price.title = t("dticketPartialTooltip");
+  } else if (state.dticketUsed === "only") {
     // D-Ticket-filtered results carry no offer price: the ticket is the fare
     price.classList.add("price-dticket");
     price.textContent = t("dticketIncluded");
@@ -2412,7 +2455,7 @@ function render() {
       }
       head.append(times, meta, spacer, badge, action);
     } else {
-      const price = priceNode(journey.price);
+      const price = priceNode(journey.price, journey);
 
       // on a round trip both list steps only pick a journey; booking waits for
       // the summary, where the two dates go into one bahn.de link
@@ -2435,7 +2478,8 @@ function render() {
           track("book-bahn", {
             from: state.from?.name,
             to: state.to?.name,
-            price: journey.price ?? "na",
+            // covered by the D-Ticket costs nothing extra: 0, not "no price known"
+            price: journey.dticketCovered ? 0 : journey.price ?? "na",
             trip: "oneway",
           })
         );
@@ -2611,7 +2655,8 @@ function summaryLegBox(journey, n, labelKey, onChange) {
   const badges = journeyBadges(journey, finalLeg);
   if (badges.stats) wireDayChart(badges.badge, badges.stats, meta, finalLeg.line?.name);
   meta.append(times, dur, spacer,
-    ...(badges.tightBadge ? [badges.tightBadge] : []), badges.badge, priceNode(journey.price));
+    ...(badges.tightBadge ? [badges.tightBadge] : []), badges.badge,
+    priceNode(journey.price, journey));
 
   const legsEl = document.createElement("div");
   legsEl.className = "legs";
@@ -2653,7 +2698,7 @@ function renderSummary() {
     Object.assign(document.createElement("span"), {
       className: "trip-total-label", textContent: t("summaryTotal"),
     }),
-    priceNode(tripTotal()),
+    priceNode(tripTotal(), tripPriceKind()),
   );
 
   // the mask carries both dates and both departure minutes; bahn.de has no link
@@ -2797,7 +2842,9 @@ const qp = new URLSearchParams(location.search);
     if (qp.get("date")) document.getElementById("date").value = qp.get("date");
     if (qp.get("time")) document.getElementById("time").value = qp.get("time");
     if (["7", "15", "30"].includes(qp.get("window"))) document.getElementById("window").value = qp.get("window");
-    document.getElementById("dticket").checked = qp.get("dticket") === "1";
+    // "1" is the legacy value from before the "all trains" mode existed
+    document.getElementById("dticket").checked = ["1", "only"].includes(qp.get("dticket"));
+    document.getElementById("dticket-all").checked = qp.get("dticket") === "all";
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1

@@ -639,7 +639,7 @@ def _departure_skew(a: str, b: str) -> float:
 
 
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
-                   dticket: bool = False, source: str = "search") -> tuple[dict, int]:
+                   dticket: str = "off", source: str = "search") -> tuple[dict, int]:
     """Returns (data, stale_age_seconds); age is 0 for a fresh answer, else how
     old the served fallback is. from_id/to_id are full HAFAS location ids
     (A=1@O=...@L=...@) from locations().
@@ -647,8 +647,11 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     paging_ref is a verbindungReference.earlier/later token from a previous response;
     when set, the API returns the adjacent result page instead of the requested time.
 
-    dticket=True restricts results to Deutschland-Ticket-valid connections — the same
-    two flags the bahn.de search mask toggle sends.
+    dticket mirrors the two bahn.de search-mask toggles: "only" restricts results to
+    Deutschland-Ticket-valid connections, "all" keeps every connection but tells
+    bahn.de the passenger holds the ticket — covered connections then come back with
+    an MDA-NUR-DT meldung instead of a price, and mixed ones repriced for the paid
+    legs only. "off" is a search without the ticket.
     """
     # Searches default to "now", so the departure minute fragments the cache: the
     # same route searched a minute apart misses every time. Floor to 5-minute
@@ -669,12 +672,17 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
             "alter": [],
             "anzahl": 1,
         }],
-        "schnelleVerbindungen": True,
+        # bahn.de's "prefer fast connections" drops the slower regional options —
+        # the free-with-the-ticket ones — from the list, which would leave the
+        # "all trains" mode showing nothing the D-Ticket covers on exactly the
+        # routes where it pays off (München -> Augsburg: 5 paid ICEs, 0 covered).
+        # Routes without a slower covered alternative return the same list either way.
+        "schnelleVerbindungen": dticket != "all",
         "sitzplatzOnly": False,
         "bikeCarriage": False,
         "reservierungsKontingenteVorhanden": False,
-        "deutschlandTicketVorhanden": dticket,
-        "nurDeutschlandTicketVerbindungen": dticket,
+        "deutschlandTicketVorhanden": dticket != "off",
+        "nurDeutschlandTicketVerbindungen": dticket == "only",
     }
     if paging_ref:
         body["pagingReference"] = paging_ref
