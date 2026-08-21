@@ -39,7 +39,7 @@ BLOCK_REMIND_SECONDS=${BLOCK_REMIND_SECONDS:-600}
 # ssh alias, resolved in ~/.ssh/config — the origin IP is deliberately not
 # recorded here: delaybahn.com is fronted by a Cloudflare tunnel, and naming
 # the origin in a public repo would hand out a way around it
-SERVER="delaybahn_hetzner2"
+SERVER="delaybahn_hetzner3"
 mkdir -p "$(dirname "$STATE")"
 
 notify() {  # $1 title, $2 priority, $3 tags, $4 body
