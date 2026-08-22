@@ -921,3 +921,403 @@ body.nudge-on #donate-footer-item { display: none; }
   font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
 }
 .ios-sheet-done:hover { background: var(--brand-red-dark); }
+
+/* ---------- station stories (/stories) ---------- */
+
+.stories-main { max-width: 720px; }
+/* why voting is worth the tap; sits above the lists so readers see it too,
+   not only the people already composing */
+.share-promise {
+  background: #fff; border-left: 3px solid var(--brand-red); border-radius: 6px;
+  padding: 11px 14px; margin-bottom: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.10);
+  font-size: 13px; line-height: 1.45; color: var(--text);
+}
+.stories-main > section h2 {
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); margin: 18px 2px 8px;
+}
+.header-lang button.lang-btn { font-family: inherit; }
+
+.top-strip {
+  background: #fff; border-radius: 8px; padding: 4px 14px 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+.top-strip.hidden { display: none; }
+.top-strip h2 { margin: 10px 0 2px; }
+.top-list { list-style: none; padding: 0; }
+.top-row + .top-row { border-top: 1px solid var(--gray-border); }
+.top-line {
+  display: flex; align-items: baseline; gap: 10px; width: 100%;
+  background: none; border: 0; padding: 8px 2px; cursor: pointer;
+  font-family: inherit; text-align: left; color: var(--text);
+}
+.top-line:hover .top-title { text-decoration: underline; }
+.top-score { flex: none; min-width: 44px; color: var(--brand-red); font-size: 13px; font-weight: 700; }
+.top-title {
+  font-size: 14px; font-weight: 600; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.top-station { flex: none; margin-left: auto; color: var(--text-muted); font-size: 12px; }
+.top-detail { padding: 2px 0 10px; }
+.top-detail.hidden { display: none; }
+.top-detail .story { margin: 0; box-shadow: none; border: 1px solid var(--gray-border); }
+/* the strip row above already shows the title; the expanded card repeating it
+   full-size would read like a second story */
+.top-detail .story-title { font-size: 14px; }
+
+.compose { margin-top: 16px; }
+/* the invitation to write is the page's one loud button on purpose */
+.compose-cta {
+  display: block; width: 100%;
+  background: var(--brand-red); color: #fff;
+  border: 0; border-radius: 8px; padding: 14px 18px;
+  font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+.compose-cta:hover { background: var(--brand-red-dark); }
+.compose-cta:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.compose-cta.hidden { display: none; }
+.compose-form {
+  background: #fff; border-radius: 8px; padding: 16px 16px 18px; margin-top: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  display: flex; flex-direction: column; gap: 12px; align-items: stretch;
+}
+.compose-form.hidden { display: none; }
+.compose-form .field input { min-width: 0; width: 100%; }
+/* from/to and date/time are each one answer - "where" and "when" - so each
+   pair shares a row, wrapping to stacked fields only when the card is too
+   narrow to hold both side by side */
+.compose-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.compose-row .field { flex: 1 1 150px; }
+/* the picker reuses .autocomplete-wrap for the dropdown's positioning, but
+   not the search page's clear button - so give the padding it reserved back */
+.compose-form .autocomplete-wrap input { padding-right: 12px; }
+.compose-form textarea {
+  border: 1px solid var(--gray-border); border-radius: 4px;
+  padding: 10px 12px; font-size: 15px; font-family: inherit; resize: vertical;
+  background: #fff; color: var(--text);
+}
+.compose-form textarea:focus { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+/* Problem chips: a checkbox drawn as a pill. The input keeps the semantics -
+   tab order, space to toggle, "checked" announced - and is hidden from sight
+   only, never with display:none, which would take it out of the tab order
+   along with the look. :checked + label paints the on state, so toggling
+   costs no JS. */
+.problems { border: 0; padding: 0; margin: 0; min-width: 0; }
+.problems legend {
+  padding: 0; margin-bottom: 8px;
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-input {
+  position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+}
+.chip {
+  display: inline-block; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--gray-border); background: #fff;
+  font-size: 13px; color: var(--text); cursor: pointer; user-select: none;
+}
+.chip:hover { border-color: var(--text-muted); }
+.chip-input:checked + .chip {
+  background: var(--brand-red); border-color: var(--brand-red); color: #fff;
+}
+/* the ring has to come from the label - the input it belongs to is invisible */
+.chip-input:focus-visible + .chip {
+  outline: 2px solid var(--brand-red); outline-offset: 2px;
+}
+.problem-other { margin-top: 10px; width: 100%; }
+.problem-other.hidden { display: none; }
+
+/* the same problems, read back on a story */
+.story-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.story-tag {
+  padding: 2px 9px; border-radius: 999px; background: var(--gray-bg);
+  border: 1px solid var(--gray-border);
+  font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere;
+}
+
+.compose-note { font-size: 12px; color: var(--text-muted); }
+.compose-form .search-btn { align-self: flex-start; }
+.compose-status { font-size: 13px; color: var(--red); min-height: 1em; }
+
+/* Split-flap tally board: deliberately dark on a light page, the way the
+   real Anzeigetafel is its own object in the hall. Cheap on purpose - three
+   layered halves per digit and one transform; no canvas, no library. */
+.board-head { display: flex; align-items: baseline; gap: 0 10px; flex-wrap: wrap; }
+.board-spans { display: flex; gap: 2px; margin-left: auto; }
+.board-span {
+  background: none; border: 0; border-radius: 4px; padding: 4px 7px;
+  font-family: inherit; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); cursor: pointer;
+}
+.board-span:hover { background: var(--gray-bg); color: var(--text); }
+.board-span.active { color: var(--brand-red); }
+
+.board {
+  background: #1b1b1f; border-radius: 8px; padding: 14px 10px 11px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px;
+}
+.board-tile { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.board-label {
+  font-size: 10px; font-weight: 600; letter-spacing: .07em; line-height: 1.35;
+  text-transform: uppercase; text-align: center; color: #b9b9b3;
+  overflow-wrap: anywhere;
+}
+.board-digits { display: inline-flex; gap: 2px; }
+@media (max-width: 560px) {
+  .board { grid-template-columns: repeat(2, 1fr); }
+}
+
+.flap {
+  --fh: 26px;
+  position: relative; width: 19px; height: var(--fh);
+  perspective: 240px;
+}
+.flap-half {
+  position: absolute; left: 0; width: 100%; height: 50%; overflow: hidden;
+  background: #2c2c31;
+}
+.flap-char {
+  display: block; width: 100%; height: var(--fh);
+  font: 700 16px/26px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  text-align: center; color: #f4f4ef;
+}
+.flap-top, .flap-leaf {
+  top: 0; border-radius: 4px 4px 0 0; box-sizing: border-box;
+  border-bottom: 1px solid rgba(0,0,0,.55); /* the seam between the halves */
+}
+.flap-bottom { bottom: 0; border-radius: 0 0 4px 4px; }
+.flap-bottom .flap-char { margin-top: calc(var(--fh) / -2); }
+/* the moving leaf exists only mid-turn: the old top half, falling forward */
+.flap-leaf { visibility: hidden; transform-origin: 50% 100%; backface-visibility: hidden; }
+.flap-leaf.drop {
+  visibility: visible; transform: rotateX(-88deg);
+  transition: transform 80ms ease-in;
+}
+
+.story {
+  background: #fff; border-radius: 8px; padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  display: flex; gap: 12px; margin-bottom: 12px;
+}
+/* the arrow keeps its own column down the left, on a story and on a comment */
+.vote-col { flex: none; display: flex; flex-direction: column; align-items: center; width: 34px; }
+.vote-btn {
+  background: none; border: 0; cursor: pointer; padding: 2px 6px;
+  font-size: 16px; line-height: 1; color: var(--text-muted); border-radius: 4px;
+}
+.vote-btn:hover { background: var(--gray-bg); color: var(--text); }
+.vote-btn.voted { color: var(--brand-red); }
+.vote-count { font-size: 13px; font-weight: 700; color: var(--text); }
+
+/* Action bar, under the story and under every comment: reply/comments and an
+   overflow menu for the author, as one row of quiet pill buttons. */
+.story-actions, .comment-actions {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 8px;
+}
+.act {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 0; border-radius: 999px; padding: 5px 10px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text-muted); cursor: pointer;
+}
+.act:hover { background: var(--gray-bg); color: var(--text); }
+
+/* the overflow menu: anchored to its button, one open at a time (stories.js) */
+.menu { position: relative; margin-left: auto; }
+.menu-btn {
+  background: none; border: 0; border-radius: 999px; padding: 5px 10px;
+  font-family: inherit; font-size: 14px; line-height: 1; font-weight: 700;
+  color: var(--text-muted); cursor: pointer;
+}
+.menu-btn:hover { background: var(--gray-bg); color: var(--text); }
+.menu-list {
+  display: none; position: absolute; right: 0; top: 100%; z-index: 20;
+  min-width: 150px; padding: 4px; background: #fff;
+  border: 1px solid var(--gray-border); border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.15);
+}
+.menu.open .menu-list { display: block; }
+.menu-item {
+  display: block; width: 100%; text-align: left;
+  background: none; border: 0; border-radius: 4px; padding: 8px 10px;
+  font-family: inherit; font-size: 13px; color: var(--text); cursor: pointer;
+}
+.menu-item:hover { background: var(--gray-bg); }
+.menu-item.danger { color: var(--red); }
+
+/* what an edit and a removal look like from the outside */
+.edited-mark { font-style: italic; }
+.story-removed, .comment-removed {
+  margin: 4px 0; font-size: 14px; font-style: italic; color: var(--text-muted);
+}
+.comment-text.hidden, .comment-actions.hidden { display: none; }
+.edit-form {
+  background: #fff; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.edit-form .edit-title, .edit-form .edit-text {
+  width: 100%; border: 1px solid var(--gray-border); border-radius: 4px;
+  padding: 9px 11px; font-family: inherit; font-size: 15px;
+  background: #fff; color: var(--text);
+}
+.edit-form .edit-text { resize: vertical; line-height: 1.5; }
+.edit-form .edit-title:focus, .edit-form .edit-text:focus {
+  outline: 2px solid var(--brand-red); outline-offset: -1px;
+}
+.story-body { flex: 1; min-width: 0; }
+.story-title { font-size: 16px; margin: 0 0 2px; overflow-wrap: anywhere; }
+.story-meta { font-size: 12px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; }
+.story-station { font-weight: 600; }
+.story-text { margin-top: 8px; font-size: 14px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.read-more {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--brand-red); font-family: inherit; font-size: 13px; font-weight: 600;
+}
+.read-more:hover { text-decoration: underline; }
+.comments-toggle::before { content: "💬"; margin-right: 6px; }
+
+.story-comments { margin-top: 10px; border-top: 1px solid var(--gray-border); padding-top: 10px; font-size: 14px; }
+.story-comments.hidden { display: none; }
+/* the arrow beside the comment, its replies and reply box wrapping to a
+   full-width line under both, so nesting indents by the thread rule alone */
+.comment { display: flex; flex-wrap: wrap; gap: 0 6px; margin-bottom: 10px; }
+.comment-body { flex: 1 1 0; min-width: 0; }
+.comment > .comment-children, .comment > .comment-form { flex: 1 1 100%; }
+.comment .vote-col { width: 24px; }
+.comment .vote-btn { padding: 1px 4px; font-size: 13px; }
+.comment .vote-count { font-size: 12px; }
+/* a tombstone has no arrow; keep its text in line with its siblings' */
+.comment > .comment-body:first-child { margin-left: 30px; }
+.comment-meta { font-size: 12px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.comment-meta strong { color: var(--text); }
+.reply-btn {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--text-muted); font-family: inherit; font-size: 12px; font-weight: 600;
+}
+.reply-btn:hover { color: var(--text); text-decoration: underline; }
+.comment-text { margin: 2px 0 4px; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
+.comment-children { margin-left: 6px; border-left: 2px solid var(--gray-border); padding-left: 12px; }
+.comment-children.flat { margin-left: 0; border-left: 0; padding-left: 0; }
+
+.comment-form { margin: 6px 0 12px; }
+.comment-form textarea {
+  width: 100%; border: 1px solid var(--gray-border); border-radius: 4px;
+  padding: 8px 10px; font-size: 14px; font-family: inherit; resize: vertical;
+  background: #fff; color: var(--text);
+}
+.comment-form textarea:focus { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.comment-form-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
+.comment-form-row input {
+  flex: 1; min-width: 120px; max-width: 200px;
+  border: 1px solid var(--gray-border); border-radius: 4px;
+  padding: 7px 10px; font-size: 13px; background: #fff; color: var(--text);
+}
+.comment-form-row input:focus { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.comment-send {
+  background: var(--brand-red); color: #fff; border: 0; border-radius: 4px;
+  padding: 8px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.comment-send:hover { background: var(--brand-red-dark); }
+.comment-send:disabled { opacity: .6; cursor: wait; }
+.comment-status { font-size: 12px; color: var(--red); }
+
+.stories-status { font-size: 14px; color: var(--text-muted); margin: 8px 2px; min-height: 1em; }
+
+.header-auth { flex: none; font-size: 13px; color: #fff; }
+.auth-link { color: #fff; font-weight: 600; text-decoration: none; }
+.auth-link:hover { text-decoration: underline; }
+.auth-link.hidden, .auth-user.hidden { display: none; }
+.auth-user { display: inline-flex; align-items: baseline; gap: 8px; }
+.auth-logout {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: rgba(255,255,255,.85); font-family: inherit; font-size: 12px;
+}
+.auth-logout:hover { color: #fff; text-decoration: underline; }
+
+/* login / create account (/login) */
+.login-main { max-width: 420px; }
+.login-card {
+  background: #fff; border-radius: 8px; padding: 18px 18px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12); margin-bottom: 16px;
+}
+.login-card h2 { font-size: 17px; margin-bottom: 12px; }
+.auth-form { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.auth-form .field input { min-width: 0; width: 100%; }
+.auth-form .search-btn { align-self: flex-start; }
+.auth-note { font-size: 12px; color: var(--text-muted); }
+.auth-status { font-size: 13px; color: var(--red); min-height: 1em; }
+
+.auth-status.sent { color: var(--green); }
+
+/* suggested username: the border moves from the input to the row, so the
+   tick and the reroll button sit inside one box with it */
+.name-row {
+  display: flex; align-items: center; gap: 2px;
+  border: 1px solid var(--gray-border); border-radius: 4px;
+  background: #fff; padding-right: 4px;
+}
+.auth-form .name-row input { border: none; flex: 1 1 auto; min-width: 0; }
+.auth-form .name-row input:focus { outline: none; }
+.name-row:focus-within { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.name-ok { flex: none; color: var(--green); font-size: 16px; line-height: 1; }
+.name-ok.hidden { display: none; }
+/* drawn rather than an emoji glyph, which renders at a different size and
+   colour in every font the visitor might have */
+.name-bad {
+  flex: none; width: 16px; height: 16px; border-radius: 50%;
+  border: 1.5px solid var(--red); color: var(--red);
+  font-size: 11px; font-weight: 700; line-height: 13px; text-align: center;
+}
+.name-bad.hidden { display: none; }
+.name-row.invalid { border-color: var(--red); }
+.name-shuffle {
+  flex: none; background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 17px; line-height: 1; padding: 6px 8px;
+}
+.name-shuffle:hover { color: var(--text); }
+.name-shuffle:disabled { opacity: .5; cursor: wait; }
+.name-hint { font-size: 12px; color: var(--green); min-height: 1em; }
+.name-hint.error { color: var(--red); }
+.login-card.hidden, .auth-form.hidden { display: none; }
+.auth-sent { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+.code-input {
+  font-size: 22px; letter-spacing: 6px; font-variant-numeric: tabular-nums;
+  text-align: center; max-width: 12ch;
+}
+/* Secondary actions on the login cards - resending the mail, and the offer to
+   register after an address turned out to be unknown. Both are links rather
+   than buttons: neither is the path the visitor came here for, and a second
+   solid button beside the primary one would compete with it. */
+.link-btn {
+  padding: 0; background: none; border: none; font: inherit; font-size: 13px;
+  color: var(--brand-red); text-decoration: underline; cursor: pointer;
+}
+.link-btn:hover { color: var(--red); }
+/* the resend countdown: still readable, plainly not clickable, and no width
+   jump per tick from the digits */
+.link-btn:disabled {
+  color: var(--text-muted); text-decoration: none; cursor: default;
+  font-variant-numeric: tabular-nums;
+}
+.auth-resend { margin-top: 6px; }
+
+/* The way across to the other form, flush to the bottom of the card: the
+   negative margins cancel the card's own padding, so it reads as a footer
+   attached to the form rather than a fourth thing on the page. */
+.auth-switch {
+  margin: 10px -18px -20px; padding: 14px 18px; text-align: center;
+  background: var(--gray-bg); border-radius: 0 0 8px 8px;
+  font-size: 13px; color: var(--text-muted);
+}
+.auth-switch .link-btn { font-weight: 600; text-decoration: none; }
+.auth-switch .link-btn:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+  .top-station { display: none; }
+  .story { padding: 12px; gap: 8px; }
+}

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anmelden – DelayBahn</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="https://delaybahn.com/login">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="/style.css?v=80">
+<script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
+    <span class="header-title"><span id="header-title">Anmelden</span><span class="tagline" data-i18n="tagline">Ein Name für alle deine Geschichten</span></span>
+    <div class="header-lang">
+      <button type="button" data-lang="de" class="lang-btn active">DE</button>
+      <button type="button" data-lang="en" class="lang-btn">EN</button>
+    </div>
+  </div>
+</header>
+
+<main class="login-main">
+  <section id="code-card" class="login-card hidden">
+    <h2 data-i18n="codeHeading">Code eingeben</h2>
+    <p class="auth-sent" id="code-sent"></p>
+    <form id="code-form" class="auth-form">
+      <div class="field">
+        <label for="code-input" data-i18n="codeLabel">6-stelliger Code aus der E-Mail</label>
+        <input id="code-input" class="code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" spellcheck="false">
+      </div>
+      <button type="submit" class="search-btn" data-i18n="codeBtn">Anmelden</button>
+      <p id="code-status" class="auth-status" role="status"></p>
+    </form>
+    <!-- label and disabled state are the countdown; login.js owns both -->
+    <button type="button" id="resend-btn" class="link-btn auth-resend" disabled></button>
+  </section>
+
+  <section id="login-card" class="login-card">
+    <h2 data-i18n="loginHeading">Anmelden</h2>
+    <form id="login-form" class="auth-form">
+      <div class="field">
+        <label for="login-email" data-i18n="email">E-Mail-Adresse</label>
+        <input id="login-email" type="email" maxlength="254" required autocomplete="email" spellcheck="false">
+      </div>
+      <p class="auth-note" data-i18n="loginNote">Kein Passwort nötig: Du bekommst einen Anmelde-Link per E-Mail.</p>
+      <button type="submit" class="search-btn" data-i18n="loginBtn">Link senden</button>
+      <p id="login-status" class="auth-status" role="status"></p>
+    </form>
+    <p class="auth-switch">
+      <span data-i18n="newHere">Neu bei DelayBahn?</span>
+      <button type="button" id="to-create" class="link-btn" data-i18n="createHeading">Konto erstellen</button>
+    </p>
+  </section>
+
+  <section id="register-card" class="login-card hidden">
+    <h2 data-i18n="createHeading">Konto erstellen</h2>
+    <form id="register-form" class="auth-form">
+      <div class="field">
+        <label for="register-name" data-i18n="username">Benutzername</label>
+        <div class="name-row">
+          <input id="register-name" type="text" minlength="2" maxlength="25" pattern="[A-Za-z0-9_\-]{2,25}" required autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="name-hint" data-i18n-title="nameRules" title="2–25 Zeichen: Buchstaben, Zahlen, - und _">
+          <span id="name-ok" class="name-ok hidden" aria-hidden="true">✓</span>
+          <span id="name-bad" class="name-bad hidden" aria-hidden="true">!</span>
+          <button type="button" id="name-shuffle" class="name-shuffle">⟳</button>
+        </div>
+        <p id="name-hint" class="name-hint" role="status"></p>
+      </div>
+      <div class="field">
+        <label for="register-email" data-i18n="email">E-Mail-Adresse</label>
+        <input id="register-email" type="email" maxlength="254" required autocomplete="email" spellcheck="false">
+      </div>
+      <p class="auth-note" data-i18n="createNote">Deine E-Mail-Adresse dient nur der Anmeldung per Link – sie bleibt privat, und Werbung gibt es keine. Öffentlich erscheint nur dein Benutzername. Nach der Bestätigung lässt er sich nicht mehr ändern. Gibt es zu dieser Adresse schon ein Konto, melden wir dich einfach damit an. Unbestätigte Konten werden nach 7 Tagen gelöscht.</p>
+      <button type="submit" class="search-btn" data-i18n="createBtn">Konto erstellen</button>
+      <p id="register-status" class="auth-status" role="status"></p>
+    </form>
+    <p class="auth-switch">
+      <span data-i18n="haveAccount">Schon ein Konto?</span>
+      <button type="button" id="to-login" class="link-btn" data-i18n="loginHeading">Anmelden</button>
+    </p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <a href="/stories" data-i18n="footerStories">← Zu den Bahnhofs-Geschichten</a> ·
+  <a href="/impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a>
+</footer>
+<script src="/login.js?v=7"></script>
+</body>
+</html>

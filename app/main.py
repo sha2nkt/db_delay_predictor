@@ -8,7 +8,7 @@ from functools import lru_cache
 from html import escape
 from math import ceil
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal, get_args
 from zoneinfo import ZoneInfo
 
 import anyio
@@ -16,9 +16,9 @@ import httpx
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
-from app import bahn_api, delays, feedback, live_delays, ratelimit
+from app import auth, bahn_api, delays, feedback, live_delays, mailer, ratelimit, stories
 from app.config import env_int
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -92,6 +92,7 @@ async def lifespan(app: FastAPI):
     await bahn_api.close()
     await live_delays.close()
     await feedback.close()
+    await stories.close()
     await umami.aclose()
 
 
@@ -874,6 +875,34 @@ async def de_home() -> RedirectResponse:
     return RedirectResponse("/", status_code=301)
 
 
+@app.get("/stories")
+async def stories_page() -> FileResponse:
+    # one language-neutral URL: the page localizes itself from localStorage.
+    # no-cache like the other HTML documents (no ?v= buster on the document)
+    return FileResponse(
+        STATIC_DIR / "stories.html", headers={"Cache-Control": "no-cache"}
+    )
+
+
+@app.get("/stories/")
+@app.get("/stories.html")
+async def stories_alias() -> RedirectResponse:
+    return RedirectResponse("/stories", status_code=301)
+
+
+@app.get("/login")
+async def login_page() -> FileResponse:
+    return FileResponse(
+        STATIC_DIR / "login.html", headers={"Cache-Control": "no-cache"}
+    )
+
+
+@app.get("/login/")
+@app.get("/login.html")
+async def login_alias() -> RedirectResponse:
+    return RedirectResponse("/login", status_code=301)
+
+
 @app.get("/en/manifest.json")
 async def en_manifest() -> Response:
     """English install target: same app, but it opens on the English URL."""
@@ -958,6 +987,409 @@ async def submit_feedback(fb: Feedback, request: Request) -> Response:
     if text:
         _spawn(feedback.notify(fb.vote, text, fb.lang, fb.context))
     return Response(status_code=204)
+
+
+# strip_whitespace runs before the length checks, so an all-spaces field fails
+# min_length instead of slipping through as visually empty content
+def _text_field(min_length: int, max_length: int):
+    return Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True, min_length=min_length, max_length=max_length
+        ),
+    ]
+
+
+# The journey a story hangs off. Only the origin is required - "stranded at
+# Hannover with nothing leaving" is a story too - and the departure is a local
+# wall-clock stamp from the compose form's date and time inputs, not an
+# instant: it is the time printed on the ticket, which is what the story is
+# about. Empty string means "not given", so the column stays NOT NULL.
+_StationField = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=80)
+]
+_DepartureField = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, pattern=r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})?$"
+    ),
+]
+
+
+# What went wrong on the leg. A Literal rather than a free string, so an
+# unknown code is a 422 at the edge instead of a row nothing can label; it
+# mirrors stories.PROBLEMS, and test_stories.py pins the two together.
+ProblemCode = Literal[
+    "delay", "cancelled", "missed", "ac", "wc", "crowding", "wifi", "other"
+]
+
+
+class StoryIn(BaseModel):
+    from_station: _text_field(2, 80)
+    to_station: _StationField = ""
+    departure: _DepartureField = ""
+    # free text, not a pattern: "ICE 574", "RE 1", "S3", "IC2027" and the
+    # replacement bus with no number at all are all things a story is about
+    train: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=20)
+    ] = ""
+    # max_length caps the list, not the strings: every code may appear once,
+    # so anything longer is a client that lost the plot
+    problems: Annotated[list[ProblemCode], Field(max_length=len(get_args(ProblemCode)))] = []
+    problem_other: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=80)
+    ] = ""
+    title: _text_field(3, 120)
+    text: _text_field(10, 5000)
+
+
+class StoryCommentIn(BaseModel):
+    parent_id: int | None = None
+    text: _text_field(1, 2000)
+
+
+class StoryVoteIn(BaseModel):
+    vote: bool = True
+
+
+# editing touches what the author wrote, never the journey or the problem
+# codes: those are a claim about a train that ran, and a story whose leg can
+# be swapped after the fact is not evidence of anything
+class StoryEditIn(BaseModel):
+    title: _text_field(3, 120)
+    text: _text_field(10, 5000)
+
+
+class CommentEditIn(BaseModel):
+    text: _text_field(1, 2000)
+
+
+# Addresses arrive pasted, so surrounding whitespace is trimmed before the
+# shape check rather than rejected by it. The check is only a shape check -
+# the emailed link is what actually proves the address exists.
+_EmailField = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, max_length=254,
+        pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+    ),
+]
+
+
+class RegisterIn(BaseModel):
+    # HN-style handles: short, ASCII, no spaces - what makes a name recognizable
+    # across posts. The stricter charset also keeps names trivially safe to echo.
+    name: str = Field(pattern=r"^[A-Za-z0-9_-]{2,25}$")
+    email: _EmailField
+    lang: Literal["de", "en"] = "de"
+
+
+class RequestLinkIn(BaseModel):
+    email: _EmailField
+    lang: Literal["de", "en"] = "de"
+
+
+class ConsumeIn(BaseModel):
+    token: str = Field(min_length=1, max_length=128)
+
+
+class ConsumeCodeIn(BaseModel):
+    email: _EmailField
+    code: str = Field(pattern=r"^[0-9]{6}$")
+
+
+SESSION_COOKIE = "db_session"
+
+
+def _set_session_cookie(response: Response, token: str) -> None:
+    # Lax + JSON-only POST bodies double as the CSRF story: a cross-site form
+    # can neither send the cookie nor produce application/json
+    response.set_cookie(
+        SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400,
+        httponly=True, samesite="lax", secure=True, path="/",
+    )
+
+
+async def _session_user(request: Request) -> dict | None:
+    return await anyio.to_thread.run_sync(
+        auth.session_user, request.cookies.get(SESSION_COOKIE)
+    )
+
+
+async def _require_user(request: Request) -> dict:
+    user = await _session_user(request)
+    if user is None:
+        raise HTTPException(401, "login required")
+    return user
+
+
+def _stories_throttle(limiter: ratelimit.SlidingWindowLimiter, request: Request) -> None:
+    wait = limiter.retry_after(client_ip(request))
+    if wait is not None:
+        raise HTTPException(
+            429, "too many submissions; please slow down",
+            headers={"Retry-After": str(wait)},
+        )
+
+
+def _resend_hint() -> dict:
+    """How long the login page must wait before offering "resend" again. The
+    same constant for every caller - an account's real remaining cooldown
+    would say when it last asked for a login, which is not something to hand
+    out. Read per request so tests can move it."""
+    return {"resend_after": auth.RESEND_COOLDOWN_SECONDS}
+
+
+@app.post("/api/auth/register", status_code=202)
+async def auth_register(reg: RegisterIn, request: Request) -> dict:
+    """No session yet - that starts when the emailed link is consumed. An
+    email that already has an account gets a login link to it instead of a
+    second account, so a sign-up with an address already in use still ends in
+    a working login."""
+    _stories_throttle(auth.register_limiter, request)
+    result = await anyio.to_thread.run_sync(auth.register, reg.name, reg.email)
+    if result is None:
+        raise HTTPException(409, "name already taken")
+    kind, stored_name, magic_token, code = result
+    # a spent per-account budget yields no token: the account is fine, there is
+    # simply no new mail, and the answer stays the same 202 either way
+    if magic_token is not None:
+        # off the request's clock; asking for a new link covers a lost email
+        _spawn(anyio.to_thread.run_sync(
+            mailer.send_magic_link, auth.normalize_email(reg.email), stored_name,
+            magic_token, code, reg.lang, "welcome" if kind == "new" else "login",
+        ))
+    return _resend_hint()
+
+
+@app.get("/api/auth/suggest-name")
+async def auth_suggest_name(
+    request: Request, response: Response, lang: Literal["de", "en"] = "de"
+):
+    """A free username to offer someone who has not thought of one. The client
+    cannot name what it wants checked, which is the point: an availability
+    endpoint taking a name would be a handle-enumeration oracle, and this
+    answers the same question without being one."""
+    _stories_throttle(auth.suggest_limiter, request)
+    name = await anyio.to_thread.run_sync(auth.suggest_name, lang)
+    if name is None:
+        raise HTTPException(503, "no free name found")
+    # every caller must get its own name; an edge cache serving one twice
+    # would hand two people the same suggestion
+    response.headers["Cache-Control"] = "no-store"
+    return {"name": name}
+
+
+@app.post("/api/auth/request-link", status_code=202)
+async def auth_request_link(req: RequestLinkIn, request: Request) -> dict:
+    """Login step one. 404 when the address has no account, so the page can
+    say so and offer to create one - a login form that answers "check your
+    inbox" for an address that will never receive anything is a dead end.
+    That does make this an "is this address registered?" oracle; login_limiter
+    is what keeps it to a trickle rather than a scrape. A spent resend budget
+    still answers 202 - when an account last logged in stays private."""
+    _stories_throttle(auth.login_limiter, request)
+    result = await anyio.to_thread.run_sync(auth.request_link, req.email)
+    if result is None:
+        raise HTTPException(404, "no account for this address")
+    stored_name, magic_token, code = result
+    if magic_token is not None:
+        _spawn(anyio.to_thread.run_sync(
+            mailer.send_magic_link, auth.normalize_email(req.email), stored_name,
+            magic_token, code, req.lang, "login",
+        ))
+    return _resend_hint()
+
+
+@app.post("/api/auth/consume")
+async def auth_consume(body: ConsumeIn, response: Response):
+    """Login step two, POSTed by the /verify landing page so a mail scanner
+    prefetching the GET can't burn the single-use token."""
+    result = await anyio.to_thread.run_sync(auth.consume, body.token)
+    if result is None:
+        raise HTTPException(401, "link invalid or expired")
+    user, token = result
+    _set_session_cookie(response, token)
+    return {"name": user["name"]}
+
+
+@app.post("/api/auth/consume-code")
+async def auth_consume_code(body: ConsumeCodeIn, request: Request, response: Response):
+    """The typed-code half of the same login, for when the mail was opened on
+    another device. One 401 for every failure - which of wrong/expired/used-up
+    applies is not something the response should spell out."""
+    _stories_throttle(auth.code_limiter, request)
+    result = await anyio.to_thread.run_sync(auth.consume_code, body.email, body.code)
+    if result is None:
+        raise HTTPException(401, "code invalid or expired")
+    user, token = result
+    _set_session_cookie(response, token)
+    return {"name": user["name"]}
+
+
+@app.post("/api/auth/logout", status_code=204)
+async def auth_logout(request: Request) -> Response:
+    await anyio.to_thread.run_sync(
+        auth.logout, request.cookies.get(SESSION_COOKIE)
+    )
+    response = Response(status_code=204)
+    response.delete_cookie(SESSION_COOKIE, path="/")
+    return response
+
+
+@app.get("/api/auth/me")
+async def auth_me(request: Request):
+    user = await _session_user(request)
+    return {"name": user["name"] if user else None}
+
+
+@app.get("/verify")
+async def verify_page() -> FileResponse:
+    """Magic-link landing page: it reads ?token= client-side and redeems it
+    via POST /api/auth/consume on a button click, never on the GET itself."""
+    return FileResponse(
+        STATIC_DIR / "verify.html", headers={"Cache-Control": "no-cache"}
+    )
+
+
+@app.get("/api/stories")
+async def stories_index(
+    request: Request,
+    sort: Literal["new", "top"] = "new",
+    limit: int = Query(30, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    user = await _session_user(request)
+    return await anyio.to_thread.run_sync(
+        stories.list_stories, sort, limit, offset, user["id"] if user else None
+    )
+
+
+@app.post("/api/stories", status_code=201)
+async def stories_create(story: StoryIn, request: Request):
+    user = await _require_user(request)
+    _stories_throttle(stories.write_limiter, request)
+    created = await anyio.to_thread.run_sync(
+        stories.create_story, story.from_station, story.to_station,
+        story.departure, story.train, story.problems, story.problem_other,
+        story.title, story.text, user["name"]
+    )
+    leg = (f"{story.from_station} → {story.to_station}" if story.to_station
+           else story.from_station)
+    # every story is public UGC on the spot: worth a phone buzz, off the request's clock
+    _spawn(stories.notify(
+        f"DelayBahn story: {leg} ({user['name']})",
+        f"{story.title}\n\n{story.text[:500]}",
+    ))
+    return created
+
+
+# public and anonymous, like reading the stories themselves
+@app.get("/api/stories/problems")
+async def stories_problems(span: Literal["week", "month", "year", "all"] = "month"):
+    return await anyio.to_thread.run_sync(stories.count_problems, span)
+
+
+@app.post("/api/stories/{story_id}/vote")
+async def stories_vote(story_id: int, vote: StoryVoteIn, request: Request):
+    user = await _require_user(request)
+    _stories_throttle(stories.vote_limiter, request)
+    result = await anyio.to_thread.run_sync(
+        stories.set_vote, story_id, user["id"], vote.vote
+    )
+    if result is None:
+        raise HTTPException(404, "story not found")
+    return result
+
+
+@app.get("/api/stories/{story_id}/comments")
+async def stories_comments(story_id: int, request: Request):
+    user = await _session_user(request)
+    result = await anyio.to_thread.run_sync(
+        stories.list_comments, story_id, user["id"] if user else None
+    )
+    if result is None:
+        raise HTTPException(404, "story not found")
+    return result
+
+
+@app.patch("/api/stories/{story_id}")
+async def stories_edit(story_id: int, edit: StoryEditIn, request: Request):
+    user = await _require_user(request)
+    _stories_throttle(stories.write_limiter, request)
+    updated = await anyio.to_thread.run_sync(
+        stories.edit_story, story_id, user["name"], edit.title, edit.text
+    )
+    if updated is None:
+        raise HTTPException(403, "not your story, or it is already removed")
+    return updated
+
+
+@app.delete("/api/stories/{story_id}", status_code=204)
+async def stories_delete(story_id: int, request: Request) -> Response:
+    user = await _require_user(request)
+    ok = await anyio.to_thread.run_sync(stories.delete_story, story_id, user["name"])
+    if not ok:
+        raise HTTPException(403, "not your story, or it is already removed")
+    return Response(status_code=204)
+
+
+# Comments are addressed by their own id rather than under their story: the id
+# is unique on its own, and an edit that had to name the right story could be
+# pointed at the wrong one.
+@app.post("/api/comments/{comment_id}/vote")
+async def comment_vote(comment_id: int, vote: StoryVoteIn, request: Request):
+    user = await _require_user(request)
+    _stories_throttle(stories.vote_limiter, request)
+    result = await anyio.to_thread.run_sync(
+        stories.set_comment_vote, comment_id, user["id"], vote.vote
+    )
+    if result is None:
+        raise HTTPException(404, "comment not found")
+    return result
+
+
+@app.patch("/api/comments/{comment_id}")
+async def comment_edit(comment_id: int, edit: CommentEditIn, request: Request):
+    user = await _require_user(request)
+    _stories_throttle(stories.write_limiter, request)
+    updated = await anyio.to_thread.run_sync(
+        stories.edit_comment, comment_id, user["name"], edit.text
+    )
+    if updated is None:
+        raise HTTPException(403, "not your comment, or it is already removed")
+    return updated
+
+
+@app.delete("/api/comments/{comment_id}", status_code=204)
+async def comment_delete(comment_id: int, request: Request) -> Response:
+    user = await _require_user(request)
+    ok = await anyio.to_thread.run_sync(
+        stories.delete_comment, comment_id, user["name"]
+    )
+    if not ok:
+        raise HTTPException(403, "not your comment, or it is already removed")
+    return Response(status_code=204)
+
+
+@app.post("/api/stories/{story_id}/comments", status_code=201)
+async def stories_comment_create(
+    story_id: int, comment: StoryCommentIn, request: Request
+):
+    user = await _require_user(request)
+    _stories_throttle(stories.write_limiter, request)
+    try:
+        created = await anyio.to_thread.run_sync(
+            stories.add_comment, story_id, comment.parent_id, user["name"], comment.text
+        )
+    except ValueError:
+        raise HTTPException(400, "parent comment not on this story")
+    if created is None:
+        raise HTTPException(404, "story not found")
+    _spawn(stories.notify(
+        f"DelayBahn comment on story #{story_id} ({user['name']})", comment.text[:500]
+    ))
+    return created
 
 
 @app.get("/sw.js")

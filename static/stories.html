@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bahnhofs-Geschichten – DelayBahn</title>
+<meta name="description" content="Horror-Geschichten von deutschen Bahnhöfen: verpasste Anschlüsse, Nächte auf dem Bahnsteig, Ansagen zum Verzweifeln. Lies mit, stimm ab oder erzähl deine eigene.">
+<link rel="canonical" href="https://delaybahn.com/stories">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://delaybahn.com/stories">
+<meta property="og:site_name" content="DelayBahn">
+<meta property="og:title" content="Bahnhofs-Geschichten – DelayBahn">
+<meta property="og:description" content="Horror-Geschichten von deutschen Bahnhöfen – erzählt von denen, die dort gestrandet sind.">
+<meta property="og:image" content="https://delaybahn.com/logo.png">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/style.css?v=80">
+<script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
+    <span class="header-title"><span data-i18n="headerTitle">Bahnhofs-Geschichten</span><span class="tagline" data-i18n="tagline">Gestrandet, verspätet, überlebt – erzähl’s hier</span></span>
+    <span class="header-auth">
+      <a id="auth-login" class="auth-link hidden" href="/login" data-i18n="navLogin">Anmelden</a>
+      <span id="auth-user" class="auth-user hidden"><strong id="auth-name"></strong><button id="auth-logout" class="auth-logout" type="button" data-i18n="navLogout">Abmelden</button></span>
+    </span>
+    <div class="header-lang">
+      <button type="button" data-lang="de" class="lang-btn active">DE</button>
+      <button type="button" data-lang="en" class="lang-btn">EN</button>
+    </div>
+  </div>
+</header>
+
+<main class="stories-main">
+  <!-- the reason to vote, said before the list rather than after it -->
+  <p class="share-promise" data-i18n="sharePromise">🏆 Jede Woche teilen wir die Geschichte mit den meisten Stimmen auf unseren Kanälen – und markieren die Deutsche Bahn dabei. Also: abstimmen und mitschreiben.</p>
+  <section id="top-strip" class="top-strip hidden">
+    <h2 data-i18n="topHeading">Top-Geschichten</h2>
+    <ol id="top-list" class="top-list"></ol>
+  </section>
+
+  <!-- the tally of everything reported, as a little departure board -->
+  <section class="board-section">
+    <div class="board-head">
+      <h2 data-i18n="boardHeading">Störungsbilanz</h2>
+      <div class="board-spans" role="group" aria-label="Zeitraum">
+        <button type="button" class="board-span" data-span="week" data-i18n="spanWeek">Woche</button>
+        <button type="button" class="board-span active" data-span="month" data-i18n="spanMonth">Monat</button>
+        <button type="button" class="board-span" data-span="year" data-i18n="spanYear">Jahr</button>
+        <button type="button" class="board-span" data-span="all" data-i18n="spanAll">Gesamt</button>
+      </div>
+    </div>
+    <div id="board" class="board"></div>
+  </section>
+
+  <section class="compose">
+    <button id="compose-toggle" class="compose-cta" type="button" data-i18n="composeToggle">+ Geschichte erzählen</button>
+    <form id="compose-form" class="compose-form hidden">
+      <div class="compose-row">
+        <div class="field autocomplete-wrap">
+          <label for="c-from" data-i18n="fromLabel">Von</label>
+          <input id="c-from" type="text" minlength="2" maxlength="80" required autocomplete="off" data-i18n-placeholder="fromPlaceholder" placeholder="z.B. Hannover Hbf">
+          <div class="dropdown" id="c-from-dropdown"></div>
+        </div>
+        <div class="field autocomplete-wrap">
+          <label for="c-to" data-i18n="toLabel">Nach</label>
+          <input id="c-to" type="text" maxlength="80" autocomplete="off" data-i18n-placeholder="toPlaceholder" placeholder="z.B. Berlin Hbf">
+          <div class="dropdown" id="c-to-dropdown"></div>
+        </div>
+      </div>
+      <div class="compose-row">
+        <div class="field">
+          <label for="c-date" data-i18n="dateLabel">Datum</label>
+          <input id="c-date" type="date">
+        </div>
+        <div class="field">
+          <label for="c-time" data-i18n="timeLabel">Uhrzeit</label>
+          <input id="c-time" type="time">
+        </div>
+        <div class="field">
+          <label for="c-train" data-i18n="trainLabel">Zug (optional)</label>
+          <input id="c-train" type="text" maxlength="20" autocomplete="off" data-i18n-placeholder="trainPlaceholder" placeholder="z.B. ICE 574">
+        </div>
+      </div>
+      <!-- real checkboxes, drawn as chips: keyboard, focus ring and screen
+           readers come from the input, the look from its label -->
+      <fieldset class="field problems">
+        <legend data-i18n="problemsLabel">Was war los?</legend>
+        <div class="chips">
+          <input type="checkbox" id="p-delay" class="chip-input" value="delay"><label for="p-delay" class="chip" data-i18n="problem_delay">Verspätung</label>
+          <input type="checkbox" id="p-cancelled" class="chip-input" value="cancelled"><label for="p-cancelled" class="chip" data-i18n="problem_cancelled">Zugausfall</label>
+          <input type="checkbox" id="p-missed" class="chip-input" value="missed"><label for="p-missed" class="chip" data-i18n="problem_missed">Anschluss verpasst</label>
+          <input type="checkbox" id="p-ac" class="chip-input" value="ac"><label for="p-ac" class="chip" data-i18n="problem_ac">Klimaanlage defekt</label>
+          <input type="checkbox" id="p-wc" class="chip-input" value="wc"><label for="p-wc" class="chip" data-i18n="problem_wc">WC defekt/schmutzig</label>
+          <input type="checkbox" id="p-crowding" class="chip-input" value="crowding"><label for="p-crowding" class="chip" data-i18n="problem_crowding">Überfüllt</label>
+          <input type="checkbox" id="p-wifi" class="chip-input" value="wifi"><label for="p-wifi" class="chip" data-i18n="problem_wifi">WLAN geht nicht</label>
+          <input type="checkbox" id="p-other" class="chip-input" value="other"><label for="p-other" class="chip" data-i18n="problem_other">Sonstiges</label>
+        </div>
+        <input id="c-other" class="problem-other hidden" type="text" maxlength="80"
+               data-i18n-placeholder="otherPlaceholder" placeholder="Was war sonst los?">
+      </fieldset>
+      <div class="field">
+        <label for="c-title" data-i18n="titleLabel">Titel</label>
+        <input id="c-title" type="text" minlength="3" maxlength="120" required data-i18n-placeholder="titlePlaceholder" placeholder="z.B. 3 Uhr nachts, Gleis 9, Ansage: „Zug fällt aus“">
+      </div>
+      <div class="field">
+        <label for="c-text" data-i18n="textLabel">Deine Geschichte</label>
+        <textarea id="c-text" rows="6" minlength="10" maxlength="5000" required data-i18n-placeholder="textPlaceholder" placeholder="Was ist passiert?"></textarea>
+      </div>
+      <p class="compose-note" data-i18n="composeNote">Beiträge erscheinen öffentlich unter deinem Benutzernamen.</p>
+      <button type="submit" class="search-btn" data-i18n="composeSend">Veröffentlichen</button>
+      <p id="compose-status" class="compose-status" role="status"></p>
+    </form>
+  </section>
+
+  <section class="new-stories">
+    <h2 data-i18n="newHeading">Neueste Geschichten</h2>
+    <div id="story-list"></div>
+    <p id="stories-status" class="stories-status" role="status"></p>
+    <button id="more-btn" class="page-btn hidden" type="button"><span data-i18n="loadMore">Mehr laden</span> <span class="arrow">↓</span></button>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <a href="/" data-i18n="footerBack">← Zur Verbindungssuche</a> ·
+  <a href="/impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a> ·
+  <a href="mailto:kontakt@delaybahn.com?subject=DelayBahn%20Stories" data-i18n="footerContact">Kontakt</a>
+  <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerUgc">Beiträge stammen von Nutzerinnen und Nutzern und geben nicht die Meinung von DelayBahn wieder. Beiträge mit Beleidigungen oder personenbezogenen Daten werden entfernt.</span></p>
+</footer>
+<script src="/stories.js?v=10"></script>
+</body>
+</html>

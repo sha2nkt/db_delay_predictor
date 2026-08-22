@@ -16,6 +16,10 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://delaybahn.com/"/>
   </url>
   <url>
+    <loc>https://delaybahn.com/stories</loc>
+    <changefreq>daily</changefreq>
+  </url>
+  <url>
     <loc>https://delaybahn.com/entschaedigung</loc>
     <changefreq>monthly</changefreq>
     <xhtml:link rel="alternate" hreflang="de" href="https://delaybahn.com/entschaedigung"/>

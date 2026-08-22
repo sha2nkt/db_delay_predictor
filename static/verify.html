@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anmelden – DelayBahn</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/style.css?v=80">
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
+    <span class="header-title"><span id="v-title">Anmelden</span></span>
+  </div>
+</header>
+
+<main class="login-main">
+  <section class="login-card">
+    <h2 id="v-heading">Anmeldung läuft …</h2>
+    <p class="auth-note" id="v-text">Einen Moment, wir melden dich an.</p>
+    <form id="v-form" class="auth-form hidden">
+      <button type="submit" class="search-btn" id="v-btn">Jetzt anmelden</button>
+    </form>
+    <p id="v-status" class="auth-status" role="status"></p>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* The GET that served this page does NOT consume the token - mail scanners
+   and link previewers fetch URLs automatically and would burn it before the
+   recipient ever clicked. They don't run JavaScript, so redeeming from here
+   keeps that protection while costing the human no extra click. The button is
+   only revealed if the automatic attempt fails. */
+(function () {
+  var I18N = {
+    de: {
+      title: "Anmelden",
+      working: "Anmeldung läuft …", workingText: "Einen Moment, wir melden dich an.",
+      failed: "Anmeldung fehlgeschlagen", retryText: "Bitte versuch es noch einmal.",
+      btn: "Jetzt anmelden",
+      errExpired: "Dieser Link ist ungültig, abgelaufen oder wurde schon verwendet.",
+      errGeneric: "Hat nicht geklappt – bitte versuch es erneut.",
+      newLink: "Neuen Link anfordern",
+    },
+    en: {
+      title: "Login",
+      working: "Logging you in …", workingText: "One moment, we're signing you in.",
+      failed: "Login failed", retryText: "Please try again.",
+      btn: "Log me in",
+      errExpired: "This link is invalid, expired, or was already used.",
+      errGeneric: "That didn't work – please try again.",
+      newLink: "Request a new link",
+    },
+  };
+  var lang = "de";
+  try { if (localStorage.getItem("lang") === "en") lang = "en"; } catch (e) {}
+  var t = I18N[lang];
+
+  var heading = document.getElementById("v-heading");
+  var text = document.getElementById("v-text");
+  var form = document.getElementById("v-form");
+  var btn = document.getElementById("v-btn");
+  var status = document.getElementById("v-status");
+
+  document.documentElement.lang = lang;
+  document.title = t.title + " – DelayBahn";
+  document.getElementById("v-title").textContent = t.title;
+  heading.textContent = t.working;
+  text.textContent = t.workingText;
+  btn.textContent = t.btn;
+
+  var token = new URLSearchParams(location.search).get("token") || "";
+
+  // a dead link is terminal: offer a new one instead of a retry button
+  function dead(message) {
+    heading.textContent = t.failed;
+    text.textContent = "";
+    form.classList.add("hidden");
+    status.textContent = message + " ";
+    var a = document.createElement("a");
+    a.href = "/login";
+    a.textContent = t.newLink;
+    status.append(a);
+  }
+
+  // a transient failure is worth retrying by hand
+  function retryable(message) {
+    heading.textContent = t.failed;
+    text.textContent = t.retryText;
+    form.classList.remove("hidden");
+    btn.disabled = false;
+    status.textContent = message;
+  }
+
+  async function consume() {
+    btn.disabled = true;
+    status.textContent = "";
+    try {
+      var resp = await fetch("/api/auth/consume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token }),
+      });
+      if (resp.ok) { location.assign("/stories"); return; }
+      if (resp.status === 401) { dead(t.errExpired); return; }
+      retryable(t.errGeneric);
+    } catch (e) {
+      retryable(t.errGeneric);
+    }
+  }
+
+  form.addEventListener("submit", function (ev) { ev.preventDefault(); consume(); });
+
+  if (token) { consume(); } else { dead(t.errExpired); }
+})();
+</script>
+</body>
+</html>
