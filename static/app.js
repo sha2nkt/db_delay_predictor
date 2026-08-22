@@ -223,6 +223,8 @@ const I18N = {
     installBtn: "Installieren",
     iosSheetTitle: "Zum Home-Bildschirm hinzufügen",
     iosSheetLead: "In Safari, in 3 Schritten:",
+    iosSheetLeadChrome: "In Chrome, in 3 Schritten:",
+    iosSheetLeadOther: "Über das Teilen-Menü deines Browsers, in 3 Schritten:",
     iosStep1: "Auf „Teilen“ tippen",
     iosStep2: "„Zum Home-Bildschirm“ wählen",
     iosStep3: "„Hinzufügen“ tippen",
@@ -401,6 +403,8 @@ const I18N = {
     installBtn: "Install",
     iosSheetTitle: "Add to your home screen",
     iosSheetLead: "In Safari, in 3 steps:",
+    iosSheetLeadChrome: "In Chrome, in 3 steps:",
+    iosSheetLeadOther: "From your browser’s share menu, in 3 steps:",
     iosStep1: "Tap “Share”",
     iosStep2: "Choose “Add to Home Screen”",
     iosStep3: "Tap “Add”",
@@ -2724,11 +2728,11 @@ function renderSummary() {
 
 // --- install prompt (PWA awareness) ---
 // The manifest + service worker make the site installable, but browsers surface
-// that only faintly (Android: a buried menu entry) or not at all (iOS Safari).
+// that only faintly (Android: a buried menu entry) or not at all (iOS).
 // A single dismissable banner with an Install button: on Chromium (Android and
-// desktop) it triggers the native install; on iOS Safari — which has no install
-// API — the button opens a bottom sheet with the manual Share -> Add to Home
-// Screen steps.
+// desktop) it triggers the native install; on iOS — where no browser has an
+// install API — the button opens a bottom sheet with the manual Share -> Add to
+// Home Screen steps.
 
 (function initInstallPrompt() {
   const promptEl = document.getElementById("install-prompt");
@@ -2767,19 +2771,32 @@ function renderSummary() {
   const ua = navigator.userAgent || "";
   const isIOS = /iphone|ipad|ipod/i.test(ua)
     || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const isIOSSafari = isIOS && /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+  // Chrome/Firefox/Edge on iOS are WebKit skins: no install API, but since
+  // iOS 16.4 their share menu can add a real standalone web app too, so they get
+  // the same sheet with the wording pointed at the right browser.
+  const iosBrowser = !isIOS ? null
+    : /crios/i.test(ua) ? "chrome"
+    : /fxios/i.test(ua) ? "firefox"
+    : /edgios/i.test(ua) ? "edge"
+    : "safari";
 
-  // iOS Safari: same banner + Install button, but there is no install API, so the
+  // iOS: same banner + Install button, but there is no install API, so the
   // button opens a bottom sheet with the manual Share -> Add to Home Screen steps.
   // Stop here: iOS never fires beforeinstallprompt, so the Android handler below
   // must not run and rebind the button to a prompt that will never arrive.
-  if (isIOSSafari) {
+  if (isIOS) {
     acceptBtn.classList.remove("hidden");
     show();
-    track("install", { step: "shown", platform: "ios" });
+    track("install", { step: "shown", platform: "ios", browser: iosBrowser });
     if (iosSheet) {
+      if (iosBrowser !== "safari") {
+        const sheetLead = iosSheet.querySelector(".ios-sheet-lead");
+        const leadKey = iosBrowser === "chrome" ? "iosSheetLeadChrome" : "iosSheetLeadOther";
+        sheetLead.dataset.i18n = leadKey; // keeps it in sync on lang switch
+        sheetLead.textContent = t(leadKey);
+      }
       acceptBtn.addEventListener("click", () => {
-        track("install", { step: "ios-sheet" });
+        track("install", { step: "ios-sheet", browser: iosBrowser });
         iosSheet.showModal();
       });
       const closeSheet = () => iosSheet.close();
