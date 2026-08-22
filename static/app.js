@@ -224,6 +224,8 @@ const I18N = {
     iosSheetTitle: "Zum Home-Bildschirm hinzufügen",
     iosSheetLead: "In Safari, in 3 Schritten:",
     iosSheetLeadChrome: "In Chrome, in 3 Schritten:",
+    iosStep1Chrome: "Auf das Teilen-Symbol neben dem Website-Namen in der Adressleiste tippen",
+    iosStep2Chrome: "Nach unten scrollen zu „Zum Home-Bildschirm“",
     iosSheetLeadOther: "Über das Teilen-Menü deines Browsers, in 3 Schritten:",
     iosStep1: "Auf „Teilen“ tippen",
     iosStep2: "„Zum Home-Bildschirm“ wählen",
@@ -404,6 +406,8 @@ const I18N = {
     iosSheetTitle: "Add to your home screen",
     iosSheetLead: "In Safari, in 3 steps:",
     iosSheetLeadChrome: "In Chrome, in 3 steps:",
+    iosStep1Chrome: "Tap the share icon next to the website name in the address bar",
+    iosStep2Chrome: "Scroll down to “Add to Home Screen”",
     iosSheetLeadOther: "From your browser’s share menu, in 3 steps:",
     iosStep1: "Tap “Share”",
     iosStep2: "Choose “Add to Home Screen”",
@@ -2794,6 +2798,17 @@ function renderSummary() {
         const leadKey = iosBrowser === "chrome" ? "iosSheetLeadChrome" : "iosSheetLeadOther";
         sheetLead.dataset.i18n = leadKey; // keeps it in sync on lang switch
         sheetLead.textContent = t(leadKey);
+      }
+      if (iosBrowser === "chrome") {
+        // Chrome's own ⋯ menu offers "Share Chrome", which shares the app rather
+        // than the page; the share icon in the address bar is the one that opens
+        // the iOS sheet, and Add to Home Screen sits below its fold.
+        const stepEls = iosSheet.querySelectorAll(".ios-step-text > span[data-i18n]");
+        ["iosStep1Chrome", "iosStep2Chrome"].forEach((key, i) => {
+          if (!stepEls[i]) return;
+          stepEls[i].dataset.i18n = key;
+          stepEls[i].textContent = t(key);
+        });
       }
       acceptBtn.addEventListener("click", () => {
         track("install", { step: "ios-sheet", browser: iosBrowser });
