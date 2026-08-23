@@ -17,6 +17,7 @@ const state = {
   sort: "departure",
   windowUsed: 7,  // stats window that produced the current results
   dticketUsed: "off",  // D-Ticket mode of the current results: "off" | "all" | "only"
+  ageUsed: "adult",  // age bracket the current results' prices were fetched for
   departure: null,  // departure ISO of the current search (reused for paging)
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
@@ -135,6 +136,8 @@ const I18N = {
     train: "Zug",
     priceFrom: (price) => `ab ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Preis auf bahn.de",
+    priceFree: "kostenfrei",
+    priceFreeTooltip: "Kinder von 0-5 Jahren reisen kostenfrei und ohne eigene Fahrkarte",
     dticket: "Nur D-Ticket",
     dticketTooltip: "Nur Verbindungen anzeigen, die mit dem Deutschland-Ticket nutzbar sind",
     dticketAll: "D-Ticket + alle Züge",
@@ -142,6 +145,13 @@ const I18N = {
     dticketIncluded: "D-Ticket",
     dticketIncludedTooltip: "Mit dem Deutschland-Ticket nutzbar – kein Ticketkauf nötig",
     dticketPartialTooltip: "Preis nur für die Züge, die das Deutschland-Ticket nicht abdeckt",
+    advancedOptions: "Erweiterte Optionen",
+    age: "Alter",
+    ageAdult: "Person (27-64 Jahre)",
+    ageSenior: "Person (ab 65 Jahre)",
+    ageYoung: "Person (15-26 Jahre)",
+    ageChild: "Kind (6-14 Jahre)",
+    ageToddler: "Kind (0-5 Jahre)",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
     tightTitle: "Knapper Umstieg:",
@@ -318,6 +328,8 @@ const I18N = {
     train: "Train",
     priceFrom: (price) => `from ${price.toFixed(2).replace(".", ",")} €`,
     priceNa: "Price on bahn.de",
+    priceFree: "free",
+    priceFreeTooltip: "Children aged 0-5 travel free of charge, no ticket needed",
     dticket: "D-Ticket only",
     dticketTooltip: "Only show connections valid with the Deutschland-Ticket",
     dticketAll: "D-Ticket + all trains",
@@ -325,6 +337,13 @@ const I18N = {
     dticketIncluded: "D-Ticket",
     dticketIncludedTooltip: "Valid with the Deutschland-Ticket – no extra ticket needed",
     dticketPartialTooltip: "Price covers only the trains the Deutschland-Ticket does not include",
+    advancedOptions: "Advanced options",
+    age: "Age",
+    ageAdult: "Person (aged 27-64)",
+    ageSenior: "Person (aged 65 or over)",
+    ageYoung: "Person (aged 15-26)",
+    ageChild: "Child (aged 6-14)",
+    ageToddler: "Child (aged 0-5)",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
     tightTitle: "Tight transfer:",
@@ -843,6 +862,30 @@ for (const [id, other] of [["dticket", "dticket-all"], ["dticket-all", "dticket"
   });
 }
 
+// D-Ticket modes and the age bracket are occasional settings: they fold away
+// behind the "advanced options" toggle. Collapsing only hides them — whatever
+// is set keeps applying to searches.
+const advancedToggle = document.getElementById("advanced-toggle");
+const advancedPanel = document.getElementById("advanced-panel");
+function setAdvancedOpen(open) {
+  advancedPanel.classList.toggle("hidden", !open);
+  advancedToggle.setAttribute("aria-expanded", String(open));
+}
+advancedToggle.addEventListener("click", () => {
+  setAdvancedOpen(advancedPanel.classList.contains("hidden"));
+});
+
+// the age bracket bahn.de prices the single traveler as, mirroring the
+// bahn.de search mask's own dropdown. Hidden in past mode, where no prices
+// are shown and a leftover selection must not fragment the lookup.
+function ageMode() {
+  if (state.mode === "past") return "adult";
+  return document.getElementById("age").value;
+}
+
+// pricing is server-side: refetch, but only if results are showing
+document.getElementById("age").addEventListener("change", refetchCurrentLeg);
+
 // --- return journey ---
 
 const dateEl = document.getElementById("date");
@@ -1216,12 +1259,14 @@ async function fetchJourneys(pagingRef, opts = {}) {
   const retryAgainStatusKey = opts.retryAgainStatusKey ?? "overloadRetryAgainIn";
   const win = document.getElementById("window").value;
   const dticket = dticketMode();
+  const age = ageMode();
   const leg = opts.leg ?? searchLeg();
   const params = new URLSearchParams({
     from: leg.from.id, to: leg.to.id, departure: leg.departure, window: win,
   });
   if (state.mode === "past") params.set("mode", "past");
   if (dticket !== "off") params.set("dticket", dticket);
+  if (age !== "adult") params.set("age", age);
   if (pagingRef) params.set("pagingRef", pagingRef);
 
   const gen = searchGen;
@@ -1232,6 +1277,7 @@ async function fetchJourneys(pagingRef, opts = {}) {
     if (resp.ok) {
       state.windowUsed = Number(win);
       state.dticketUsed = dticket;
+      state.ageUsed = age;
       return resp.json();
     }
     // wait out the server's own cooldown, as often as its budget allows; the
@@ -1316,6 +1362,7 @@ function syncUrl() {
     window: document.getElementById("window").value,
   });
   if (dticketMode() !== "off") params.set("dticket", dticketMode());
+  if (ageMode() !== "adult") params.set("age", ageMode());
   if (state.returnTrip && returnDateEl.value) {
     params.set("rdate", returnDateEl.value);
     params.set("rtime", returnTimeEl.value);
@@ -1386,6 +1433,7 @@ async function search() {
     window: Number(document.getElementById("window").value),
     mode: state.mode,
     dticket: dticketMode(),
+    age: ageMode(),
     returnTrip: state.returnTrip,
   });
   await runSearch();
@@ -2197,12 +2245,17 @@ function bahnDeUrl(journey, outbound) {
   // Verbindungen" / "Deutschland-Ticket vorhanden") so the filter carries over
   const dt = state.dticketUsed === "only" ? "&dlt=true&dltv=true"
     : state.dticketUsed === "all" ? "&dltv=true" : "";
+  // r pins who the mask prices for — <type>:<discount>:<class>:<count>, ids from
+  // bahn.de's angebote/stammdaten (16 = no discount). bahn.de already defaults
+  // to one adult, so r only has to be sent for the other brackets.
+  const ageCode = { senior: 12, young: 9, child: 11, toddler: 8 }[state.ageUsed];
+  const r = ageCode ? `&r=${ageCode}:16:KLASSENLOS:1` : "";
   // rd switches the mask to "Hin- und Rückfahrt"; hza/rza pin both dates to a
   // departure time rather than an arrival time
   const returnDep = outbound ? ((journey.legs || [])[0]?.plannedDeparture || "").slice(0, 19) : "";
   const rt = returnDep ? `&hza=D&rd=${returnDep}&rza=D` : "";
   return `https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=${encodeURIComponent(fromName)}` +
-    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}${rt}&kl=2${dt}`;
+    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}${rt}&kl=2${dt}${r}`;
 }
 
 // --- claim modal: walks through the steps on bahn.de instead of a bare redirect ---
@@ -2324,6 +2377,11 @@ function priceNode(value, journey) {
     price.classList.add("price-dticket");
     price.textContent = t("dticketIncluded");
     price.title = t("dticketIncludedTooltip");
+  } else if (state.ageUsed === "toddler") {
+    // a lone 0-5-year-old never needs a ticket, so no offer price comes back
+    price.classList.add("price-dticket");
+    price.textContent = t("priceFree");
+    price.title = t("priceFreeTooltip");
   } else {
     price.classList.add("price-na");
     price.textContent = t("priceNa");
@@ -2877,6 +2935,10 @@ const qp = new URLSearchParams(location.search);
     // "1" is the legacy value from before the "all trains" mode existed
     document.getElementById("dticket").checked = ["1", "only"].includes(qp.get("dticket"));
     document.getElementById("dticket-all").checked = qp.get("dticket") === "all";
+    if (["senior", "young", "child", "toddler"].includes(qp.get("age"))) {
+      document.getElementById("age").value = qp.get("age");
+    }
+    if (dticketMode() !== "off" || ageMode() !== "adult") setAdvancedOpen(true);
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1

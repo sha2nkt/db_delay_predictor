@@ -638,8 +638,21 @@ def _departure_skew(a: str, b: str) -> float:
         return float("inf")
 
 
+# Age brackets of the bahn.de search mask, as the vendo API spells them: the
+# mask files 6-14-year-olds under FAMILIENKIND (not KIND) and 0-5 under
+# KLEINKIND — ids 11 and 8 in /angebote/stammdaten, which is also where the
+# other three come from.
+TRAVELLER_TYPES = {
+    "adult": "ERWACHSENER",       # 27-64
+    "senior": "SENIOR",           # 65+
+    "young": "JUGENDLICHER",      # 15-26
+    "child": "FAMILIENKIND",      # 6-14
+    "toddler": "KLEINKIND",       # 0-5
+}
+
+
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
-                   dticket: str = "off", source: str = "search") -> tuple[dict, int]:
+                   dticket: str = "off", age: str = "adult", source: str = "search") -> tuple[dict, int]:
     """Returns (data, stale_age_seconds); age is 0 for a fresh answer, else how
     old the served fallback is. from_id/to_id are full HAFAS location ids
     (A=1@O=...@L=...@) from locations().
@@ -652,6 +665,9 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     bahn.de the passenger holds the ticket — covered connections then come back with
     an MDA-NUR-DT meldung instead of a price, and mixed ones repriced for the paid
     legs only. "off" is a search without the ticket.
+
+    age is the traveler's bracket (a TRAVELLER_TYPES key); bahn.de prices every
+    connection for that one traveler, the way its own search mask does.
     """
     # Searches default to "now", so the departure minute fragments the cache: the
     # same route searched a minute apart misses every time. Floor to 5-minute
@@ -667,7 +683,7 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
         "klasse": "KLASSE_2",
         "produktgattungen": ALL_PRODUCTS,
         "reisende": [{
-            "typ": "ERWACHSENER",
+            "typ": TRAVELLER_TYPES[age],
             "ermaessigungen": [{"art": "KEINE_ERMAESSIGUNG", "klasse": "KLASSENLOS"}],
             "alter": [],
             "anzahl": 1,
@@ -686,10 +702,10 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     }
     if paging_ref:
         body["pagingReference"] = paging_ref
-    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket)
+    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket, age)
     # paged responses are offsets into a result list, so they only ever stand in
     # for the same page (exact key), never for the route's primary answer
-    route = (from_id, to_id, dticket) if paging_ref is None else None
+    route = (from_id, to_id, dticket, age) if paging_ref is None else None
 
     def keep(data: dict) -> None:
         now = time.monotonic()

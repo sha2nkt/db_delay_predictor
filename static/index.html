@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=73">
+<link rel="stylesheet" href="/style.css?v=74">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -140,6 +140,22 @@ try {
       </select>
     </div>
     <div class="search-actions">
+      <button id="advanced-toggle" class="advanced-toggle" type="button" aria-expanded="false" aria-controls="advanced-panel">
+        <span class="advanced-chevron" aria-hidden="true">&#9656;</span>
+        <span data-i18n="advancedOptions">Erweiterte Optionen</span>
+      </button>
+      <button id="search" class="search-btn" type="button" data-i18n="search">Suchen</button>
+    </div>
+    <div id="advanced-panel" class="advanced-panel hidden">
+    <div class="field field-age">
+      <select id="age" aria-label="Alter" data-i18n-aria="age">
+        <option value="adult" selected data-i18n="ageAdult">Person (27-64 Jahre)</option>
+        <option value="senior" data-i18n="ageSenior">Person (ab 65 Jahre)</option>
+        <option value="young" data-i18n="ageYoung">Person (15-26 Jahre)</option>
+        <option value="child" data-i18n="ageChild">Kind (6-14 Jahre)</option>
+        <option value="toddler" data-i18n="ageToddler">Kind (0-5 Jahre)</option>
+      </select>
+    </div>
       <div class="dticket-toggles">
         <label class="dticket-toggle" data-i18n-title="dticketTooltip">
           <input id="dticket" type="checkbox">
@@ -152,7 +168,6 @@ try {
           <span data-i18n="dticketAll">D-Ticket + alle Züge</span>
         </label>
       </div>
-      <button id="search" class="search-btn" type="button" data-i18n="search">Suchen</button>
     </div>
   </section>
 
@@ -383,7 +398,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=100"></script>
+<script src="/app.js?v=101"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

@@ -606,11 +606,14 @@ async def journeys(
     paging_ref: str | None = Query(None, alias="pagingRef"),
     mode: str = Query("future"),
     dticket: str = Query("0"),
+    age: str = Query("adult"),
 ):
     if window not in (7, 15, 30):
         raise HTTPException(422, "window must be 7, 15 or 30")
     if mode not in ("future", "past"):
         raise HTTPException(422, "mode must be future or past")
+    if age not in bahn_api.TRAVELLER_TYPES:
+        raise HTTPException(422, "age must be adult, senior, young, child or toddler")
     # "1" is the legacy value from before the "all trains" mode existed; links
     # and cached frontends still send it
     dticket = {"1": "only", "only": "only", "all": "all"}.get(dticket, "off")
@@ -628,8 +631,11 @@ async def journeys(
     # has no place in the past-journey compensation check
     if past:
         dticket = "off"
+        # prices play no part in the compensation check, so the traveler's age
+        # bracket doesn't either; pinning it keeps past searches on one cache entry
+        age = "adult"
     try:
-        data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket)
+        data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket, age)
     except bahn_api.UpstreamError as e:
         raise _upstream_http_error(e)
     if stale_age:
