@@ -10,13 +10,24 @@ code for clients that refuse HTML. Both are rendered from one set of strings
 below, so the two halves cannot drift apart.
 
 Blocking (smtplib) - run it off the event loop.
+
+Two alarms live here as well, because a silent mail outage is the one failure
+nobody notices - the site stays up, users just never get their link. A send
+failure pages ntfy (once per MAIL_ALERT_COOLDOWN, with the relay's reply), and
+with BREVO_API_KEY set a background poll watches the account's remaining daily
+credits and pages before the free plan's cap is hit.
 """
 
+import asyncio
 import logging
 import os
 import smtplib
+import time
+from datetime import datetime, timezone
 from email.message import EmailMessage
 from html import escape
+
+import httpx
 
 from app.auth import MAGIC_LINK_HOURS, UNVERIFIED_DAYS
 from app.config import env_int
@@ -168,12 +179,58 @@ def _html_body(p: dict, lang: str) -> str:
 
 _warned_unconfigured = False
 
+# Send failures: counted for /health, paged at most once per cooldown so a
+# quota-out day is one push, not one per visitor.
+MAIL_ALERT_COOLDOWN = env_int("MAIL_ALERT_COOLDOWN", 3600)
+_failures = 0
+_failures_at_alert = 0
+_last_fail_alert: float | None = None
+
+
+def _alert(text: str, priority: str = "default") -> None:
+    """Blocking ntfy push; never raises. NTFY_TOPIC unset = no-op, same as the
+    other notifiers."""
+    topic = os.environ.get("NTFY_TOPIC")
+    if not topic:
+        return
+    base = os.environ.get("NTFY_URL", "https://ntfy.sh").rstrip("/")
+    try:
+        httpx.post(
+            f"{base}/{topic}",
+            content=text.encode("utf-8"),
+            headers={"Title": "DelayBahn mail alert", "Tags": "email,warning",
+                     "Priority": priority},
+            timeout=5,
+        ).raise_for_status()
+    except httpx.HTTPError as exc:
+        log.warning("ntfy alert failed: %s", exc)
+
+
+def _note_failure(email: str, exc: Exception) -> None:
+    global _failures, _failures_at_alert, _last_fail_alert
+    _failures += 1
+    log.warning("magic-link email to %s failed: %s", email, exc)
+    now = time.monotonic()
+    if _last_fail_alert is not None and now - _last_fail_alert < MAIL_ALERT_COOLDOWN:
+        return
+    since = _failures - _failures_at_alert
+    _last_fail_alert, _failures_at_alert = now, _failures
+    # the relay's reply names the cause (out of credits, bad login, ...);
+    # the recipient is personal data and stays out of the push
+    _alert(
+        f"Magic-link email failed ({since} failure(s) since the last alert). "
+        f"Users see 'try again later' until this clears. Relay said: {exc}",
+        priority="high",
+    )
+
 
 def send_magic_link(
     email: str, name: str, token: str, code: str, lang: str, kind: str
-) -> None:
-    """kind is "welcome" or "login". Never raises: a lost email must not take
-    the request down with it, and asking for a new link covers the gap."""
+) -> bool:
+    """kind is "welcome" or "login". Never raises; False when the relay
+    refused or was unreachable, so the caller can tell the user instead of
+    letting them wait for a mail that will not come. An unconfigured dev setup
+    counts as sent - there is nothing to retry."""
     global _warned_unconfigured
     user = os.environ.get("SMTP_USER")
     password = os.environ.get("SMTP_PASS")
@@ -181,7 +238,7 @@ def send_magic_link(
         if not _warned_unconfigured:
             _warned_unconfigured = True
             log.warning("SMTP_USER/SMTP_PASS unset: magic-link emails are not sent")
-        return
+        return True
 
     base = os.environ.get("PUBLIC_BASE_URL", "https://delaybahn.com").rstrip("/")
     if lang not in ("de", "en"):
@@ -201,4 +258,78 @@ def send_magic_link(
             smtp.login(user, password)
             smtp.send_message(msg)
     except (OSError, smtplib.SMTPException) as exc:
-        log.warning("magic-link email to %s failed: %s", email, exc)
+        _note_failure(email, exc)
+        return False
+    return True
+
+
+# --- Brevo credit watch -------------------------------------------------------
+# The free plan allows 300 mails a day and the relay simply refuses the 301st.
+# GET /v3/account reports the credits left, so the app can page while there is
+# still time to act. Two levels, each paged once per crossing and re-armed when
+# the daily reset lifts the count back above the line.
+BREVO_WARN_CREDITS = env_int("BREVO_WARN_CREDITS", 50)
+BREVO_POLL_SECONDS = env_int("BREVO_POLL_SECONDS", 3600)
+_credits: int | None = None
+_credits_at: str | None = None
+_credits_level = 0
+
+
+def status() -> dict:
+    """In-memory only - /health calls this."""
+    return {"credits": _credits, "creditsAt": _credits_at, "sendFailures": _failures}
+
+
+async def _fetch_credits(client: httpx.AsyncClient, key: str) -> int | None:
+    base = os.environ.get("BREVO_API_URL", "https://api.brevo.com").rstrip("/")
+    resp = await client.get(
+        f"{base}/v3/account", headers={"api-key": key, "accept": "application/json"}
+    )
+    resp.raise_for_status()
+    for plan in resp.json().get("plan") or []:
+        if plan.get("creditsType") == "sendLimit":
+            return int(plan["credits"])
+    return None
+
+
+def _note_credits(credits: int | None) -> str | None:
+    """Record the reading; return the alert text to send, if any."""
+    global _credits, _credits_at, _credits_level
+    _credits = credits
+    _credits_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    if credits is None:
+        return None
+    level = 2 if credits <= 0 else 1 if credits <= BREVO_WARN_CREDITS else 0
+    crossed = level > _credits_level
+    _credits_level = level
+    if not crossed:
+        return None
+    if level == 2:
+        return ("Brevo email credits EXHAUSTED: 0 left today. Magic-link mails "
+                "are failing until the daily reset (or an upgrade).")
+    return (f"Brevo email credits low: {credits} left today "
+            f"(warning below {BREVO_WARN_CREDITS}).")
+
+
+async def watch_credits() -> None:
+    """Background task for the app's lifespan; returns at once without
+    BREVO_API_KEY. Cancelled on shutdown."""
+    key = os.environ.get("BREVO_API_KEY")
+    if not key:
+        log.info("BREVO_API_KEY unset: email credits are not watched")
+        return
+    async with httpx.AsyncClient(timeout=15) as client:
+        while True:
+            try:
+                credits = await _fetch_credits(client, key)
+            except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+                log.warning("Brevo account poll failed: %s", exc)
+            else:
+                if credits is None:
+                    log.warning("Brevo account has no sendLimit plan; nothing to watch")
+                text = _note_credits(credits)
+                if text:
+                    await asyncio.to_thread(
+                        _alert, text, "urgent" if _credits_level == 2 else "high"
+                    )
+            await asyncio.sleep(BREVO_POLL_SECONDS)

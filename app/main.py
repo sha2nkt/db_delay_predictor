@@ -88,7 +88,9 @@ async def lifespan(app: FastAPI):
     delays.init()
     # counted once here: COUNT(*) over 19.7M rows must not run per /health call
     _rows = delays.row_count()
+    credits_watch = asyncio.create_task(mailer.watch_credits())
     yield
+    credits_watch.cancel()
     await bahn_api.close()
     await live_delays.close()
     await feedback.close()
@@ -648,6 +650,7 @@ async def health():
             "departureOnDate": len(delays._dep_date_cache),
         },
         "upstream": bahn_api.status(),
+        "mail": mailer.status(),
     }
 
 
@@ -1148,6 +1151,22 @@ def _stories_throttle(limiter: ratelimit.SlidingWindowLimiter, request: Request)
         )
 
 
+async def _send_link(
+    email: str, name: str, token: str, code: str, lang: str, kind: str
+) -> None:
+    """Send the magic link on the request's clock - a second or so of SMTP -
+    so a relay refusal (out of Brevo credits, most likely) reaches the user as
+    a 503 instead of a "check your inbox" for a mail that will not come. The
+    budget the failed send spent is handed back, so the retry we just asked
+    for is not swallowed by the cooldown."""
+    sent = await anyio.to_thread.run_sync(
+        mailer.send_magic_link, email, name, token, code, lang, kind
+    )
+    if not sent:
+        await anyio.to_thread.run_sync(auth.refund_link, email)
+        raise HTTPException(503, "email could not be sent; please try again later")
+
+
 def _resend_hint() -> dict:
     """How long the login page must wait before offering "resend" again. The
     same constant for every caller - an account's real remaining cooldown
@@ -1170,11 +1189,10 @@ async def auth_register(reg: RegisterIn, request: Request) -> dict:
     # a spent per-account budget yields no token: the account is fine, there is
     # simply no new mail, and the answer stays the same 202 either way
     if magic_token is not None:
-        # off the request's clock; asking for a new link covers a lost email
-        _spawn(anyio.to_thread.run_sync(
-            mailer.send_magic_link, auth.normalize_email(reg.email), stored_name,
-            magic_token, code, reg.lang, "welcome" if kind == "new" else "login",
-        ))
+        await _send_link(
+            auth.normalize_email(reg.email), stored_name, magic_token, code,
+            reg.lang, "welcome" if kind == "new" else "login",
+        )
     return _resend_hint()
 
 
@@ -1210,10 +1228,10 @@ async def auth_request_link(req: RequestLinkIn, request: Request) -> dict:
         raise HTTPException(404, "no account for this address")
     stored_name, magic_token, code = result
     if magic_token is not None:
-        _spawn(anyio.to_thread.run_sync(
-            mailer.send_magic_link, auth.normalize_email(req.email), stored_name,
-            magic_token, code, req.lang, "login",
-        ))
+        await _send_link(
+            auth.normalize_email(req.email), stored_name, magic_token, code,
+            req.lang, "login",
+        )
     return _resend_hint()
 
 

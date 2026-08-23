@@ -153,6 +153,22 @@ def _clear_magic(conn: sqlite3.Connection, user_id: int) -> None:
     )
 
 
+def refund_link(email: str) -> None:
+    """Undo _issue_magic() for a link that never left the server. The mail
+    failed to send, so the pending login is voided and the cooldown and daily
+    allowance it spent are handed back - otherwise the retry the caller just
+    asked for would answer 202 and send nothing. The cooldown guarantees the
+    voided login is the one this caller minted and not a newer one."""
+    with closing(connect()) as conn, conn:
+        conn.execute(
+            "UPDATE users SET magic_hash = NULL, magic_code = NULL,"
+            " magic_expires = NULL, magic_tries = 0,"
+            " links_sent = MAX(links_sent - 1, 0), link_last_sent = NULL"
+            " WHERE email = ?",
+            (normalize_email(email),),
+        )
+
+
 def _purge_unverified(conn: sqlite3.Connection) -> None:
     cutoff = (_now() - timedelta(days=UNVERIFIED_DAYS)).isoformat(timespec="seconds")
     conn.execute("DELETE FROM users WHERE verified_ts IS NULL AND ts < ?", (cutoff,))

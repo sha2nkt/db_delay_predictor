@@ -2,7 +2,7 @@
 
 test_auth.py covers the auth module directly; this drives the real endpoints,
 so it also pins the validation rules, status codes and cookie handling the
-frontend depends on. No mail is sent: _spawn is replaced, and the token/code
+frontend depends on. No mail is sent: the mailer is replaced, and the token/code
 are read from the issuing function instead of from an inbox.
 """
 
@@ -13,7 +13,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from app import auth, main, stories
+from app import auth, mailer, main, stories
 
 LIMITERS = (
     auth.register_limiter, auth.login_limiter, auth.code_limiter,
@@ -40,11 +40,15 @@ def wiring(monkeypatch, tmp_path):
         issued.append({"user_id": user_id, "token": token, "code": code})
         return token, code
 
+    def fake_send(email, name, token, code, lang, kind):
+        mails.append({"email": email, "name": name, "kind": kind, "lang": lang})
+        return True
+
     def fake_spawn(coro):
-        mails.append(coro)
         coro.close()  # nothing awaits background tasks under TestClient
 
     monkeypatch.setattr(auth, "_issue_magic", spy_issue)
+    monkeypatch.setattr(mailer, "send_magic_link", fake_send)
     monkeypatch.setattr(main, "_spawn", fake_spawn)
     # off by default so ordinary tests can ask for two links in a row; the
     # tests that are about the cooldown set it back explicitly
@@ -179,6 +183,25 @@ def test_cooldown_suppresses_the_mail_but_still_answers_202(client, wiring, monk
     # crucially, the first link still works - throttling must not lock anyone out
     assert client.post("/api/auth/consume",
                        json={"token": first["token"]}).status_code == 200
+
+
+def test_a_refused_send_is_a_503_and_refunds_the_budget(client, wiring, monkeypatch):
+    """The relay refusing (out of credits) must not turn into "check your
+    inbox" - and the retry the user is told to make must actually mint a new
+    link, not run into the cooldown the failed send started."""
+    monkeypatch.setattr(auth, "RESEND_COOLDOWN_SECONDS", 60)
+    monkeypatch.setattr(mailer, "send_magic_link", lambda *a: False)
+    assert register(client, email="jonas@example.org").status_code == 503
+    assert len(wiring.issued) == 1
+
+    monkeypatch.setattr(mailer, "send_magic_link", lambda *a: True)
+    assert request_link(client, "jonas@example.org").status_code == 202
+    assert len(wiring.issued) == 2          # the refund made room for this one
+    # the voided first token is dead; the second one logs in
+    assert client.post("/api/auth/consume",
+                       json={"token": wiring.issued[0]["token"]}).status_code == 401
+    assert client.post("/api/auth/consume",
+                       json={"token": wiring.issued[1]["token"]}).status_code == 200
 
 
 def test_both_send_endpoints_report_the_resend_cooldown(client, monkeypatch):
