@@ -55,7 +55,10 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .field-date input::-webkit-date-and-time-value,
 .field-time input::-webkit-date-and-time-value { text-align: left; }
-.field-window select { min-width: 110px; }
+.field-window select, .field-transfer select { min-width: 110px; }
+/* own line under the age select and D-Ticket switches; flex-start keeps the
+   select at its natural width instead of stretching across the row */
+.field-transfer { flex-basis: 100%; align-items: flex-start; }
 /* sized by its longest option label, not the 200px input default */
 .field-age select { min-width: 150px; }
 .field input:focus, .field select:focus { outline: 2px solid var(--brand-red); outline-offset: -1px; }
@@ -529,8 +532,8 @@ body.past-mode .past-banner { display: flex; }
 }
 .past-exit:hover { text-decoration: underline; }
 body.past-mode .field-window { display: none; }
-/* neither prices nor the D-Ticket filter figure in the compensation check,
-   so the whole advanced panel goes */
+/* neither prices, the D-Ticket filter nor a minimum transfer time figure in
+   the compensation check, so the whole advanced panel goes */
 body.past-mode .advanced-toggle,
 body.past-mode .advanced-panel { display: none; }
 /* the compensation check looks back at one journey that already happened */

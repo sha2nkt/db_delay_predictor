@@ -607,9 +607,12 @@ async def journeys(
     mode: str = Query("future"),
     dticket: str = Query("0"),
     age: str = Query("adult"),
+    transfer: int = Query(0),
 ):
     if window not in (7, 15, 30):
         raise HTTPException(422, "window must be 7, 15 or 30")
+    if transfer not in (0, 10, 15, 20, 25, 30, 35, 40, 45):
+        raise HTTPException(422, "transfer must be 0 or 10-45 in steps of 5")
     if mode not in ("future", "past"):
         raise HTTPException(422, "mode must be future or past")
     if age not in bahn_api.TRAVELLER_TYPES:
@@ -628,14 +631,16 @@ async def journeys(
     response.headers["Cache-Control"] = "public, max-age=120"
     past = mode == "past"
     # the D-Ticket is excluded from Fahrgastrechte compensation, so the filter
-    # has no place in the past-journey compensation check
+    # has no place in the past-journey compensation check; a minimum transfer
+    # time would hide the tight connection someone actually took
     if past:
         dticket = "off"
         # prices play no part in the compensation check, so the traveler's age
         # bracket doesn't either; pinning it keeps past searches on one cache entry
         age = "adult"
+        transfer = 0
     try:
-        data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket, age)
+        data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket, age, transfer)
     except bahn_api.UpstreamError as e:
         raise _upstream_http_error(e)
     if stale_age:

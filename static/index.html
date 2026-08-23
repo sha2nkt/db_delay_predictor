@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=74">
+<link rel="stylesheet" href="/style.css?v=76">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -168,6 +168,20 @@ try {
           <span data-i18n="dticketAll">D-Ticket + alle Züge</span>
         </label>
       </div>
+    <div class="field field-transfer">
+      <label for="transfer" data-i18n="transferTime">Umstiegszeit</label>
+      <select id="transfer">
+        <option value="0" selected data-i18n="transferNormal">Normal</option>
+        <option value="10">10 min</option>
+        <option value="15">15 min</option>
+        <option value="20">20 min</option>
+        <option value="25">25 min</option>
+        <option value="30">30 min</option>
+        <option value="35">35 min</option>
+        <option value="40">40 min</option>
+        <option value="45">45 min</option>
+      </select>
+    </div>
     </div>
   </section>
 
@@ -398,7 +412,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=101"></script>
+<script src="/app.js?v=102"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

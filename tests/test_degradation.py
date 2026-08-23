@@ -90,7 +90,8 @@ async def _journeys_with_one_tight_transfer(monkeypatch, *, healthy: bool, stale
     # called directly, so FastAPI's Query defaults are passed explicitly
     out = await main.journeys(_fake_request(), DummyResponse(),
                               "A=1@O=a@L=1@", "A=1@O=b@L=2@", "2026-08-13T10:00:00",
-                              window=7, paging_ref=None, mode="future", dticket="0", age="adult")
+                              window=7, paging_ref=None, mode="future", dticket="0",
+                              age="adult", transfer=0)
     return [tt for j in out["journeys"] for tt in j["tightTransfers"]], calls
 
 

@@ -76,6 +76,21 @@ async def test_dticket_modes_send_their_own_flags_and_never_share_a_cache_entry(
     assert flags == [(False, False, True), (True, False, False), (True, True, True)]
 
 
+async def test_transfer_time_sent_upstream_and_never_shares_a_cache_entry(bahn):
+    sess = bahn.use(FakeResponse(payload=PAYLOAD))
+    bodies = []
+    post = sess.post
+    sess.post = lambda url, **kw: (bodies.append(kw.get("json")), post(url, **kw))[1]
+
+    for transfer in (0, 30):
+        await bahn_api.journeys("A=1@O=Berlin@L=8011160@", "A=1@O=Muenchen@L=8000261@",
+                                "2026-08-13T10:00:00", transfer=transfer)
+    assert sess.calls == 2  # a 30-min search must never reuse the Normal answer
+    # "Normal" leaves the field out entirely, like the bahn.de search mask
+    assert "minUmstiegszeit" not in bodies[0]
+    assert bodies[1]["minUmstiegszeit"] == 30
+
+
 # --- stale fallback ---
 
 

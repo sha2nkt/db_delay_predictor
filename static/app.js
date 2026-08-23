@@ -87,6 +87,8 @@ const I18N = {
     days7: "7 Tage",
     days15: "15 Tage",
     days30: "30 Tage",
+    transferTime: "Umstiegszeit",
+    transferNormal: "Normal",
     search: "Suchen",
     sortLabel: "Sortieren:",
     sortDeparture: "Abfahrtszeit",
@@ -279,6 +281,8 @@ const I18N = {
     days7: "7 days",
     days15: "15 days",
     days30: "30 days",
+    transferTime: "Transfer time",
+    transferNormal: "Normal",
     search: "Search",
     sortLabel: "Sort:",
     sortDeparture: "Departure time",
@@ -844,6 +848,18 @@ document.getElementById("window").addEventListener("change", () => {
   refetchCurrentLeg();
 });
 
+// bahn.de's minimum transfer time (Umstiegszeit); "0" is the station's normal
+// interchange time. Hidden in past mode, where a leftover value must not filter.
+function transferMinutes() {
+  if (state.mode === "past") return "0";
+  return document.getElementById("transfer").value;
+}
+
+document.getElementById("transfer").addEventListener("change", () => {
+  // the filter is applied by bahn.de: refetch, but only if results are showing
+  refetchCurrentLeg();
+});
+
 // "only" filters to D-Ticket-valid connections; "all" keeps every connection but
 // prices it for a D-Ticket holder. Both toggles are hidden in past mode, where a
 // leftover checked state must not filter.
@@ -862,9 +878,9 @@ for (const [id, other] of [["dticket", "dticket-all"], ["dticket-all", "dticket"
   });
 }
 
-// D-Ticket modes and the age bracket are occasional settings: they fold away
-// behind the "advanced options" toggle. Collapsing only hides them — whatever
-// is set keeps applying to searches.
+// D-Ticket modes, the age bracket and the minimum transfer time are occasional
+// settings: they fold away behind the "advanced options" toggle. Collapsing only
+// hides them — whatever is set keeps applying to searches.
 const advancedToggle = document.getElementById("advanced-toggle");
 const advancedPanel = document.getElementById("advanced-panel");
 function setAdvancedOpen(open) {
@@ -1267,6 +1283,7 @@ async function fetchJourneys(pagingRef, opts = {}) {
   if (state.mode === "past") params.set("mode", "past");
   if (dticket !== "off") params.set("dticket", dticket);
   if (age !== "adult") params.set("age", age);
+  if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
   if (pagingRef) params.set("pagingRef", pagingRef);
 
   const gen = searchGen;
@@ -1363,6 +1380,7 @@ function syncUrl() {
   });
   if (dticketMode() !== "off") params.set("dticket", dticketMode());
   if (ageMode() !== "adult") params.set("age", ageMode());
+  if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
   if (state.returnTrip && returnDateEl.value) {
     params.set("rdate", returnDateEl.value);
     params.set("rtime", returnTimeEl.value);
@@ -1434,6 +1452,7 @@ async function search() {
     mode: state.mode,
     dticket: dticketMode(),
     age: ageMode(),
+    transfer: Number(transferMinutes()),
     returnTrip: state.returnTrip,
   });
   await runSearch();
@@ -2938,7 +2957,10 @@ const qp = new URLSearchParams(location.search);
     if (["senior", "young", "child", "toddler"].includes(qp.get("age"))) {
       document.getElementById("age").value = qp.get("age");
     }
-    if (dticketMode() !== "off" || ageMode() !== "adult") setAdvancedOpen(true);
+    if (["10", "15", "20", "25", "30", "35", "40", "45"].includes(qp.get("transfer"))) {
+      document.getElementById("transfer").value = qp.get("transfer");
+    }
+    if (dticketMode() !== "off" || ageMode() !== "adult" || transferMinutes() !== "0") setAdvancedOpen(true);
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1
