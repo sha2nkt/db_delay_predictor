@@ -76,6 +76,35 @@ def test_top_excludes_unvoted_and_orders_by_score():
     assert [s["score"] for s in top] == [2, 1]
 
 
+def test_liked_and_commented_keep_every_story_and_break_ties_newest_first():
+    quiet = make(title="quiet")
+    mid = make(title="mid")
+    hot = make(title="hot")
+    alice, bob = user("alice"), user("bob")
+    for voter in (alice, bob):
+        stories.set_vote(hot["id"], voter, True)
+    stories.set_vote(mid["id"], alice, True)
+    stories.add_comment(mid["id"], None, "Anna", "same here")
+    liked = [s["title"] for s in stories.list_stories("liked", 5, 0)]
+    assert liked == ["hot", "mid", "quiet"]
+    commented = [s["title"] for s in stories.list_stories("commented", 5, 0)]
+    assert commented == ["mid", "hot", "quiet"]
+
+
+def test_removed_story_drops_out_of_the_ranked_lists():
+    gone = make(title="gone", author="Anna")
+    kept = make(title="kept")
+    alice = user("alice")
+    stories.set_vote(gone["id"], alice, True)
+    stories.add_comment(gone["id"], None, "Bob", "reply keeps the thread")
+    assert stories.delete_story(gone["id"], "Anna")
+    for sort in ("top", "liked", "commented"):
+        assert "gone" not in [s["title"] for s in stories.list_stories(sort, 5, 0)]
+    # the tombstone still holds its place on the new list for the thread
+    listed = stories.list_stories("new", 5, 0)
+    assert [s["deleted"] for s in listed] == [False, True]
+
+
 def test_voted_flag_is_per_viewer():
     story = make()
     alice, bob = user("alice"), user("bob")

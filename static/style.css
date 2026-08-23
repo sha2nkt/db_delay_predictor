@@ -30,6 +30,13 @@ header { background: var(--brand-red); }
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .header-title { color: #fff; font-size: 18px; font-weight: 600; flex: 1; min-width: 0; }
+/* the Delay Stories wordmark is flat red on transparent: recolour it white and
+   let it sit straight on the red header instead of in the DB logo's white tile */
+.stories-header .logo {
+  background: none; padding: 0; box-shadow: none; border-radius: 0;
+  height: 48px; filter: brightness(0) invert(1);
+}
+.stories-header .header-title { font-size: 15px; }
 .header-title small { font-weight: 400; opacity: .85; }
 .tagline { display: block; font-size: 12px; font-weight: 400; font-style: italic; opacity: .8; }
 
@@ -814,6 +821,12 @@ body.nudge-on #donate-footer-item { display: none; }
 
 @media (max-width: 700px) {
   .header-inner { flex-wrap: wrap; row-gap: 8px; }
+  /* the Delay Stories wordmark is wide: logo + language on row 1, title + login on row 2 */
+  .stories-header .logo { height: 32px; }
+  .stories-header .header-title { font-size: 13px; }
+  .stories-header .header-lang { order: 1; margin-left: auto; }
+  .stories-header .header-title { order: 2; flex-basis: 60%; }
+  .stories-header .header-auth { order: 3; margin-left: auto; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
   .field input, .field select { min-width: 0; width: 100%; }
@@ -929,7 +942,7 @@ body.nudge-on #donate-footer-item { display: none; }
    not only the people already composing */
 .share-promise {
   background: #fff; border-left: 3px solid var(--brand-red); border-radius: 6px;
-  padding: 11px 14px; margin-bottom: 4px;
+  padding: 11px 14px; margin-bottom: 12px;
   box-shadow: 0 1px 4px rgba(0,0,0,.10);
   font-size: 13px; line-height: 1.45; color: var(--text);
 }
@@ -1055,10 +1068,35 @@ body.nudge-on #donate-footer-item { display: none; }
 .board-span:hover { background: var(--gray-bg); color: var(--text); }
 .board-span.active { color: var(--brand-red); }
 
+/* story list head: the heading and its sort control share one centred row,
+   so the row (not the heading) carries the gap to the first card */
+.list-head {
+  display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+  margin: 18px 2px 10px;
+}
+.stories-main > section .list-head h2 { margin: 0; }
+/* the sort control: a segmented control, the active segment raised on white */
+.list-sorts {
+  display: inline-flex; gap: 2px; padding: 3px; margin-left: auto;
+  background: #e3e7ec; border-radius: 999px;
+}
+.list-sort {
+  background: none; border: 0; border-radius: 999px; padding: 5px 12px;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; line-height: 1.3;
+  color: var(--text-muted); cursor: pointer; white-space: nowrap;
+  transition: color .15s, background .15s;
+}
+.list-sort:hover { color: var(--text); }
+.list-sort.active {
+  background: #fff; color: var(--text);
+  box-shadow: 0 1px 2px rgba(0,0,0,.14);
+}
+
 .board {
-  background: #1b1b1f; border-radius: 8px; padding: 14px 10px 11px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.12);
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px;
+  background: #202127; border-radius: 8px; padding: 16px 10px 12px;
+  border: 1px solid #35363e;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 6px;
 }
 .board-intro { margin: 4px 0 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted); }
 /* every tile is a button: a tap adds the viewer's one to that counter */
@@ -1082,7 +1120,7 @@ body.nudge-on #donate-footer-item { display: none; }
 .tap-actions { display: flex; align-items: center; gap: 8px; }
 .board-label {
   font-size: 10px; font-weight: 600; letter-spacing: .07em; line-height: 1.35;
-  text-transform: uppercase; text-align: center; color: #b9b9b3;
+  text-transform: uppercase; text-align: center; color: #c7c8c2;
   overflow-wrap: anywhere;
 }
 .board-digits { display: inline-flex; gap: 3px; }
@@ -1094,22 +1132,31 @@ body.nudge-on #donate-footer-item { display: none; }
 .flap {
   --fh: 40px;
   position: relative; width: calc(var(--fh) * .72); height: var(--fh);
-  perspective: calc(var(--fh) * 9);
+  perspective: calc(var(--fh) * 9); border-radius: 4px;
+  /* a crisp 1px rim and a short drop shadow: the module is an object, not a blot */
+  box-shadow: 0 0 0 1px #33343c, 0 1px 2px rgba(0,0,0,.6);
 }
+/* black flaps in a charcoal frame, the way the real modules sit: a hairline
+   highlight on the top edge and a darker lower half give each one its depth */
 .flap-half {
   position: absolute; left: 0; width: 100%; height: 50%; overflow: hidden;
-  background: #2c2c31;
+  background: #17181c;
 }
 .flap-char {
   display: block; width: 100%; height: var(--fh);
   font: 700 calc(var(--fh) * .62) / var(--fh) ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  text-align: center; color: #f4f4ef;
+  text-align: center; color: #fbfaf4;
 }
 .flap-top, .flap-leaf {
-  top: 0; border-radius: 5px 5px 0 0; box-sizing: border-box;
-  border-bottom: 1px solid rgba(0,0,0,.55); /* the seam between the halves */
+  top: 0; border-radius: 4px 4px 0 0; box-sizing: border-box;
+  border-bottom: 1px solid #000; /* the seam between the halves */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09);
 }
-.flap-bottom { bottom: 0; border-radius: 0 0 5px 5px; }
+.flap-bottom {
+  bottom: 0; border-radius: 0 0 4px 4px;
+  background: #111215;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
 .flap-bottom .flap-char { margin-top: calc(var(--fh) / -2); }
 /* the moving leaf exists only mid-turn: the old top half, falling forward */
 .flap-leaf { visibility: hidden; transform-origin: 50% 100%; backface-visibility: hidden; }

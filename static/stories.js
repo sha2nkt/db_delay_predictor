@@ -6,10 +6,14 @@
 const I18N = {
   de: {
     docTitle: "Bahnhofs-Geschichten – DelayBahn",
-    headerTitle: "Bahnhofs-Geschichten",
+    logoSrc: "/logo_delay_stories_wide_german_transparent.png",
+    logoAlt: "Delay Geschichten",
     tagline: "Gestrandet, verspätet, überlebt – erzähl’s hier",
     topHeading: "Top-Geschichten",
-    newHeading: "Neueste Geschichten",
+    listHeading: "Geschichten",
+    sortNew: "Neueste",
+    sortLiked: "Beliebteste",
+    sortCommented: "Meistkommentiert",
     composeToggle: "+ Geschichte erzählen",
     fromLabel: "Von",
     fromPlaceholder: "z.B. Hannover Hbf",
@@ -36,7 +40,7 @@ const I18N = {
     composeNote: "Beiträge erscheinen öffentlich unter deinem Benutzernamen. Halt es unterhaltsam: Wut wird witzig, wenn sie gut erzählt ist. Beleidigungen und persönliche Angriffe helfen niemandem und werden entfernt.",
     sharePromise: "🏆 Jede Woche teilen wir die Geschichte mit den meisten Stimmen auf unseren Kanälen – und markieren die Deutsche Bahn dabei. Also: abstimmen und mitschreiben.",
     boardHeading: "Störungsbilanz",
-    boardIntro: "Jede Geschichte hier zählt oben mit. Heute auch was davon erlebt, aber keine Lust zu schreiben? Kachel antippen, Strecke und Zeit angeben, der Zähler geht eins hoch. Ein Tipp pro Elend und Tag – wir zählen Leid, wir blähen es nicht auf.",
+    boardIntro: "Jede Geschichte hier zählt oben mit. Heute auch was davon erlebt, aber keine Lust zu schreiben? Kachel antippen, Strecke und Zeit angeben, der Zähler geht eins hoch.",
     tapHint: "Heute auch passiert? Antippen und mitzählen (Anmeldung nötig).",
     tapHintDone: "Gezählt. Nochmal antippen, um es zurückzunehmen.",
     tapped: "heute von dir gemeldet",
@@ -91,10 +95,14 @@ const I18N = {
   },
   en: {
     docTitle: "Station Stories – DelayBahn",
-    headerTitle: "Station Stories",
+    logoSrc: "/logo_delay_stories_wide_transparent.png",
+    logoAlt: "Delay Stories",
     tagline: "Stranded, delayed, survived – tell it here",
     topHeading: "Top stories",
-    newHeading: "Newest stories",
+    listHeading: "Stories",
+    sortNew: "Newest",
+    sortLiked: "Most liked",
+    sortCommented: "Most commented",
     composeToggle: "+ Tell your story",
     fromLabel: "From",
     fromPlaceholder: "e.g. Hannover Hbf",
@@ -121,7 +129,7 @@ const I18N = {
     composeNote: "Posts appear publicly under your username. Keep it entertaining: anger is funny when it's told well. Insults and personal attacks help nobody and get removed.",
     sharePromise: "🏆 Every week we post the most upvoted story on our channels – and tag Deutsche Bahn in it. So vote, and keep them coming.",
     boardHeading: "Damage report",
-    boardIntro: "Every story on this page feeds the board. Had one of these today but don't feel like writing? Tap the tile, say where and when, and the counter goes up one. One tap per misery per day – we count pain, we don't inflate it.",
+    boardIntro: "Every story on this page feeds the board. Had one of these today but don't feel like writing? Tap the tile, say where and when, and the counter goes up one.",
     tapHint: "Happened to you today? Tap to count it (login needed).",
     tapHintDone: "Counted. Tap again to take it back.",
     tapped: "reported by you today",
@@ -474,10 +482,7 @@ async function removeStory(story) {
   }
   // a story with replies survives as a tombstone, one without is simply gone;
   // reloading both lists is the honest way to find out which happened
-  seen.delete(story.id);
-  cacheNew = [];
-  newOffset = 0;
-  document.getElementById("story-list").textContent = "";
+  resetNew();
   loadNew();
   loadTop();
 }
@@ -695,7 +700,7 @@ function topRow(story) {
   const score = el("span", "top-score", "▲ " + story.score);
   score.dataset.storyId = story.id;
   line.append(score, el("span", "top-title", story.title),
-              el("span", "top-station", legOf(story)));
+              el("span", "top-station", story.from_station));
   const detail = el("div", "top-detail hidden");
   line.addEventListener("click", () => {
     if (detail.classList.contains("hidden")) {
@@ -729,7 +734,15 @@ function renderTop() {
 /* -- newest list -- */
 let cacheNew = [];
 let newOffset = 0;
+let newSort = "new";
 const seen = new Set();
+
+function resetNew() {
+  cacheNew = [];
+  newOffset = 0;
+  seen.clear();
+  document.getElementById("story-list").textContent = "";
+}
 
 function appendStory(story) {
   if (seen.has(story.id)) return;
@@ -743,7 +756,7 @@ async function loadNew() {
   const moreBtn = document.getElementById("more-btn");
   if (!cacheNew.length) status.textContent = "…";
   try {
-    const page = await api("/api/stories?sort=new&limit=" + PAGE + "&offset=" + newOffset);
+    const page = await api(`/api/stories?sort=${newSort}&limit=${PAGE}&offset=${newOffset}`);
     newOffset += page.length;
     status.textContent = "";
     page.forEach(appendStory);
@@ -983,7 +996,7 @@ function flapCounter() {
   }
 
   function display(n, animate) {
-    const text = String(n).padStart(cells.length, " ");
+    const text = String(n).padStart(cells.length, "0");
     cells.forEach((c, i) => (animate ? c.setChar(text[i]) : c.jump(text[i])));
     shown = n;
   }
@@ -1194,6 +1207,9 @@ document.getElementById("auth-logout").addEventListener("click", async () => {
 function applyStatic() {
   document.documentElement.lang = lang;
   document.title = t("docTitle");
+  const logo = document.getElementById("site-logo");
+  logo.src = t("logoSrc");
+  logo.alt = t("logoAlt");
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     const text = I18N[lang][node.dataset.i18n];
     if (text != null) node.textContent = text;
@@ -1232,5 +1248,15 @@ loadTop();
 loadNew();
 
 document.getElementById("more-btn").addEventListener("click", loadNew);
+document.querySelectorAll(".list-sort").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (btn.dataset.sort === newSort) return;
+    newSort = btn.dataset.sort;
+    document.querySelectorAll(".list-sort").forEach((b) =>
+      b.classList.toggle("active", b === btn));
+    resetNew();
+    loadNew();
+  });
+});
 
 })();

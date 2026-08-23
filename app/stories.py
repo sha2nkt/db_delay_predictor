@@ -269,16 +269,28 @@ def create_story(
     return _story_dict(row)
 
 
+# "top" feeds the strip above the list, the rest are the list's own sort
+# tabs; ties fall back to newest first so paging stays stable
+SORTS = {
+    "new": "id DESC",
+    "top": "score DESC, id DESC",
+    "liked": "score DESC, id DESC",
+    "commented": "comments DESC, id DESC",
+}
+
+
 def list_stories(sort: str, limit: int, offset: int, user_id: int | None = None) -> list[dict]:
     inner = f"SELECT {_STORY_COLS} FROM stories s"
+    # a tombstone keeps its votes and thread but has nothing to rank; it stays
+    # on the new list only, where the replies hang off it. And an unvoted story
+    # is not "top rated" - it is already on the new list.
+    conds = []
+    if sort != "new":
+        conds.append("deleted_ts IS NULL")
     if sort == "top":
-        # an unvoted story is not "top rated"; it is already on the new list
-        sql = (
-            f"SELECT * FROM ({inner}) WHERE score > 0"
-            " ORDER BY score DESC, id DESC LIMIT ? OFFSET ?"
-        )
-    else:
-        sql = f"{inner} ORDER BY s.id DESC LIMIT ? OFFSET ?"
+        conds.append("score > 0")
+    where = f" WHERE {' AND '.join(conds)}" if conds else ""
+    sql = f"SELECT * FROM ({inner}){where} ORDER BY {SORTS[sort]} LIMIT ? OFFSET ?"
     with closing(connect()) as conn:
         rows = conn.execute(sql, (user_id, limit, offset)).fetchall()
     return [_story_dict(r) for r in rows]

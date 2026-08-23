@@ -11,16 +11,16 @@
 <meta property="og:site_name" content="DelayBahn">
 <meta property="og:title" content="Bahnhofs-Geschichten – DelayBahn">
 <meta property="og:description" content="Horror-Geschichten von deutschen Bahnhöfen – erzählt von denen, die dort gestrandet sind.">
-<meta property="og:image" content="https://delaybahn.com/logo.png">
+<meta property="og:image" content="https://delaybahn.com/logo_delay_stories_tall_german_transparent.png">
 <link rel="icon" type="image/png" href="/favicon.png">
-<link rel="stylesheet" href="/style.css?v=81">
+<link rel="stylesheet" href="/style.css?v=82">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
-<header>
+<header class="stories-header">
   <div class="header-inner">
-    <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
-    <span class="header-title"><span data-i18n="headerTitle">Bahnhofs-Geschichten</span><span class="tagline" data-i18n="tagline">Gestrandet, verspätet, überlebt – erzähl’s hier</span></span>
+    <a class="logo-link" href="/stories"><img id="site-logo" class="logo" src="/logo_delay_stories_wide_german_transparent.png" alt="Delay Geschichten"></a>
+    <span class="header-title tagline" data-i18n="tagline">Gestrandet, verspätet, überlebt – erzähl’s hier</span>
     <span class="header-auth">
       <a id="auth-login" class="auth-link hidden" href="/login" data-i18n="navLogin">Anmelden</a>
       <span id="auth-user" class="auth-user hidden"><strong id="auth-name"></strong><button id="auth-logout" class="auth-logout" type="button" data-i18n="navLogout">Abmelden</button></span>
@@ -111,7 +111,7 @@
         <button type="button" class="board-span" data-span="all" data-i18n="spanAll">Gesamt</button>
       </div>
     </div>
-    <p class="board-intro" data-i18n="boardIntro">Jede Geschichte hier zählt oben mit. Heute auch was davon erlebt, aber keine Lust zu schreiben? Kachel antippen, Strecke und Zeit angeben, der Zähler geht eins hoch. Ein Tipp pro Elend und Tag – wir zählen Leid, wir blähen es nicht auf.</p>
+    <p class="board-intro" data-i18n="boardIntro">Jede Geschichte hier zählt oben mit. Heute auch was davon erlebt, aber keine Lust zu schreiben? Kachel antippen, Strecke und Zeit angeben, der Zähler geht eins hoch.</p>
     <div id="board" class="board"></div>
     <!-- a tap asks where and when before it counts: the compose form's leg
          fields, without the story -->
@@ -157,7 +157,14 @@
   </section>
 
   <section class="new-stories">
-    <h2 data-i18n="newHeading">Neueste Geschichten</h2>
+    <div class="list-head">
+      <h2 data-i18n="listHeading">Geschichten</h2>
+      <div class="list-sorts" role="group" aria-label="Sortierung">
+        <button type="button" class="list-sort active" data-sort="new" data-i18n="sortNew">Neueste</button>
+        <button type="button" class="list-sort" data-sort="liked" data-i18n="sortLiked">Beliebteste</button>
+        <button type="button" class="list-sort" data-sort="commented" data-i18n="sortCommented">Meistkommentiert</button>
+      </div>
+    </div>
     <div id="story-list"></div>
     <p id="stories-status" class="stories-status" role="status"></p>
     <button id="more-btn" class="page-btn hidden" type="button"><span data-i18n="loadMore">Mehr laden</span> <span class="arrow">↓</span></button>
@@ -170,6 +177,6 @@
   <a href="mailto:kontakt@delaybahn.com?subject=DelayBahn%20Stories" data-i18n="footerContact">Kontakt</a>
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerUgc">Beiträge stammen von Nutzerinnen und Nutzern und geben nicht die Meinung von DelayBahn wieder. Beiträge mit Beleidigungen oder personenbezogenen Daten werden entfernt.</span></p>
 </footer>
-<script src="/stories.js?v=11"></script>
+<script src="/stories.js?v=12"></script>
 </body>
 </html>

@@ -1271,7 +1271,7 @@ async def verify_page() -> FileResponse:
 @app.get("/api/stories")
 async def stories_index(
     request: Request,
-    sort: Literal["new", "top"] = "new",
+    sort: Literal["new", "top", "liked", "commented"] = "new",
     limit: int = Query(30, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
