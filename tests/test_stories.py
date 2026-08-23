@@ -320,3 +320,71 @@ def test_a_tombstoned_story_leaves_the_tally():
     assert stories.count_problems("all")["crowding"] == 1
     assert stories.delete_story(row["id"], "Max") is True
     assert stories.count_problems("all")["crowding"] == 0
+
+
+def tap(uid, code, vote=True, **leg):
+    leg = {"from_station": "Hannover Hbf", **leg}
+    return stories.set_report(uid, code, vote, **leg)
+
+
+def test_a_tap_counts_like_a_story_report():
+    uid = user("Max")
+    make(problems=["delay"])
+    assert tap(uid, "delay") is True
+    assert stories.count_problems("week")["delay"] == 2
+    assert stories.count_problems("all")["delay"] == 2
+    assert stories.my_reports(uid) == ["delay"]
+
+
+def test_a_tap_keeps_the_leg_it_was_made_on():
+    from contextlib import closing
+
+    uid = user("Max")
+    tap(uid, "delay", to_station="Berlin Hbf", departure="2026-08-23T09:11", train="ICE 574")
+    tap(uid, "delay", train="ICE 578")  # same day: one row, the last leg named
+    with closing(stories.connect()) as conn:
+        rows = conn.execute(
+            "SELECT from_station, to_station, departure, train FROM problem_reports"
+        ).fetchall()
+    assert [tuple(r) for r in rows] == [("Hannover Hbf", "", "", "ICE 578")]
+
+
+def test_the_free_text_belongs_to_the_other_tile_only():
+    from contextlib import closing
+
+    uid = user("Max")
+    tap(uid, "other", problem_other="doors froze")
+    tap(uid, "delay", problem_other="doors froze")
+    with closing(stories.connect()) as conn:
+        rows = conn.execute(
+            "SELECT code, problem_other FROM problem_reports ORDER BY code"
+        ).fetchall()
+    assert [tuple(r) for r in rows] == [("delay", ""), ("other", "doors froze")]
+
+
+def test_a_tap_is_once_per_account_and_day_and_toggles_off():
+    uid = user("Max")
+    tap(uid, "wc")
+    tap(uid, "wc")
+    assert stories.count_problems("month")["wc"] == 1
+    assert tap(uid, "wc", False) is False
+    assert stories.count_problems("month")["wc"] == 0
+    assert stories.my_reports(uid) == []
+
+
+def test_taps_from_two_accounts_both_count():
+    tap(user("Max"), "wifi")
+    tap(user("Meike"), "wifi")
+    assert stories.count_problems("month")["wifi"] == 2
+
+
+def test_my_reports_come_back_in_board_order():
+    uid = user("Max")
+    for code in ("wifi", "delay", "ac"):
+        tap(uid, code)
+    assert stories.my_reports(uid) == ["delay", "ac", "wifi"]
+
+
+def test_an_unknown_tile_cannot_be_tapped():
+    assert tap(user("Max"), "teleported") is None
+    assert stories.count_problems("all") == dict.fromkeys(stories.PROBLEMS, 0)

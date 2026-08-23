@@ -1060,21 +1060,41 @@ body.nudge-on #donate-footer-item { display: none; }
   box-shadow: 0 1px 4px rgba(0,0,0,.12);
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px;
 }
-.board-tile { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.board-intro { margin: 4px 0 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted); }
+/* every tile is a button: a tap adds the viewer's one to that counter */
+.board-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  background: none; border: 0; border-radius: 6px; padding: 6px 4px;
+  font-family: inherit; color: inherit; cursor: pointer;
+  transition: background-color .12s;
+}
+.board-tile:hover { background: rgba(255,255,255,.06); }
+.board-tile:hover .board-label { color: #f4f4ef; }
+.board-tile:active .board-digits { transform: translateY(1px); }
+.board-tile:focus-visible { outline: 2px solid #f4f4ef; outline-offset: 2px; }
+/* the viewer's own tap: the label lights up amber, the way a board row does */
+.board-tile.tapped .board-label { color: #ffb14a; }
+.board-tile.tapped .board-label::after { content: " ✓"; }
+/* the tile that has a form open underneath */
+.board-tile.asking { background: rgba(255,255,255,.1); }
+.tap-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--text); }
+.tap-other.hidden { display: none; }
+.tap-actions { display: flex; align-items: center; gap: 8px; }
 .board-label {
   font-size: 10px; font-weight: 600; letter-spacing: .07em; line-height: 1.35;
   text-transform: uppercase; text-align: center; color: #b9b9b3;
   overflow-wrap: anywhere;
 }
-.board-digits { display: inline-flex; gap: 2px; }
+.board-digits { display: inline-flex; gap: 3px; }
 @media (max-width: 560px) {
   .board { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* everything scales off the module height, so one number sizes the digit */
 .flap {
-  --fh: 26px;
-  position: relative; width: 19px; height: var(--fh);
-  perspective: 240px;
+  --fh: 40px;
+  position: relative; width: calc(var(--fh) * .72); height: var(--fh);
+  perspective: calc(var(--fh) * 9);
 }
 .flap-half {
   position: absolute; left: 0; width: 100%; height: 50%; overflow: hidden;
@@ -1082,14 +1102,14 @@ body.nudge-on #donate-footer-item { display: none; }
 }
 .flap-char {
   display: block; width: 100%; height: var(--fh);
-  font: 700 16px/26px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font: 700 calc(var(--fh) * .62) / var(--fh) ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   text-align: center; color: #f4f4ef;
 }
 .flap-top, .flap-leaf {
-  top: 0; border-radius: 4px 4px 0 0; box-sizing: border-box;
+  top: 0; border-radius: 5px 5px 0 0; box-sizing: border-box;
   border-bottom: 1px solid rgba(0,0,0,.55); /* the seam between the halves */
 }
-.flap-bottom { bottom: 0; border-radius: 0 0 4px 4px; }
+.flap-bottom { bottom: 0; border-radius: 0 0 5px 5px; }
 .flap-bottom .flap-char { margin-top: calc(var(--fh) / -2); }
 /* the moving leaf exists only mid-turn: the old top half, falling forward */
 .flap-leaf { visibility: hidden; transform-origin: 50% 100%; backface-visibility: hidden; }

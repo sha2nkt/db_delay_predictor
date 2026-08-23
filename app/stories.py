@@ -92,6 +92,23 @@ CREATE TABLE IF NOT EXISTS votes (
   user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   PRIMARY KEY (story_id, user_id)
 ) WITHOUT ROWID;
+-- a tap on a board tile: "this happened to me today, on this leg", with no
+-- story behind it. Keyed per account, code and UTC day, so one person can add
+-- one to each counter per day and a tap is a toggle rather than a button to
+-- lean on. The leg columns mirror stories: a count with no train and no
+-- station behind it would be a number nobody could do anything with.
+CREATE TABLE IF NOT EXISTS problem_reports (
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code         TEXT NOT NULL,
+  day          TEXT NOT NULL,
+  ts           TEXT NOT NULL,
+  from_station TEXT NOT NULL,
+  to_station   TEXT NOT NULL DEFAULT '',
+  departure    TEXT NOT NULL DEFAULT '',
+  train        TEXT NOT NULL DEFAULT '',
+  problem_other TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (user_id, code, day)
+) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS comments (
   id        INTEGER PRIMARY KEY,
   story_id  INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
@@ -288,25 +305,75 @@ def _span_start(span: str) -> str | None:
 
 
 def count_problems(span: str = "month") -> dict[str, int]:
-    """How often each problem code was reported within the span, zeros
-    included so every board row exists in every span. Tombstoned stories
-    have no story_problems rows left, so they drop out on their own."""
+    """How often each problem code was reported within the span - through a
+    story or with a tap on the board - zeros included so every board row
+    exists in every span. Tombstoned stories have no story_problems rows
+    left, so they drop out on their own."""
     since = _span_start(span)
+    where = "" if since is None else " WHERE ts >= ?"
+    params: tuple = () if since is None else (since, since)
     sql = (
-        "SELECT p.code, COUNT(*) AS n FROM story_problems p"
-        " JOIN stories s ON s.id = p.story_id"
+        "SELECT code, COUNT(*) AS n FROM ("
+        "  SELECT p.code, s.ts FROM story_problems p"
+        "  JOIN stories s ON s.id = p.story_id" + where +
+        "  UNION ALL"
+        "  SELECT code, ts FROM problem_reports" + where +
+        ") GROUP BY code"
     )
-    params: tuple = ()
-    if since is not None:
-        sql += " WHERE s.ts >= ?"
-        params = (since,)
-    sql += " GROUP BY p.code"
     counts = dict.fromkeys(PROBLEMS, 0)
     with closing(connect()) as conn:
         for row in conn.execute(sql, params):
             if row["code"] in counts:
                 counts[row["code"]] = row["n"]
     return counts
+
+
+def _today() -> str:
+    return _now()[:10]
+
+
+def my_reports(user_id: int) -> list[str]:
+    """The codes this account has tapped today, in board order, so the tiles
+    can show which counters already carry the viewer's one."""
+    with closing(connect()) as conn:
+        rows = conn.execute(
+            "SELECT code FROM problem_reports WHERE user_id = ? AND day = ?",
+            (user_id, _today()),
+        ).fetchall()
+    return sorted((r["code"] for r in rows if r["code"] in _PROBLEM_RANK),
+                  key=_PROBLEM_RANK.get)
+
+
+def set_report(
+    user_id: int, code: str, vote: bool,
+    from_station: str = "", to_station: str = "", departure: str = "", train: str = "",
+    problem_other: str = "",
+) -> bool | None:
+    """Idempotent set/clear of this account's tap on a board tile for today;
+    None for a code the board doesn't have. Like set_vote, a repeated request
+    is a no-op, not a second report - the day's one row keeps the leg that
+    was named last. The free text belongs to the "other" tile alone, as on
+    a story."""
+    if code not in _PROBLEM_RANK:
+        return None
+    if code != "other":
+        problem_other = ""
+    with closing(connect()) as conn, conn:
+        if vote:
+            conn.execute(
+                "INSERT OR REPLACE INTO problem_reports"
+                " (user_id, code, day, ts, from_station, to_station, departure, train,"
+                " problem_other)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (user_id, code, _today(), _now(),
+                 from_station, to_station, departure, train, problem_other),
+            )
+        else:
+            conn.execute(
+                "DELETE FROM problem_reports WHERE user_id = ? AND code = ? AND day = ?",
+                (user_id, code, _today()),
+            )
+    return vote
 
 
 def set_vote(story_id: int, user_id: int, vote: bool) -> dict | None:

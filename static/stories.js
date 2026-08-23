@@ -36,6 +36,14 @@ const I18N = {
     composeNote: "Beiträge erscheinen öffentlich unter deinem Benutzernamen. Halt es unterhaltsam: Wut wird witzig, wenn sie gut erzählt ist. Beleidigungen und persönliche Angriffe helfen niemandem und werden entfernt.",
     sharePromise: "🏆 Jede Woche teilen wir die Geschichte mit den meisten Stimmen auf unseren Kanälen – und markieren die Deutsche Bahn dabei. Also: abstimmen und mitschreiben.",
     boardHeading: "Störungsbilanz",
+    boardIntro: "Jede Geschichte hier zählt oben mit. Heute auch was davon erlebt, aber keine Lust zu schreiben? Kachel antippen, Strecke und Zeit angeben, der Zähler geht eins hoch. Ein Tipp pro Elend und Tag – wir zählen Leid, wir blähen es nicht auf.",
+    tapHint: "Heute auch passiert? Antippen und mitzählen (Anmeldung nötig).",
+    tapHintDone: "Gezählt. Nochmal antippen, um es zurückzunehmen.",
+    tapped: "heute von dir gemeldet",
+    tapTitle: "{n} – wo und wann?",
+    tapSend: "Mitzählen",
+    otherLabel: "Was war sonst los?",
+    tapOtherPlaceholder: "z.B. Tür klemmte, Durchsage nur auf Klingonisch",
     spanWeek: "Woche",
     spanMonth: "Monat",
     spanYear: "Jahr",
@@ -113,6 +121,14 @@ const I18N = {
     composeNote: "Posts appear publicly under your username. Keep it entertaining: anger is funny when it's told well. Insults and personal attacks help nobody and get removed.",
     sharePromise: "🏆 Every week we post the most upvoted story on our channels – and tag Deutsche Bahn in it. So vote, and keep them coming.",
     boardHeading: "Damage report",
+    boardIntro: "Every story on this page feeds the board. Had one of these today but don't feel like writing? Tap the tile, say where and when, and the counter goes up one. One tap per misery per day – we count pain, we don't inflate it.",
+    tapHint: "Happened to you today? Tap to count it (login needed).",
+    tapHintDone: "Counted. Tap again to take it back.",
+    tapped: "reported by you today",
+    tapTitle: "{n} – where and when?",
+    tapSend: "Count it",
+    otherLabel: "What else went wrong?",
+    tapOtherPlaceholder: "e.g. doors stuck, announcement in Klingon only",
     spanWeek: "Week",
     spanMonth: "Month",
     spanYear: "Year",
@@ -804,12 +820,12 @@ function setupStationPicker(inputId, dropdownId) {
 
 // today and now, in the visitor's own clock - the journey they are about to
 // describe is nearly always the one they just had
-function fillNow() {
+function fillNow(prefix) {
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");
-  document.getElementById("c-date").value =
+  document.getElementById(prefix + "-date").value =
     `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  document.getElementById("c-time").value =
+  document.getElementById(prefix + "-time").value =
     `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
@@ -836,9 +852,9 @@ function syncOther() {
 }
 
 // both halves or neither: a date with no time is not a departure
-function departureValue() {
-  const date = document.getElementById("c-date").value;
-  const time = document.getElementById("c-time").value;
+function departureValue(prefix) {
+  const date = document.getElementById(prefix + "-date").value;
+  const time = document.getElementById(prefix + "-time").value;
   return date && time ? `${date}T${time}` : "";
 }
 
@@ -850,7 +866,7 @@ function initCompose() {
     if (!me) { toLogin(); return; }
     form.classList.toggle("hidden");
     if (!form.classList.contains("hidden")) {
-      fillNow();  // re-stamped each time it opens, not once on page load
+      fillNow("c");  // re-stamped each time it opens, not once on page load
       document.getElementById("c-from").focus();
     }
   });
@@ -867,7 +883,7 @@ function initCompose() {
       const created = await postJSON("/api/stories", {
         from_station: document.getElementById("c-from").value.trim(),
         to_station: document.getElementById("c-to").value.trim(),
-        departure: departureValue(),
+        departure: departureValue("c"),
         train: document.getElementById("c-train").value.trim(),
         problems: chosenProblems(),
         problem_other: document.getElementById("c-other").value.trim(),
@@ -999,47 +1015,150 @@ function flapCounter() {
 
 const board = { tiles: new Map(), span: "month", epoch: 0 };
 
-function boardSpanLabel() {
+function boardGroupLabels() {
   document.querySelector(".board-spans").setAttribute("aria-label", t("spanGroup"));
+  document.getElementById("board").setAttribute("aria-label", t("boardHeading"));
+}
+
+function labelTile(tile, code) {
+  tile.label.textContent = t("problem_" + code);
+  tile.root.title = t(tile.mine ? "tapHintDone" : "tapHint");
+  tile.root.setAttribute("aria-label",
+    t("problem_" + code) + ": " + tile.count + (tile.mine ? ", " + t("tapped") : ""));
 }
 
 function relabelBoard() {
-  boardSpanLabel();
+  boardGroupLabels();
+  board.tiles.forEach(labelTile);
+}
+
+function markTile(tile, code, mine) {
+  tile.mine = mine;
+  tile.root.classList.toggle("tapped", mine);
+  tile.root.setAttribute("aria-pressed", String(mine));
+  labelTile(tile, code);
+}
+
+// one answer from the server: counts over the span, plus which tiles carry
+// the viewer's own tap today
+function applyBoard(res, stagger) {
   board.tiles.forEach((tile, code) => {
-    tile.label.textContent = t("problem_" + code);
-    tile.root.setAttribute("aria-label", t("problem_" + code) + ": " + tile.count);
+    tile.count = res.counts[code] || 0;
+    markTile(tile, code, res.mine.includes(code));
+    if (stagger) setTimeout(() => tile.counter.setValue(tile.count), Math.random() * 200);
+    else tile.counter.setValue(tile.count);
   });
 }
 
 async function refreshBoard() {
   const epoch = ++board.epoch;
-  let counts;
+  let res;
   try {
-    counts = await api("/api/stories/problems?span=" + board.span);
+    res = await api("/api/stories/problems?span=" + board.span);
   } catch (e) {
     return; // the board keeps its last numbers rather than going dark
   }
   if (epoch !== board.epoch) return; // a newer span click already answered
-  board.tiles.forEach((tile, code) => {
-    tile.count = counts[code] || 0;
-    setTimeout(() => tile.counter.setValue(tile.count), Math.random() * 200);
-    tile.root.setAttribute("aria-label", t("problem_" + code) + ": " + tile.count);
+  applyBoard(res, true);
+}
+
+/* A tap on a tile is the shortest story there is: "this happened to me
+   today, on this leg". An unlit tile opens the form below the board and
+   nothing counts until that is sent; a lit tile takes today's report back. */
+async function tapProblem(code) {
+  if (!me) { toLogin(); return; }
+  const tile = board.tiles.get(code);
+  if (!tile.mine) {
+    if (tap.code === code) closeTapForm(); else openTapForm(code);
+    return;
+  }
+  closeTapForm();
+  const epoch = ++board.epoch;
+  try {
+    const res = await postJSON(
+      "/api/stories/problems/" + code + "?span=" + board.span, { vote: false });
+    if (epoch === board.epoch) applyBoard(res, false);
+  } catch (e) {
+    if (e.status === 401) { toLogin(); return; } // session expired mid-visit
+  }
+}
+
+/* -- the tap form: where and when, asked before a tap counts -- */
+const tap = { code: null };
+
+function openTapForm(code) {
+  const form = document.getElementById("tap-form");
+  if (tap.code) board.tiles.get(tap.code).root.classList.remove("asking");
+  tap.code = code;
+  board.tiles.get(code).root.classList.add("asking");
+  form.reset();
+  document.getElementById("tap-status").textContent = "";
+  document.getElementById("tap-title").textContent = fmt("tapTitle", t("problem_" + code));
+  document.getElementById("q-other-field").classList.toggle("hidden", code !== "other");
+  document.getElementById("q-other").required = code === "other";
+  fillNow("q");
+  form.classList.remove("hidden");
+  form.scrollIntoView({ block: "nearest", behavior: stillPlease.matches ? "auto" : "smooth" });
+  document.getElementById("q-from").focus();
+}
+
+function closeTapForm() {
+  if (tap.code) board.tiles.get(tap.code).root.classList.remove("asking");
+  tap.code = null;
+  document.getElementById("tap-form").classList.add("hidden");
+}
+
+function initTapForm() {
+  const form = document.getElementById("tap-form");
+  const status = document.getElementById("tap-status");
+  setupStationPicker("q-from", "q-from-dropdown");
+  setupStationPicker("q-to", "q-to-dropdown");
+  document.getElementById("tap-cancel").addEventListener("click", closeTapForm);
+  form.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeTapForm(); });
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!me) { toLogin(); return; }
+    const code = tap.code;
+    const send = form.querySelector('[type="submit"]');
+    send.disabled = true;
+    status.textContent = t("sending");
+    try {
+      const res = await postJSON("/api/stories/problems/" + code + "?span=" + board.span, {
+        vote: true,
+        from_station: document.getElementById("q-from").value.trim(),
+        to_station: document.getElementById("q-to").value.trim(),
+        departure: departureValue("q"),
+        train: document.getElementById("q-train").value.trim(),
+        problem_other: document.getElementById("q-other").value.trim(),
+      });
+      closeTapForm();
+      board.epoch += 1; // an in-flight span fetch must not paint over this
+      applyBoard(res, false);
+    } catch (e) {
+      if (e.status === 401) { toLogin(); return; }
+      status.textContent = e.status === 429 ? t("errRate") : t("errSubmit");
+    } finally {
+      send.disabled = false;
+    }
   });
 }
 
 function initBoard() {
   const host = document.getElementById("board");
-  host.setAttribute("role", "list");
+  host.setAttribute("role", "group");
   BOARD_CODES.forEach((code) => {
-    const root = el("div", "board-tile");
-    root.setAttribute("role", "listitem");
+    const root = el("button", "board-tile");
+    root.type = "button";
     const counter = flapCounter();
-    const label = el("span", "board-label", t("problem_" + code));
+    const label = el("span", "board-label");
     root.append(counter.wrap, label);
+    root.addEventListener("click", () => tapProblem(code));
     host.append(root);
-    board.tiles.set(code, { root, label, counter, count: 0 });
+    const tile = { root, label, counter, count: 0, mine: false };
+    board.tiles.set(code, tile);
+    markTile(tile, code, false);
   });
-  boardSpanLabel();
+  boardGroupLabels();
   document.querySelectorAll(".board-span").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (btn.dataset.span === board.span) return;
@@ -1097,12 +1216,17 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
     renderTop();
     rerenderNew();
     relabelBoard();
+    if (tap.code) {
+      document.getElementById("tap-title").textContent =
+        fmt("tapTitle", t("problem_" + tap.code));
+    }
   });
 });
 
 applyStatic();
 initCompose();
 initBoard();
+initTapForm();
 loadMe();
 loadTop();
 loadNew();

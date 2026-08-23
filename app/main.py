@@ -1052,6 +1052,22 @@ class StoryVoteIn(BaseModel):
     vote: bool = True
 
 
+# a tap on a board tile: the story's leg fields without the story. Origin is
+# optional at the edge only because clearing the tap (vote=false) names no
+# leg; the endpoint insists on it when one is being recorded.
+class ProblemReportIn(BaseModel):
+    vote: bool = True
+    from_station: _StationField = ""
+    to_station: _StationField = ""
+    departure: _DepartureField = ""
+    train: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=20)
+    ] = ""
+    problem_other: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=80)
+    ] = ""
+
+
 # editing touches what the author wrote, never the journey or the problem
 # codes: those are a claim about a train that ran, and a story whose leg can
 # be swapped after the fact is not evidence of anything
@@ -1284,10 +1300,49 @@ async def stories_create(story: StoryIn, request: Request):
     return created
 
 
-# public and anonymous, like reading the stories themselves
+BoardSpan = Literal["week", "month", "year", "all"]
+
+
+def _board(span: str, user_id: int | None) -> dict:
+    """Counts over the span plus the codes the viewer tapped today - the
+    tiles render both from one answer, and a tap is answered with the same
+    shape so it needs no second round trip."""
+    return {
+        "counts": stories.count_problems(span),
+        "mine": stories.my_reports(user_id) if user_id is not None else [],
+    }
+
+
+# public and anonymous, like reading the stories themselves; a session only
+# adds which tiles are the viewer's own
 @app.get("/api/stories/problems")
-async def stories_problems(span: Literal["week", "month", "year", "all"] = "month"):
-    return await anyio.to_thread.run_sync(stories.count_problems, span)
+async def stories_problems(request: Request, span: BoardSpan = "month"):
+    user = await _session_user(request)
+    return await anyio.to_thread.run_sync(_board, span, user["id"] if user else None)
+
+
+@app.post("/api/stories/problems/{code}")
+async def stories_report(
+    code: str, report: ProblemReportIn, request: Request, span: BoardSpan = "month"
+):
+    """A tap on a board tile: "this happened to me today, on this leg",
+    story optional. Once per account, code and day, toggled like a story
+    upvote; recording one needs at least the origin."""
+    user = await _require_user(request)
+    if report.vote and len(report.from_station) < 2:
+        raise HTTPException(422, "from_station required")
+    # "other" with nothing said is a number nobody could act on
+    if report.vote and code == "other" and not report.problem_other:
+        raise HTTPException(422, "problem_other required")
+    _stories_throttle(stories.vote_limiter, request)
+    result = await anyio.to_thread.run_sync(
+        stories.set_report, user["id"], code, report.vote,
+        report.from_station, report.to_station, report.departure, report.train,
+        report.problem_other,
+    )
+    if result is None:
+        raise HTTPException(404, "unknown problem")
+    return await anyio.to_thread.run_sync(_board, span, user["id"])
 
 
 @app.post("/api/stories/{story_id}/vote")

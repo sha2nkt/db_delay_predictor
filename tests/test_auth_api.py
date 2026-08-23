@@ -662,7 +662,56 @@ def test_problem_counts_are_public_and_validated(client):
                          "Stuck again", "x" * 20, "Max")
     resp = client.get("/api/stories/problems")
     assert resp.status_code == 200
-    counts = resp.json()
-    assert counts["delay"] == 1 and counts["wc"] == 0
+    board = resp.json()
+    assert board["counts"]["delay"] == 1 and board["counts"]["wc"] == 0
+    assert board["mine"] == []  # no session: no tile is the viewer's
     assert client.get("/api/stories/problems?span=all").status_code == 200
     assert client.get("/api/stories/problems?span=fortnight").status_code == 422
+
+
+def test_tapping_a_tile_needs_a_session_and_answers_with_the_board(client, wiring):
+    leg = {"vote": True, "from_station": "Hannover Hbf", "to_station": "Berlin Hbf",
+           "departure": "2026-08-23T09:11", "train": "ICE 574"}
+    assert client.post("/api/stories/problems/delay", json=leg).status_code == 401
+    login(client, wiring)
+    resp = client.post("/api/stories/problems/delay?span=week", json=leg)
+    assert resp.status_code == 200
+    assert resp.json()["counts"]["delay"] == 1
+    assert resp.json()["mine"] == ["delay"]
+    # the GET now knows the tile is this viewer's
+    assert client.get("/api/stories/problems").json()["mine"] == ["delay"]
+    # a second tap is the same tap, and the toggle takes it back
+    again = client.post("/api/stories/problems/delay", json=leg).json()
+    assert again["counts"]["delay"] == 1
+    off = client.post("/api/stories/problems/delay", json={"vote": False}).json()
+    assert off == {"counts": dict.fromkeys(stories.PROBLEMS, 0), "mine": []}
+    assert client.post("/api/stories/problems/teleported", json=leg).status_code == 404
+    assert client.post("/api/stories/problems/delay?span=fortnight",
+                       json=leg).status_code == 422
+
+
+def test_a_tap_needs_a_leg_but_taking_it_back_does_not(client, wiring):
+    login(client, wiring)
+    # no origin: nothing to count against
+    assert client.post("/api/stories/problems/delay", json={"vote": True}).status_code == 422
+    assert client.post("/api/stories/problems/delay",
+                       json={"vote": True, "from_station": "H"}).status_code == 422
+    assert client.post("/api/stories/problems/delay",
+                       json={"vote": True, "from_station": "Hannover Hbf",
+                             "departure": "yesterday"}).status_code == 422
+    assert client.get("/api/stories/problems").json()["counts"]["delay"] == 0
+    # the origin alone is a leg
+    assert client.post("/api/stories/problems/delay",
+                       json={"vote": True, "from_station": "Hannover Hbf"}).status_code == 200
+    # "other" has to say what, the rest must not
+    assert client.post("/api/stories/problems/other",
+                       json={"vote": True, "from_station": "Hannover Hbf"}).status_code == 422
+    assert client.post("/api/stories/problems/other",
+                       json={"vote": True, "from_station": "Hannover Hbf",
+                             "problem_other": "doors froze"}).status_code == 200
+    assert client.post("/api/stories/problems/other",
+                       json={"vote": True, "from_station": "Hannover Hbf",
+                             "problem_other": "x" * 81}).status_code == 422
+    # clearing names no leg
+    assert client.post("/api/stories/problems/delay", json={"vote": False}).status_code == 200
+    assert client.get("/api/stories/problems").json()["mine"] == ["other"]
