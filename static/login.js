@@ -93,6 +93,8 @@ const I18N = {
 let lang = "de";
 try { if (localStorage.getItem("lang") === "en") lang = "en"; } catch (e) {}
 const t = (key) => (I18N[lang][key] != null ? I18N[lang][key] : I18N.de[key]);
+// no-op when the Umami script is blocked or unavailable; never the address
+const track = (name, data) => window.umami?.track(name, data);
 
 // exactly one of these is visible; the header and the tab title follow it
 const VIEWS = {
@@ -250,6 +252,7 @@ resendBtn.addEventListener("click", async () => {
     }
     status.classList.add("sent");
     status.textContent = t("resent");
+    track("login-resend");
     // the new mail voided the code the old one carried
     input.value = "";
     input.focus();
@@ -283,6 +286,7 @@ function wire(formId, statusId, path, body, sentKey, errorFor) {
       // stay disabled: the next step is the link or the code, not this form
       status.classList.add("sent");
       status.textContent = t(sentKey);
+      track(sentKey === "sentRegister" ? "register" : "login-request");
       showCodeStep(sent.email, await cooldownFrom(resp));
     } catch (e) {
       status.textContent = t("errGeneric");
@@ -311,6 +315,7 @@ document.getElementById("code-form").addEventListener("submit", async (ev) => {
       input.select();
       return;
     }
+    track("login-code");
     location.assign("/stories");
   } catch (e) {
     status.textContent = t("errGeneric");

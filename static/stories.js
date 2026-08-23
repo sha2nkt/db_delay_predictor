@@ -192,6 +192,9 @@ let lang = "de";
 try { if (localStorage.getItem("lang") === "en") lang = "en"; } catch (e) {}
 const t = (key) => (I18N[lang][key] != null ? I18N[lang][key] : I18N.de[key]);
 const fmt = (key, n) => t(key).replace("{n}", n);
+// no-op when the Umami script is blocked or unavailable. Events carry
+// categories and outcomes only - never story text, names or addresses.
+const track = (name, data) => window.umami?.track(name, data);
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -204,6 +207,7 @@ function el(tag, cls, text) {
 let me = null;
 
 function toLogin() {
+  track("login-prompt");  // how often the board sends someone off to sign in
   location.assign("/login");
 }
 
@@ -248,6 +252,7 @@ async function toggleCommentVote(comment) {
       { vote: !comment.voted });
     comment.score = res.score;
     comment.voted = res.voted;
+    track(res.voted ? "comment-vote" : "comment-unvote");
   } catch (e) {
     if (e.status === 401) { toLogin(); return; }
     /* otherwise leave the arrow as it was */
@@ -262,6 +267,7 @@ async function toggleVote(story) {
       { vote: !story.voted });
     story.score = res.score;
     story.voted = res.voted;
+    track(res.voted ? "story-vote" : "story-unvote");
   } catch (e) {
     if (e.status === 401) { toLogin(); return; } // session expired mid-visit
     /* otherwise leave the arrow as it was */
@@ -676,6 +682,7 @@ function commentForm(story, wrap, btn, parentId) {
     status.textContent = "";
     try {
       await postJSON("/api/stories/" + story.id + "/comments", body);
+      track(parentId ? "story-reply" : "story-comment");
       // re-render from a fresh fetch: places the reply correctly and picks up
       // anything others wrote in the meantime
       const list = await api("/api/stories/" + story.id + "/comments");
@@ -903,6 +910,7 @@ function initCompose() {
         title: document.getElementById("c-title").value.trim(),
         text: document.getElementById("c-text").value.trim(),
       });
+      track("story-post", { problems: created.problems?.length ?? 0 });
       // own story lands on top of the newest list right away
       seen.add(created.id);
       cacheNew.unshift(created);
@@ -1090,6 +1098,7 @@ async function tapProblem(code) {
   try {
     const res = await postJSON(
       "/api/stories/problems/" + code + "?span=" + board.span, { vote: false });
+    track("report-untap", { problem: code });
     if (epoch === board.epoch) applyBoard(res, false);
   } catch (e) {
     if (e.status === 401) { toLogin(); return; } // session expired mid-visit
@@ -1144,6 +1153,7 @@ function initTapForm() {
         train: document.getElementById("q-train").value.trim(),
         problem_other: document.getElementById("q-other").value.trim(),
       });
+      track("report-tap", { problem: code });
       closeTapForm();
       board.epoch += 1; // an in-flight span fetch must not paint over this
       applyBoard(res, false);
@@ -1252,6 +1262,7 @@ document.querySelectorAll(".list-sort").forEach((btn) => {
   btn.addEventListener("click", () => {
     if (btn.dataset.sort === newSort) return;
     newSort = btn.dataset.sort;
+    track("stories-sort", { sort: newSort });
     document.querySelectorAll(".list-sort").forEach((b) =>
       b.classList.toggle("active", b === btn));
     resetNew();

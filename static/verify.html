@@ -8,6 +8,8 @@
 <meta name="referrer" content="no-referrer">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="stylesheet" href="/style.css?v=80">
+<!-- exclude-search: the token in ?token= must not reach the analytics DB -->
+<script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats" data-exclude-search="true"></script>
 </head>
 <body>
 <header>
@@ -105,7 +107,11 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: token }),
       });
-      if (resp.ok) { location.assign("/stories"); return; }
+      if (resp.ok) {
+        if (window.umami) window.umami.track("login-link");
+        location.assign("/stories");
+        return;
+      }
       if (resp.status === 401) { dead(t.errExpired); return; }
       retryable(t.errGeneric);
     } catch (e) {
