@@ -40,62 +40,6 @@
     <ol id="top-list" class="top-list"></ol>
   </section>
 
-  <!-- the tally of everything reported, as a little departure board -->
-  <section class="board-section">
-    <div class="board-head">
-      <h2 data-i18n="boardHeading">Störungsbilanz</h2>
-      <div class="board-spans" role="group" aria-label="Zeitraum">
-        <button type="button" class="board-span" data-span="week" data-i18n="spanWeek">Woche</button>
-        <button type="button" class="board-span active" data-span="month" data-i18n="spanMonth">Monat</button>
-        <button type="button" class="board-span" data-span="year" data-i18n="spanYear">Jahr</button>
-        <button type="button" class="board-span" data-span="all" data-i18n="spanAll">Gesamt</button>
-      </div>
-    </div>
-    <p class="board-intro" data-i18n="boardIntro">Jede Geschichte hier zählt oben mit. Heute auch was davon erlebt, aber keine Lust zu schreiben? Kachel antippen, Strecke und Zeit angeben, der Zähler geht eins hoch. Ein Tipp pro Elend und Tag – wir zählen Leid, wir blähen es nicht auf.</p>
-    <div id="board" class="board"></div>
-    <!-- a tap asks where and when before it counts: the compose form's leg
-         fields, without the story -->
-    <form id="tap-form" class="compose-form tap-form hidden">
-      <h3 id="tap-title" class="tap-title"></h3>
-      <div class="compose-row">
-        <div class="field autocomplete-wrap">
-          <label for="q-from" data-i18n="fromLabel">Von</label>
-          <input id="q-from" type="text" minlength="2" maxlength="80" required autocomplete="off" data-i18n-placeholder="fromPlaceholder" placeholder="z.B. Hannover Hbf">
-          <div class="dropdown" id="q-from-dropdown"></div>
-        </div>
-        <div class="field autocomplete-wrap">
-          <label for="q-to" data-i18n="toLabel">Nach</label>
-          <input id="q-to" type="text" maxlength="80" autocomplete="off" data-i18n-placeholder="toPlaceholder" placeholder="z.B. Berlin Hbf">
-          <div class="dropdown" id="q-to-dropdown"></div>
-        </div>
-      </div>
-      <div class="compose-row">
-        <div class="field">
-          <label for="q-date" data-i18n="dateLabel">Datum</label>
-          <input id="q-date" type="date">
-        </div>
-        <div class="field">
-          <label for="q-time" data-i18n="timeLabel">Uhrzeit</label>
-          <input id="q-time" type="time">
-        </div>
-        <div class="field">
-          <label for="q-train" data-i18n="trainLabel">Zug (optional)</label>
-          <input id="q-train" type="text" maxlength="20" autocomplete="off" data-i18n-placeholder="trainPlaceholder" placeholder="z.B. ICE 574">
-        </div>
-      </div>
-      <!-- only the "other" tile has something to spell out -->
-      <div id="q-other-field" class="field tap-other hidden">
-        <label for="q-other" data-i18n="otherLabel">Was war sonst los?</label>
-        <input id="q-other" type="text" maxlength="80" autocomplete="off" data-i18n-placeholder="tapOtherPlaceholder" placeholder="z.B. Tür klemmte, Durchsage nur auf Klingonisch">
-      </div>
-      <div class="tap-actions">
-        <button type="submit" class="search-btn" data-i18n="tapSend">Mitzählen</button>
-        <button type="button" id="tap-cancel" class="act" data-i18n="cancel">Abbrechen</button>
-      </div>
-      <p id="tap-status" class="compose-status" role="status"></p>
-    </form>
-  </section>
-
   <section class="compose">
     <button id="compose-toggle" class="compose-cta" type="button" data-i18n="composeToggle">+ Geschichte erzählen</button>
     <form id="compose-form" class="compose-form hidden">
@@ -153,6 +97,62 @@
       <p class="compose-note" data-i18n="composeNote">Beiträge erscheinen öffentlich unter deinem Benutzernamen.</p>
       <button type="submit" class="search-btn" data-i18n="composeSend">Veröffentlichen</button>
       <p id="compose-status" class="compose-status" role="status"></p>
+    </form>
+  </section>
+
+  <!-- the tally of everything reported, as a little departure board -->
+  <section class="board-section">
+    <div class="board-head">
+      <h2 data-i18n="boardHeading">Störungsbilanz</h2>
+      <div class="board-spans" role="group" aria-label="Zeitraum">
+        <button type="button" class="board-span" data-span="week" data-i18n="spanWeek">Woche</button>
+        <button type="button" class="board-span active" data-span="month" data-i18n="spanMonth">Monat</button>
+        <button type="button" class="board-span" data-span="year" data-i18n="spanYear">Jahr</button>
+        <button type="button" class="board-span" data-span="all" data-i18n="spanAll">Gesamt</button>
+      </div>
+    </div>
+    <p class="board-intro" data-i18n="boardIntro">Jede Geschichte hier zählt oben mit. Heute auch was davon erlebt, aber keine Lust zu schreiben? Kachel antippen, Strecke und Zeit angeben, der Zähler geht eins hoch. Ein Tipp pro Elend und Tag – wir zählen Leid, wir blähen es nicht auf.</p>
+    <div id="board" class="board"></div>
+    <!-- a tap asks where and when before it counts: the compose form's leg
+         fields, without the story -->
+    <form id="tap-form" class="compose-form tap-form hidden">
+      <h3 id="tap-title" class="tap-title"></h3>
+      <div class="compose-row">
+        <div class="field autocomplete-wrap">
+          <label for="q-from" data-i18n="fromLabel">Von</label>
+          <input id="q-from" type="text" minlength="2" maxlength="80" required autocomplete="off" data-i18n-placeholder="fromPlaceholder" placeholder="z.B. Hannover Hbf">
+          <div class="dropdown" id="q-from-dropdown"></div>
+        </div>
+        <div class="field autocomplete-wrap">
+          <label for="q-to" data-i18n="toLabel">Nach</label>
+          <input id="q-to" type="text" maxlength="80" autocomplete="off" data-i18n-placeholder="toPlaceholder" placeholder="z.B. Berlin Hbf">
+          <div class="dropdown" id="q-to-dropdown"></div>
+        </div>
+      </div>
+      <div class="compose-row">
+        <div class="field">
+          <label for="q-date" data-i18n="dateLabel">Datum</label>
+          <input id="q-date" type="date">
+        </div>
+        <div class="field">
+          <label for="q-time" data-i18n="timeLabel">Uhrzeit</label>
+          <input id="q-time" type="time">
+        </div>
+        <div class="field">
+          <label for="q-train" data-i18n="trainLabel">Zug (optional)</label>
+          <input id="q-train" type="text" maxlength="20" autocomplete="off" data-i18n-placeholder="trainPlaceholder" placeholder="z.B. ICE 574">
+        </div>
+      </div>
+      <!-- only the "other" tile has something to spell out -->
+      <div id="q-other-field" class="field tap-other hidden">
+        <label for="q-other" data-i18n="otherLabel">Was war sonst los?</label>
+        <input id="q-other" type="text" maxlength="80" autocomplete="off" data-i18n-placeholder="tapOtherPlaceholder" placeholder="z.B. Tür klemmte, Durchsage nur auf Klingonisch">
+      </div>
+      <div class="tap-actions">
+        <button type="submit" class="search-btn" data-i18n="tapSend">Mitzählen</button>
+        <button type="button" id="tap-cancel" class="act" data-i18n="cancel">Abbrechen</button>
+      </div>
+      <p id="tap-status" class="compose-status" role="status"></p>
     </form>
   </section>
 
