@@ -47,8 +47,15 @@ Three places, kept in step:
 - `static/sw.js` — the matching `PRECACHE` URLs, so they point at the new `?v=`
 
 All of them, or the bump does not take effect — and note that a stylesheet change
-makes it four sites, not three, since `style.css?v=N` appears in both files. Skip
-entirely for backend-only changes.
+makes it four sites, not three, since `style.css?v=N` appears in both files. Other
+pages that pin `style.css?v=N` (stories, login, verify, impressum) move with it.
+Skip entirely for backend-only changes.
+
+Buster numbers are a global namespace across every session and branch, not a
+per-branch counter: before picking the next number, check what production is
+already serving (`curl -sI "https://delaybahn.com/style.css?v=N"` — a
+`cf-cache-status: HIT` means N is taken) and go one past the highest number
+anyone has used, not one past what your branch sees.
 
 ## 3. Update the docs (required — a hook enforces it)
 
@@ -126,6 +133,24 @@ sets the flag either way and the later pop lands somebody else's stash on the tr
 An earlier version of this file asserted the opposite, and that is what silently
 dropped staged files on 2026-08-14. The decision to stash comes from reading
 `git status`, never from a return code.
+
+### After the merge: burned busters
+
+If the merge touched `?v=` pins or `SHELL_VERSION` and BOTH sides had bumped
+them, identical values on the two sides are the *dangerous* case, not the safe
+one — the merge auto-resolves them without a conflict, but the other branch may
+already have deployed that number with different file content, and Cloudflare
+then serves the old cached copy under the new build (2026-08-24: the Delay
+Stories card shipped as unstyled blue links this way; hotfix 6ca652e). A number
+is burned the moment any deploy has served it.
+
+So after any such merge, before deploying: bump every colliding pin one further
+(style + its six referencing pages, `SHELL_VERSION`, PRECACHE) in the merge
+resolution or a follow-up commit. A skipped number costs nothing; a burned one
+ships invisible CSS. After deploying, confirm the new URL actually carries the
+change: `curl -s "https://delaybahn.com/style.css?v=<new>" | grep <new-selector>`
+and check the deploy output's `Updating <old>..<new>` line — if the server's
+`<old>` already contained the other branch's bump, that number was burned.
 
 ## 7. Remove the worktree
 

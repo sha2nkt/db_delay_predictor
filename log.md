@@ -1088,3 +1088,8 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - Fix: style.css pin to **v=85** in all six pages that carry it, `SHELL_VERSION` **v41** so PWA clients whose v40 shell precached the chevron-era v84 drop it. app.js stays v=105 - that URL first went live with the correct merged content.
 - Lesson for the next same-day collision: identical buster bumps on both sides of a merge are not "no conflict", they are the *worst* case - the version is burned if either side deployed. After any merge that touched busters, check what the server is already running (the deploy diff's old commit says exactly that) and bump one further if in doubt; a wasted version number costs nothing.
 - Verified after deploy: `style.css?v=85` through Cloudflare contains the `stories-cta` rules and the homepage references v=85; /health ok.
+
+## 2026-08-24 — The burned-buster lesson goes into the commit-and-push skill
+
+- Two insertions in `.claude/skills/commit-and-push/SKILL.md`, from the same-day incident (hotfix 6ca652e): step 2 now says buster numbers are a global namespace across sessions/branches — check what production already serves (`curl -sI`, `cf-cache-status: HIT` = taken) before picking the next number — and a new subsection after the merge step spells out that identical buster bumps on both sides of a merge are the dangerous case: the number is burned if either side deployed, so bump one further before deploying and verify the new URL carries the change.
+- No busters: process docs only, nothing served changes. Deploy keeps the server checkout in step.
