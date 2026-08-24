@@ -52,10 +52,19 @@ pages that pin `style.css?v=N` (stories, login, verify, impressum) move with it.
 Skip entirely for backend-only changes.
 
 Buster numbers are a global namespace across every session and branch, not a
-per-branch counter: before picking the next number, check what production is
-already serving (`curl -sI "https://delaybahn.com/style.css?v=N"` — a
-`cf-cache-status: HIT` means N is taken) and go one past the highest number
-anyone has used, not one past what your branch sees.
+per-branch counter: before picking the next number, find the highest number
+anyone has used and go one past it, not one past what your branch sees. Read
+the pins from the HTML documents, which are served no-cache
+(`curl -4 -s https://delaybahn.com/stories | grep -o 'v=[0-9]*'`, likewise `/`
+and `/sw.js`), and grep the other remote branches for higher pins.
+
+**Never request an asset URL with a candidate number before it is deployed** —
+not with `curl -sI` either. Cloudflare stores whatever origin returns under
+that key, and before the deploy that is the *old* file: on 2026-08-24 a HEAD
+probe of `style.css?v=86` cached the previous stylesheet under the new number,
+the deploy then served stale CSS, and the fix cost a second bump and deploy
+(the probe also burned the next numbers it "checked"). The only safe request to
+a new number is the post-deploy GET below.
 
 ## 3. Update the docs (required — a hook enforces it)
 
