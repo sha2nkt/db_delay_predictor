@@ -823,6 +823,9 @@ PAGE_PATHS = {
 }
 
 STORIES_PATHS = {"de": "/geschichten", "en": "/stories"}
+STORIES_LOGO = {"de": "/logo_delay_stories_square_german.png",
+                "en": "/logo_delay_stories_square.png"}
+STORIES_ALT = {"de": "Delay Geschichten", "en": "Delay Stories"}
 
 OG_LOCALE = {"de": "de_DE", "en": "en_US"}
 
@@ -950,6 +953,9 @@ def _page_html(mode: str, lang: str) -> str:
         (r'(<a id="refund-cta" class="refund-cta" href=")[^"]*', rf"\g<1>{past}"),
         (r'(<a id="past-exit" class="past-exit" href=")[^"]*', rf"\g<1>{home}"),
         (r'(<a href=")[^"]*(" data-i18n="footerStories")', rf"\g<1>{STORIES_PATHS[lang]}\g<2>"),
+        (r'(<a id="stories-cta" class="stories-cta" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
+        (r'(<img id="stories-cta-logo" src=")[^"]*(" alt=")[^"]*',
+         rf"\g<1>{STORIES_LOGO[lang]}\g<2>{STORIES_ALT[lang]}"),
     ]
     if lang == "en":
         subs += [

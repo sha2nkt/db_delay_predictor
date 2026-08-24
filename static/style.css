@@ -524,6 +524,37 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
 .refund-cta.hidden { display: none; }
 body.past-mode .refund-cta { display: none; }
 
+.stories-cta {
+  display: flex; align-items: center; gap: 16px;
+  margin-top: 20px; padding: 12px 18px;
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 10px;
+  text-decoration: none; box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.stories-cta:hover {
+  box-shadow: 0 3px 12px rgba(0,0,0,.16);
+  border-color: color-mix(in srgb, var(--brand-red) 40%, var(--gray-border));
+}
+/* the logo carries the wordmark, so the text column never repeats the name */
+.stories-cta img { width: 80px; height: 80px; flex: none; }
+.stories-cta-text { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.stories-cta-new {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--brand-red);
+  background: color-mix(in srgb, var(--brand-red) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--brand-red) 35%, #fff);
+  border-radius: 999px; padding: 2px 8px;
+}
+.stories-cta-lead { font-size: 14px; line-height: 1.45; color: var(--text); }
+.stories-cta-go { font-size: 13px; font-weight: 600; color: var(--brand-red); }
+.stories-cta:hover .stories-cta-go { text-decoration: underline; }
+.stories-cta.hidden { display: none; }
+body.past-mode .stories-cta { display: none; }
+@media (max-width: 700px) {
+  .stories-cta { gap: 12px; padding: 10px 14px; }
+  .stories-cta img { width: 64px; height: 64px; }
+}
+
 .past-banner {
   display: none; flex-basis: 100%;
   align-items: baseline; gap: 10px; flex-wrap: wrap;
