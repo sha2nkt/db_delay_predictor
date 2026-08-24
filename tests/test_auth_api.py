@@ -663,9 +663,12 @@ def test_comment_votes_and_ownership_over_http(client, wiring):
     comment = client.post(f"/api/stories/{story['id']}/comments",
                           json={"text": "mine"}).json()
 
+    # a pre-downvote cached script still sends booleans; True must mean +1
     voted = client.post(f"/api/comments/{comment['id']}/vote", json={"vote": True})
-    assert voted.json() == {"score": 1, "voted": True}
-    assert client.get(f"/api/stories/{story['id']}/comments").json()[0]["voted"] is True
+    assert voted.json() == {"score": 1, "voted": 1}
+    assert client.get(f"/api/stories/{story['id']}/comments").json()[0]["voted"] == 1
+    down = client.post(f"/api/comments/{comment['id']}/vote", json={"vote": -1})
+    assert down.json() == {"score": -1, "voted": -1}
 
     assert client.patch(f"/api/comments/{comment['id']}",
                         json={"text": "reworded"}).json()["text"] == "reworded"
@@ -762,6 +765,78 @@ def test_stories_page_has_one_url_per_language(client):
     # the old spellings still land somewhere
     for path in ("/stories/", "/stories.html", "/geschichten/"):
         assert client.get(path, follow_redirects=False).status_code == 301
+
+
+def test_a_story_has_a_permalink_page_in_each_language(client, wiring):
+    story = _own_story(client, wiring)
+    sid = story["id"]
+    client.patch(f"/api/stories/{sid}",
+                 json={"title": 'Gleis 9 & "Nacht"', "text": "Zwanzig Minuten " * 20})
+    de = client.get(f"/geschichten/{sid}")
+    en = client.get(f"/stories/{sid}")
+    assert de.status_code == en.status_code == 200
+    # the story, not the board, is what a shared link unfurls as - user text escaped
+    assert "<title>Gleis 9 &amp; &quot;Nacht&quot; – Delay Geschichten</title>" in de.text
+    assert "<title>Gleis 9 &amp; &quot;Nacht&quot; – Delay Stories</title>" in en.text
+    assert '<meta property="og:type" content="article">' in de.text
+    assert '<meta property="og:description" content="Zwanzig Minuten Zwanzig' in de.text
+    assert "Minuten…\">" in de.text  # cut at a word boundary, not mid-word
+    assert f'<link rel="canonical" href="https://delaybahn.com/geschichten/{sid}">' in de.text
+    assert f'<link rel="canonical" href="https://delaybahn.com/stories/{sid}">' in en.text
+    for page in (de, en):
+        assert f'hreflang="de" href="https://delaybahn.com/geschichten/{sid}"' in page.text
+        assert f'hreflang="en" href="https://delaybahn.com/stories/{sid}"' in page.text
+        assert f'<a href="/stories/{sid}" hreflang="en"' in page.text
+    # the rest of the page is the board in that language, as before
+    assert '<html lang="en">' in en.text
+    assert '<a class="logo-link" href="/stories">' in en.text
+    assert 'data-i18n="permalinkHead">Shared story<' in en.text
+    # a dead link is a 404 that still carries the page, not a JSON error
+    gone = client.get("/stories/999")
+    assert gone.status_code == 404 and 'data-i18n="permalinkHead"' in gone.text
+    assert client.get("/stories/abc").status_code == 404
+
+
+def test_a_story_embeds_as_a_standalone_card(client, wiring):
+    story = _own_story(client, wiring)
+    sid = story["id"]
+    client.post(f"/api/stories/{sid}/comments", json={"text": "same here"})
+    tagged = client.post("/api/stories", json={
+        "from_station": "Hannover Hbf", "to_station": "Berlin Hbf", "title": "Tagged",
+        "text": "y" * 20, "problems": ["delay", "other"], "problem_other": "Tür klemmte",
+    }).json()
+    en = client.get(f"/embed/stories/{sid}")
+    de = client.get(f"/embed/geschichten/{sid}")
+    assert en.status_code == de.status_code == 200
+    # meant for other sites' iframes: frameable, unindexed, links open the parent
+    assert "x-frame-options" not in {k.lower() for k in en.headers}
+    assert '<meta name="robots" content="noindex">' in en.text
+    assert '<base target="_top">' in en.text
+    assert f'<h1><a href="https://delaybahn.com/stories/{sid}">Stranded</a></h1>' in en.text
+    assert f'<h1><a href="https://delaybahn.com/geschichten/{sid}">Stranded</a></h1>' in de.text
+    assert "1 comment" in en.text and "1 Kommentar" in de.text
+    assert "Read on DelayBahn" in en.text and "Auf DelayBahn lesen" in de.text
+    assert "Jonas" in en.text
+    tags_en = client.get(f"/embed/stories/{tagged['id']}").text
+    tags_de = client.get(f"/embed/geschichten/{tagged['id']}").text
+    assert "Hannover Hbf → Berlin Hbf" in tags_en
+    assert '<span class="tag">Delayed</span><span class="tag">Tür klemmte</span>' in tags_en
+    assert '<span class="tag">Verspätung</span>' in tags_de
+    assert client.get("/embed/stories/999").status_code == 404
+    # a removed story has nothing to embed, tombstone or not
+    client.delete(f"/api/stories/{sid}")
+    assert client.get(f"/embed/stories/{sid}").status_code == 404
+
+
+def test_a_single_story_is_fetchable_by_id(client, wiring):
+    story = _own_story(client, wiring)
+    client.post(f"/api/stories/{story['id']}/vote", json={"vote": 1})
+    one = client.get(f"/api/stories/{story['id']}")
+    assert one.status_code == 200
+    assert (one.json()["title"], one.json()["voted"]) == ("Stranded", 1)
+    assert client.get("/api/stories/999").status_code == 404
+    # the fixed problems path still wins over the id route
+    assert client.get("/api/stories/problems").status_code == 200
 
 
 def test_home_footer_links_to_the_stories_page_in_its_language(client):

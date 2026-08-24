@@ -50,17 +50,47 @@ def test_new_lists_latest_first_and_paginates():
 def test_vote_dedup_and_toggle():
     story = make()
     alice, bob = user("alice"), user("bob")
-    assert stories.set_vote(story["id"], alice, True) == {"score": 1, "voted": True}
+    assert stories.set_vote(story["id"], alice, 1) == {"score": 1, "voted": 1}
     # the same account voting again is a no-op, not a second vote
-    assert stories.set_vote(story["id"], alice, True)["score"] == 1
-    assert stories.set_vote(story["id"], bob, True)["score"] == 2
-    assert stories.set_vote(story["id"], alice, False) == {"score": 1, "voted": False}
+    assert stories.set_vote(story["id"], alice, 1)["score"] == 1
+    assert stories.set_vote(story["id"], bob, 1)["score"] == 2
+    assert stories.set_vote(story["id"], alice, 0) == {"score": 1, "voted": 0}
     # clearing a vote that isn't there stays a no-op
-    assert stories.set_vote(story["id"], alice, False)["score"] == 1
+    assert stories.set_vote(story["id"], alice, 0)["score"] == 1
 
 
 def test_vote_on_missing_story():
-    assert stories.set_vote(999, user("alice"), True) is None
+    assert stories.set_vote(999, user("alice"), 1) is None
+
+
+def test_get_story_is_per_viewer_and_keeps_a_tombstone():
+    story = make(author="Max")
+    alice, bob = user("alice"), user("bob")
+    stories.set_vote(story["id"], alice, 1)
+    assert stories.get_story(story["id"], alice)["voted"] == 1
+    assert stories.get_story(story["id"], bob)["voted"] == 0
+    assert stories.get_story(story["id"])["title"] == "Stranded at platform 9"
+    assert stories.get_story(999) is None
+    # a replied-to story leaves a tombstone the permalink can still show
+    stories.add_comment(story["id"], None, "Meike", "same here")
+    stories.delete_story(story["id"], "Max")
+    assert stories.get_story(story["id"])["deleted"] is True
+
+
+def test_votes_are_reddit_style():
+    """Score is ups minus downs; one account holds one signed vote, and setting
+    the opposite direction switches it rather than stacking a second row."""
+    alice, bob, cara = user("alice"), user("bob"), user("cara")
+    story = make()
+    assert stories.set_vote(story["id"], alice, 1)["score"] == 1
+    assert stories.set_vote(story["id"], bob, -1) == {"score": 0, "voted": -1}
+    assert stories.set_vote(story["id"], cara, -1)["score"] == -1
+    # bob switches down -> up directly: net moves by two, not one
+    assert stories.set_vote(story["id"], bob, 1)["score"] == 1
+    # clearing leaves the others' votes alone
+    assert stories.set_vote(story["id"], cara, 0)["score"] == 2
+    assert stories.list_stories("new", 1, 0, cara)[0]["voted"] == 0
+    assert stories.list_stories("new", 1, 0, bob)[0]["voted"] == 1
 
 
 def test_top_excludes_unvoted_and_orders_by_score():
@@ -109,10 +139,10 @@ def test_voted_flag_is_per_viewer():
     story = make()
     alice, bob = user("alice"), user("bob")
     stories.set_vote(story["id"], alice, True)
-    assert stories.list_stories("new", 1, 0, alice)[0]["voted"] is True
-    assert stories.list_stories("new", 1, 0, bob)[0]["voted"] is False
+    assert stories.list_stories("new", 1, 0, alice)[0]["voted"] == 1
+    assert stories.list_stories("new", 1, 0, bob)[0]["voted"] == 0
     # anonymous readers never see a voted arrow
-    assert stories.list_stories("new", 1, 0, None)[0]["voted"] is False
+    assert stories.list_stories("new", 1, 0, None)[0]["voted"] == 0
 
 
 def test_comments_thread_and_count():
@@ -270,12 +300,12 @@ def test_comment_votes_are_per_account_and_toggle():
     story = make()
     c = stories.add_comment(story["id"], None, "Max", "hi")
     max_id, meike_id = user("Max"), user("Meike")
-    assert stories.set_comment_vote(c["id"], max_id, True) == {"score": 1, "voted": True}
-    assert stories.set_comment_vote(c["id"], max_id, True) == {"score": 1, "voted": True}
-    assert stories.set_comment_vote(c["id"], meike_id, True)["score"] == 2
-    assert stories.set_comment_vote(c["id"], max_id, False) == {"score": 1, "voted": False}
-    assert stories.list_comments(story["id"], meike_id)[0]["voted"] is True
-    assert stories.list_comments(story["id"], max_id)[0]["voted"] is False
+    assert stories.set_comment_vote(c["id"], max_id, 1) == {"score": 1, "voted": 1}
+    assert stories.set_comment_vote(c["id"], max_id, 1) == {"score": 1, "voted": 1}
+    assert stories.set_comment_vote(c["id"], meike_id, 1)["score"] == 2
+    assert stories.set_comment_vote(c["id"], max_id, -1) == {"score": 0, "voted": -1}
+    assert stories.list_comments(story["id"], meike_id)[0]["voted"] == 1
+    assert stories.list_comments(story["id"], max_id)[0]["voted"] == -1
 
 
 def test_a_leaf_comment_is_deleted_but_a_replied_one_is_tombstoned():
@@ -308,7 +338,7 @@ def test_a_removed_comment_cannot_be_voted_on():
     parent = stories.add_comment(story["id"], None, "Max", "parent")
     stories.add_comment(story["id"], parent["id"], "Meike", "reply")
     stories.delete_comment(parent["id"], "Max")
-    assert stories.set_comment_vote(parent["id"], user("Max"), True) is None
+    assert stories.set_comment_vote(parent["id"], user("Max"), 1) is None
 
 
 # --- the tally board --------------------------------------------------------

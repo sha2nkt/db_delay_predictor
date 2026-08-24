@@ -83,6 +83,18 @@ const I18N = {
     errEdit: "Konnte nicht gespeichert werden.",
     errDelete: "Konnte nicht gelöscht werden.",
     upvoteTitle: "Gefällt mir",
+    downvoteTitle: "Gefällt mir nicht",
+    share: "Teilen",
+    copyLink: "Link kopieren",
+    embed: "Einbetten",
+    linkCopied: "Link kopiert",
+    copy: "Kopieren",
+    copied: "Kopiert",
+    embedLead: "Diesen Code in deine Seite einfügen – die Geschichte erscheint dort als Karte:",
+    copyBlocked: "Kopieren ist hier blockiert – Text markieren und selbst kopieren.",
+    permalinkHead: "Geteilte Geschichte",
+    permalinkGone: "Diese Geschichte gibt es nicht mehr.",
+    embedRead: "Auf DelayBahn lesen",
     comments0: "Kommentieren",
     comments1: "1 Kommentar",
     commentsN: "{n} Kommentare",
@@ -180,6 +192,18 @@ const I18N = {
     errEdit: "Could not save that.",
     errDelete: "Could not delete that.",
     upvoteTitle: "Upvote",
+    downvoteTitle: "Downvote",
+    share: "Share",
+    copyLink: "Copy link",
+    embed: "Embed",
+    linkCopied: "Link copied",
+    copy: "Copy",
+    copied: "Copied",
+    embedLead: "Paste this code into your page – the story shows up there as a card:",
+    copyBlocked: "Copying is blocked here – select the text and copy it yourself.",
+    permalinkHead: "Shared story",
+    permalinkGone: "That story is gone.",
+    embedRead: "Read on DelayBahn",
     comments0: "Comment",
     comments1: "1 comment",
     commentsN: "{n} comments",
@@ -220,6 +244,9 @@ function el(tag, cls, text) {
   if (text != null) node.textContent = text;
   return node;
 }
+
+// a masked line icon (style.css .ico-*), in the color of the text around it
+const icon = (name) => el("span", "ico ico-" + name);
 
 /* -- identity: the HttpOnly session cookie; `me` mirrors /api/auth/me -- */
 let me = null;
@@ -262,47 +289,43 @@ function timeAgo(ts) {
   return days === 1 ? t("dayAgo1") : fmt("dayAgo", days);
 }
 
-/* -- voting -- */
-async function toggleCommentVote(comment) {
-  if (!me) { toLogin(); return; }
-  try {
-    const res = await postJSON("/api/comments/" + comment.id + "/vote",
-      { vote: !comment.voted });
-    comment.score = res.score;
-    comment.voted = res.voted;
-    track(res.voted ? "comment-vote" : "comment-unvote");
-  } catch (e) {
-    if (e.status === 401) { toLogin(); return; }
-    /* otherwise leave the arrow as it was */
-  }
-  updateVoteEls(comment, "comment");
+/* -- voting, Reddit-style: 1/-1/0; the same arrow again clears, the
+   opposite arrow switches, the count everywhere is ups minus downs -- */
+function voteEvent(kind, dir) {
+  return dir === 1 ? kind + "-vote" : dir === -1 ? kind + "-downvote" : kind + "-unvote";
 }
 
-async function toggleVote(story) {
+async function castVote(item, kind, dir) {
   if (!me) { toLogin(); return; }
+  const target = item.voted === dir ? 0 : dir;
+  const path = kind === "story" ? "/api/stories/" + item.id + "/vote"
+                                : "/api/comments/" + item.id + "/vote";
   try {
-    const res = await postJSON("/api/stories/" + story.id + "/vote",
-      { vote: !story.voted });
-    story.score = res.score;
-    story.voted = res.voted;
-    track(res.voted ? "story-vote" : "story-unvote");
+    const res = await postJSON(path, { vote: target });
+    item.score = res.score;
+    item.voted = res.voted;
+    track(voteEvent(kind, res.voted));
   } catch (e) {
     if (e.status === 401) { toLogin(); return; } // session expired mid-visit
-    /* otherwise leave the arrow as it was */
+    /* otherwise leave the arrows as they were */
   }
-  updateVoteEls(story, "story");
+  updateVoteEls(item, kind);
 }
 
-// a story can be on screen twice (top strip + newest list); update every copy
+// a story can be on screen twice (top strip + newest list), and its votes in
+// two places per card (side column + action bar); update every copy
 function updateVoteEls(item, kind) {
-  const sel = '.vote-col[data-vote-kind="' + kind + '"][data-vote-id="' + item.id + '"]';
+  const sel = '[data-vote-kind="' + kind + '"][data-vote-id="' + item.id + '"]';
   document.querySelectorAll(sel).forEach((col) => {
-    col.querySelector(".vote-count").textContent = item.score;
-    col.querySelector(".vote-btn").classList.toggle("voted", item.voted);
+    const count = col.querySelector(".vote-count");
+    if (count) count.textContent = item.score;
+    col.querySelector(".vote-up").classList.toggle("voted", item.voted === 1);
+    const down = col.querySelector(".vote-down");
+    if (down) down.classList.toggle("voted-down", item.voted === -1);
   });
   if (kind !== "story") return;
   document.querySelectorAll('.top-score[data-story-id="' + item.id + '"]').forEach((s) => {
-    s.textContent = "▲ " + item.score;
+    s.querySelector(".top-num").textContent = item.score;
   });
 }
 
@@ -325,6 +348,15 @@ function closeMenu() {
 }
 document.addEventListener("click", closeMenu);
 
+function attachMenuToggle(wrap, btn) {
+  btn.addEventListener("click", (ev) => {
+    ev.stopPropagation();  // the document listener would close it again
+    const wasOpen = wrap.classList.contains("open");
+    closeMenu();
+    if (!wasOpen) { wrap.classList.add("open"); openMenu = wrap; }
+  });
+}
+
 function overflowMenu(onEdit, onDelete) {
   const wrap = el("div", "menu");
   const btn = el("button", "menu-btn", "···");
@@ -337,29 +369,133 @@ function overflowMenu(onEdit, onDelete) {
   const del = el("button", "menu-item danger", t("del"));
   del.type = "button";
   list.append(edit, del);
-  btn.addEventListener("click", (ev) => {
-    ev.stopPropagation();  // the document listener would close it again
-    const wasOpen = wrap.classList.contains("open");
-    closeMenu();
-    if (!wasOpen) { wrap.classList.add("open"); openMenu = wrap; }
-  });
+  attachMenuToggle(wrap, btn);
   edit.addEventListener("click", () => { closeMenu(); onEdit(); });
   del.addEventListener("click", () => { closeMenu(); onDelete(); });
   wrap.append(btn, list);
   return wrap;
 }
 
-function voteColumn(item, kind, onToggle) {
+function arrowBtn(item, kind, dir) {
+  const cls = dir === 1 ? "vote-btn vote-up" + (item.voted === 1 ? " voted" : "")
+                        : "vote-btn vote-down" + (item.voted === -1 ? " voted-down" : "");
+  const btn = el("button", cls);
+  btn.append(icon(dir === 1 ? "up" : "down"));
+  btn.type = "button";
+  const label = t(dir === 1 ? "upvoteTitle" : "downvoteTitle");
+  btn.title = label;
+  btn.setAttribute("aria-label", label);
+  btn.addEventListener("click", () => castVote(item, kind, dir));
+  return btn;
+}
+
+// the side column: the up arrow with the net count under it. A comment has no
+// action bar, so its column carries the down arrow too, old-Reddit style; a
+// story's down arrow lives in the bar under the text instead.
+function voteColumn(item, kind) {
   const col = el("div", "vote-col");
   col.dataset.voteKind = kind;
   col.dataset.voteId = item.id;
-  const btn = el("button", "vote-btn" + (item.voted ? " voted" : ""), "▲");
-  btn.type = "button";
-  btn.title = t("upvoteTitle");
-  btn.setAttribute("aria-label", t("upvoteTitle"));
-  btn.addEventListener("click", () => onToggle());
-  col.append(btn, el("span", "vote-count", item.score));
+  col.append(arrowBtn(item, kind, 1), el("span", "vote-count", item.score));
+  if (kind === "comment") col.append(arrowBtn(item, kind, -1));
   return col;
+}
+
+// the up/down pair in a story's action bar, next to "comment"
+function voteBar(story) {
+  const bar = el("span", "vote-inline");
+  bar.dataset.voteKind = "story";
+  bar.dataset.voteId = story.id;
+  bar.append(arrowBtn(story, "story", 1), arrowBtn(story, "story", -1));
+  return bar;
+}
+
+/* -- sharing: the permalink to copy, or an iframe snippet for other sites -- */
+const STORY_PATH = lang === "en" ? "/stories/" : "/geschichten/";
+const storyUrl = (story) => location.origin + STORY_PATH + story.id;
+
+function embedCode(story) {
+  const title = (t("logoAlt") + ": " + story.title).replace(/"/g, "&quot;");
+  return '<iframe src="' + location.origin + "/embed" + STORY_PATH + story.id + '"'
+    + ' width="100%" height="360" style="border:0;max-width:640px" loading="lazy"'
+    + ' title="' + title + '"></iframe>';
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    return false;  // no clipboard API (plain http, old browser) or permission denied
+  }
+}
+
+// after a copy the button says so for a moment, then goes back to its label
+function flash(labelEl, text, back) {
+  labelEl.textContent = text;
+  setTimeout(() => { labelEl.textContent = back; }, 1600);
+}
+
+// the panel under the action bar: the embed snippet, or the bare link when
+// the clipboard is off limits, in a read-only box with its own copy button
+function showSharePanel(panel, mode, lead, code) {
+  panel.textContent = "";
+  panel.dataset.mode = mode;
+  panel.append(el("p", "share-lead", lead));
+  const field = el("textarea", "share-code");
+  field.readOnly = true;
+  field.rows = mode === "embed" ? 3 : 1;
+  field.value = code;
+  field.addEventListener("focus", () => field.select());
+  const copyBtn = el("button", "act share-copy", t("copy"));
+  copyBtn.type = "button";
+  copyBtn.addEventListener("click", async () => {
+    field.select();
+    flash(copyBtn, (await copyText(code)) ? t("copied") : t("copyBlocked"), t("copy"));
+  });
+  const row = el("div", "share-panel-row");
+  row.append(copyBtn);
+  panel.append(field, row);
+  panel.classList.remove("hidden");
+}
+
+function shareMenu(story, panel) {
+  const wrap = el("div", "menu share-menu");
+  const btn = el("button", "act share-btn");
+  btn.type = "button";
+  const label = el("span", "share-label", t("share"));
+  btn.append(icon("share"), label);
+  const list = el("div", "menu-list");
+  const link = el("button", "menu-item");
+  link.type = "button";
+  link.append(icon("link"), el("span", null, t("copyLink")));
+  const embed = el("button", "menu-item");
+  embed.type = "button";
+  embed.append(icon("code"), el("span", null, t("embed")));
+  list.append(link, embed);
+  attachMenuToggle(wrap, btn);
+  link.addEventListener("click", async () => {
+    closeMenu();
+    track("story-share-link");
+    const url = storyUrl(story);
+    if (await copyText(url)) {
+      panel.classList.add("hidden");
+      flash(label, t("linkCopied"), t("share"));
+    } else {
+      showSharePanel(panel, "link", t("copyBlocked"), url);
+    }
+  });
+  embed.addEventListener("click", () => {
+    closeMenu();
+    if (panel.dataset.mode === "embed" && !panel.classList.contains("hidden")) {
+      panel.classList.add("hidden");  // the same entry again folds it away
+      return;
+    }
+    track("story-share-embed");
+    showSharePanel(panel, "embed", t("embedLead"), embedCode(story));
+  });
+  wrap.append(btn, list);
+  return wrap;
 }
 
 /* -- story cards -- */
@@ -429,8 +565,9 @@ function storyCard(story) {
   commentsBtn.type = "button";
   commentsBtn.addEventListener("click", () => toggleComments(story, commentsBtn, commentsWrap));
 
+  const share = el("div", "share-panel hidden");
   const bar = el("div", "story-actions");
-  bar.append(commentsBtn);
+  bar.append(voteBar(story), commentsBtn, shareMenu(story, share));
   if (mine(story)) {
     bar.append(overflowMenu(
       () => editStory(card, story),
@@ -443,9 +580,9 @@ function storyCard(story) {
   tags.forEach((label) => tagRow.append(el("span", "story-tag", label)));
   body.append(el("h3", "story-title", story.title), meta);
   if (tags.length) body.append(tagRow);
-  body.append(storyText(story.text), bar, commentsWrap);
+  body.append(storyText(story.text), bar, share, commentsWrap);
 
-  card.append(voteColumn(story, "story", () => toggleVote(story)), body);
+  card.append(voteColumn(story, "story"), body);
   return card;
 }
 
@@ -593,7 +730,7 @@ function renderComments(story, wrap, btn, list) {
           () => removeComment(story, wrap, btn, c)));
       }
       cbody.append(meta, body, bar);
-      node.append(voteColumn(c, "comment", () => toggleCommentVote(c)), cbody, kids);
+      node.append(voteColumn(c, "comment"), cbody, kids);
       container.append(node);
       renderLevel(c.id, kids, depth + 1);
     });
@@ -722,8 +859,9 @@ function topRow(story) {
   const li = el("li", "top-row");
   const line = el("button", "top-line");
   line.type = "button";
-  const score = el("span", "top-score", "▲ " + story.score);
+  const score = el("span", "top-score");
   score.dataset.storyId = story.id;
+  score.append(icon("up"), el("span", "top-num", story.score));
   line.append(score, el("span", "top-title", story.title),
               el("span", "top-station", story.from_station));
   const detail = el("div", "top-detail hidden");
@@ -796,6 +934,29 @@ function rerenderNew() {
   const listEl = document.getElementById("story-list");
   listEl.textContent = "";
   cacheNew.forEach((s) => listEl.append(storyCard(s)));
+}
+
+/* -- permalink: /stories/42 pins that story above the board -- */
+const permalinkId = (location.pathname.match(/^\/(?:stories|geschichten)\/(\d+)$/) || [])[1];
+
+async function loadPermalink() {
+  if (!permalinkId) return;
+  const box = document.getElementById("permalink");
+  const slot = box.querySelector(".permalink-slot");
+  box.classList.remove("hidden");
+  slot.textContent = "…";
+  try {
+    const story = await api("/api/stories/" + permalinkId);
+    slot.textContent = "";
+    // the tab and history entry name the story, as the server-rendered head did
+    if (story.title) document.title = story.title + " – " + t("logoAlt");
+    const card = storyCard(story);
+    slot.append(card);
+    // the link was shared for the thread as much as for the story
+    if (story.comments) card.querySelector(".comments-toggle").click();
+  } catch (e) {
+    slot.textContent = e.status === 404 ? t("permalinkGone") : t("errLoad");
+  }
 }
 
 /* -- compose -- */
@@ -1315,6 +1476,7 @@ initCompose();
 initBoard();
 initTapForm();
 loadMe();
+loadPermalink();
 loadTop();
 loadNew();
 

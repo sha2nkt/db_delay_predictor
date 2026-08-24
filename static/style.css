@@ -1059,7 +1059,11 @@ body.nudge-on #donate-footer-item { display: none; }
   font-family: inherit; text-align: left; color: var(--text);
 }
 .top-line:hover .top-title { text-decoration: underline; }
-.top-score { flex: none; min-width: 44px; color: var(--brand-red); font-size: 13px; font-weight: 700; }
+.top-score {
+  flex: none; display: inline-flex; align-items: center; gap: 3px; min-width: 44px;
+  color: var(--brand-red); font-size: 13px; font-weight: 700;
+}
+.top-score .ico { width: 14px; height: 14px; }
 .top-title {
   font-size: 14px; font-weight: 600; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1266,12 +1270,19 @@ body.nudge-on #donate-footer-item { display: none; }
 /* the arrow keeps its own column down the left, on a story and on a comment */
 .vote-col { flex: none; display: flex; flex-direction: column; align-items: center; width: 34px; }
 .vote-btn {
+  display: inline-flex; align-items: center; justify-content: center;
   background: none; border: 0; cursor: pointer; padding: 2px 6px;
-  font-size: 16px; line-height: 1; color: var(--text-muted); border-radius: 4px;
+  line-height: 1; color: var(--text-muted); border-radius: 4px;
 }
+.vote-btn .ico { width: 18px; height: 18px; }
 .vote-btn:hover { background: var(--gray-bg); color: var(--text); }
 .vote-btn.voted { color: var(--brand-red); }
 .vote-count { font-size: 13px; font-weight: 700; color: var(--text); }
+/* Reddit's periwinkle for the down state - the one non-palette color, so the
+   two own-vote states cannot be confused */
+.vote-btn.voted-down { color: #7193ff; }
+.vote-inline { display: inline-flex; align-items: center; gap: 2px; }
+.vote-inline .vote-btn .ico { width: 16px; height: 16px; }
 
 /* Action bar, under the story and under every comment: reply/comments and an
    overflow menu for the author, as one row of quiet pill buttons. */
@@ -1309,6 +1320,61 @@ body.nudge-on #donate-footer-item { display: none; }
 .menu-item:hover { background: var(--gray-bg); }
 .menu-item.danger { color: var(--red); }
 
+/* the share menu sits in the bar next to "comment", so it opens under its
+   own button instead of hugging the card's right edge like the overflow */
+.menu.share-menu { margin-left: 0; }
+.share-menu .menu-list { left: 0; right: auto; }
+.share-menu .menu-item { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.share-btn .ico { width: 15px; height: 15px; }
+
+/* line icons in the button's own color: a masked SVG, like the comment bubble */
+.ico {
+  display: inline-block; width: 16px; height: 16px; flex: none; background: currentColor;
+  -webkit-mask: var(--ico) center / contain no-repeat;
+  mask: var(--ico) center / contain no-repeat;
+}
+.ico-share { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M11.5 4.5 17 9.5l-5.5 5v-2.8C8 11.7 5.3 12.9 3 16c.6-5.2 3.6-8.8 8.5-9.2V4.5z'/%3E%3C/svg%3E"); }
+.ico-link { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M8.3 11.7a3.2 3.2 0 0 0 4.5 0l2.7-2.7a3.2 3.2 0 0 0-4.5-4.5L9.8 5.7'/%3E%3Cpath d='M11.7 8.3a3.2 3.2 0 0 0-4.5 0L4.5 11a3.2 3.2 0 0 0 4.5 4.5l1.2-1.2'/%3E%3C/svg%3E"); }
+.ico-code { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M6.5 5.5 2 10l4.5 4.5M13.5 5.5 18 10l-4.5 4.5M11.5 3l-3 14'/%3E%3C/svg%3E"); }
+
+/* Reddit's stem arrows: outlined until the vote is your own, then filled */
+.ico-up { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M10 3 17 10h-3.5v7h-7v-7H3z'/%3E%3C/svg%3E"); }
+.ico-down { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M10 17 3 10h3.5V3h7v7H17z'/%3E%3C/svg%3E"); }
+.vote-btn.voted .ico-up { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M10 3 17 10h-3.5v7h-7v-7H3z'/%3E%3C/svg%3E"); }
+.vote-btn.voted-down .ico-down { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M10 17 3 10h3.5V3h7v7H17z'/%3E%3C/svg%3E"); }
+
+/* the embed snippet, or the bare link when the clipboard is off limits */
+.share-panel {
+  margin-top: 8px; padding: 10px 12px; border-radius: 6px;
+  background: var(--gray-bg); font-size: 13px;
+}
+.share-panel.hidden { display: none; }
+.share-lead { margin: 0 0 6px; color: var(--text-muted); }
+.share-code {
+  display: block; width: 100%; box-sizing: border-box; padding: 6px 8px; resize: vertical;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text); background: #fff; border: 1px solid var(--gray-border); border-radius: 4px;
+}
+.share-panel-row { display: flex; justify-content: flex-end; margin-top: 4px; }
+
+/* on a phone the bar - two arrows, "3 Kommentare", "Teilen", the overflow - is
+   as wide as the card body; tighter pills keep it on one line */
+@media (max-width: 480px) {
+  .story-actions { gap: 2px; }
+  .story-actions .act { padding: 5px 7px; gap: 5px; }
+  .story-actions .menu-btn { padding: 5px 6px; }
+  .vote-inline .vote-btn { padding: 2px 4px; }
+}
+
+/* a shared story, pinned above the board */
+.permalink {
+  background: #fff; border-radius: 8px; padding: 4px 14px 10px; margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+.permalink.hidden { display: none; }
+.permalink h2 { margin: 10px 0 8px; }
+.permalink .story { box-shadow: none; padding: 0; margin: 0; }
+
 /* what an edit and a removal look like from the outside */
 .edited-mark { font-style: italic; }
 .story-removed, .comment-removed {
@@ -1339,7 +1405,16 @@ body.nudge-on #donate-footer-item { display: none; }
   color: var(--brand-red); font-family: inherit; font-size: 13px; font-weight: 600;
 }
 .read-more:hover { text-decoration: underline; }
-.comments-toggle::before { content: "💬"; margin-right: 6px; }
+/* Reddit's outlined speech bubble, masked so it takes the button's text color
+   on hover like the label does; an emoji here rendered as a colored glyph */
+.comments-toggle::before {
+  content: ""; width: 16px; height: 16px; flex: none; background: currentColor;
+  -webkit-mask: var(--icon-comment) center / contain no-repeat;
+  mask: var(--icon-comment) center / contain no-repeat;
+}
+.comments-toggle {
+  --icon-comment: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M5.5 3h9A3.5 3.5 0 0 1 18 6.5v4a3.5 3.5 0 0 1-3.5 3.5H9.5L5.5 17.5V14A3.5 3.5 0 0 1 2 10.5v-4A3.5 3.5 0 0 1 5.5 3z'/%3E%3C/svg%3E");
+}
 
 .story-comments { margin-top: 10px; border-top: 1px solid var(--gray-border); padding-top: 10px; font-size: 14px; }
 .story-comments.hidden { display: none; }
@@ -1349,7 +1424,8 @@ body.nudge-on #donate-footer-item { display: none; }
 .comment-body { flex: 1 1 0; min-width: 0; }
 .comment > .comment-children, .comment > .comment-form { flex: 1 1 100%; }
 .comment .vote-col { width: 24px; }
-.comment .vote-btn { padding: 1px 4px; font-size: 13px; }
+.comment .vote-btn { padding: 1px 4px; }
+.comment .vote-btn .ico { width: 14px; height: 14px; }
 .comment .vote-count { font-size: 12px; }
 /* a tombstone has no arrow; keep its text in line with its siblings' */
 .comment > .comment-body:first-child { margin-left: 30px; }

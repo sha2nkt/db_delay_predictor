@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS story_problems (
 CREATE TABLE IF NOT EXISTS votes (
   story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
   user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  value    INTEGER NOT NULL DEFAULT 1,
   PRIMARY KEY (story_id, user_id)
 ) WITHOUT ROWID;
 -- a tap on a board tile: "this happened to me today, on this leg", with no
@@ -126,6 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_comments_story ON comments(story_id);
 CREATE TABLE IF NOT EXISTS comment_votes (
   comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
   user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  value      INTEGER NOT NULL DEFAULT 1,
   PRIMARY KEY (comment_id, user_id)
 ) WITHOUT ROWID;
 """
@@ -138,8 +140,8 @@ _STORY_COLS = (
     "s.id, s.ts, s.from_station, s.to_station, s.departure, s.train, s.problem_other,"
     " s.edited_ts, s.deleted_ts,"
     " s.title, s.text, s.author,"
-    " (SELECT COUNT(*) FROM votes v WHERE v.story_id = s.id) AS score,"
-    " (SELECT COUNT(*) FROM votes v WHERE v.story_id = s.id AND v.user_id = ?) AS voted,"
+    " (SELECT COALESCE(SUM(v.value), 0) FROM votes v WHERE v.story_id = s.id) AS score,"
+    " (SELECT v.value FROM votes v WHERE v.story_id = s.id AND v.user_id = ?) AS voted,"
     " (SELECT COUNT(*) FROM comments c WHERE c.story_id = s.id) AS comments,"
     " (SELECT GROUP_CONCAT(code) FROM story_problems p WHERE p.story_id = s.id)"
     "   AS problems"
@@ -154,7 +156,7 @@ _PROBLEM_RANK = {code: i for i, code in enumerate(PROBLEMS)}
 
 def _story_dict(row: sqlite3.Row) -> dict:
     story = dict(row)
-    story["voted"] = bool(story["voted"])
+    story["voted"] = int(story["voted"] or 0)  # -1, 0 or 1, Reddit-style
     # the client needs to know that an edit or a removal happened, never when:
     # a timestamp would just be one more thing to localize
     story["edited"] = story.pop("edited_ts") is not None
@@ -209,6 +211,10 @@ def connect() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(_SCHEMA)
+    for table in ("votes", "comment_votes"):
+        cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if "value" not in cols:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN value INTEGER NOT NULL DEFAULT 1")
     have = {row["name"] for row in conn.execute("PRAGMA table_info(users)")}
     for col, decl in _USER_COLUMNS.items():
         if col not in have:
@@ -297,6 +303,16 @@ def list_stories(sort: str, limit: int, offset: int, user_id: int | None = None)
 
 
 SPANS = ("week", "month", "year", "all")
+
+
+def get_story(story_id: int, user_id: int | None = None) -> dict | None:
+    """One story by id, for its permalink and embed pages - tombstone included,
+    the card knows how to render one; None when it never existed."""
+    with closing(connect()) as conn:
+        row = conn.execute(
+            f"SELECT {_STORY_COLS} FROM stories s WHERE s.id = ?", (user_id, story_id)
+        ).fetchone()
+    return _story_dict(row) if row else None
 
 
 def _span_start(span: str) -> str | None:
@@ -388,38 +404,40 @@ def set_report(
     return vote
 
 
-def set_vote(story_id: int, user_id: int, vote: bool) -> dict | None:
-    """Idempotent set/clear of this user's upvote; None when the story
-    doesn't exist. A repeated request is a no-op, not a second vote."""
+def set_vote(story_id: int, user_id: int, vote: int) -> dict | None:
+    """Idempotent set of this user's vote, Reddit-style: 1 up, -1 down, 0
+    clears it. None when the story doesn't exist. Score is the net sum, so a
+    repeated request is a no-op, not a second vote."""
     with closing(connect()) as conn, conn:
         if conn.execute("SELECT 1 FROM stories WHERE id = ?", (story_id,)).fetchone() is None:
             return None
         if vote:
             conn.execute(
-                "INSERT OR IGNORE INTO votes (story_id, user_id) VALUES (?, ?)",
-                (story_id, user_id),
+                "INSERT OR REPLACE INTO votes (story_id, user_id, value) VALUES (?, ?, ?)",
+                (story_id, user_id, vote),
             )
         else:
             conn.execute(
                 "DELETE FROM votes WHERE story_id = ? AND user_id = ?", (story_id, user_id)
             )
         score = conn.execute(
-            "SELECT COUNT(*) FROM votes WHERE story_id = ?", (story_id,)
+            "SELECT COALESCE(SUM(value), 0) FROM votes WHERE story_id = ?", (story_id,)
         ).fetchone()[0]
     return {"score": score, "voted": vote}
 
 
 _COMMENT_COLS = (
     "c.id, c.parent_id, c.ts, c.author, c.text, c.edited_ts, c.deleted_ts,"
-    " (SELECT COUNT(*) FROM comment_votes v WHERE v.comment_id = c.id) AS score,"
-    " (SELECT COUNT(*) FROM comment_votes v"
+    " (SELECT COALESCE(SUM(v.value), 0) FROM comment_votes v"
+    "   WHERE v.comment_id = c.id) AS score,"
+    " (SELECT v.value FROM comment_votes v"
     "   WHERE v.comment_id = c.id AND v.user_id = ?) AS voted"
 )
 
 
 def _comment_dict(row: sqlite3.Row) -> dict:
     comment = dict(row)
-    comment["voted"] = bool(comment["voted"])
+    comment["voted"] = int(comment["voted"] or 0)
     comment["edited"] = comment.pop("edited_ts") is not None
     comment["deleted"] = comment.pop("deleted_ts") is not None
     return comment
@@ -517,9 +535,9 @@ def delete_story(story_id: int, author: str) -> bool:
     return True
 
 
-def set_comment_vote(comment_id: int, user_id: int, vote: bool) -> dict | None:
+def set_comment_vote(comment_id: int, user_id: int, vote: int) -> dict | None:
     """Same contract as set_vote, for a comment. None when the comment is gone
-    or removed - a tombstone is not something to upvote."""
+    or removed - a tombstone is not something to vote on."""
     with closing(connect()) as conn, conn:
         live = conn.execute(
             "SELECT 1 FROM comments WHERE id = ? AND deleted_ts IS NULL", (comment_id,)
@@ -528,9 +546,9 @@ def set_comment_vote(comment_id: int, user_id: int, vote: bool) -> dict | None:
             return None
         if vote:
             conn.execute(
-                "INSERT OR IGNORE INTO comment_votes (comment_id, user_id)"
-                " VALUES (?, ?)",
-                (comment_id, user_id),
+                "INSERT OR REPLACE INTO comment_votes (comment_id, user_id, value)"
+                " VALUES (?, ?, ?)",
+                (comment_id, user_id, vote),
             )
         else:
             conn.execute(
@@ -538,7 +556,8 @@ def set_comment_vote(comment_id: int, user_id: int, vote: bool) -> dict | None:
                 (comment_id, user_id),
             )
         score = conn.execute(
-            "SELECT COUNT(*) FROM comment_votes WHERE comment_id = ?", (comment_id,)
+            "SELECT COALESCE(SUM(value), 0) FROM comment_votes WHERE comment_id = ?",
+            (comment_id,),
         ).fetchone()[0]
     return {"score": score, "voted": vote}
 

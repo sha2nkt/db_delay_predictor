@@ -887,10 +887,11 @@ _I18N_EL = re.compile(
 )
 
 
-@lru_cache(maxsize=4)
-def _en_strings(script: str = "app.js") -> dict[str, str]:
+@lru_cache(maxsize=8)
+def _en_strings(script: str = "app.js", lang: str = "en") -> dict[str, str]:
     """The plain English strings from I18N.en in a static script (app.js, or
-    stories.js for the stories page).
+    stories.js for the stories page) - or another language's block, for the
+    server-rendered embed card.
 
     The script translates the page on load, but then the markup a crawler fetches
     is German on an English URL until it renders the JS. Reusing the same table
@@ -899,7 +900,7 @@ def _en_strings(script: str = "app.js") -> dict[str, str]:
     """
     src = (STATIC_DIR / script).read_text(encoding="utf-8")
     try:
-        start = src.index("\n  en: {", src.index("const I18N = {"))
+        start = src.index(f"\n  {lang}: {{", src.index("const I18N = {"))
         block = src[start : src.index("\n  },\n", start)]
     except ValueError:
         return {}
@@ -1049,13 +1050,35 @@ STORIES_META = {
 }
 
 
-def _stories_html(lang: str) -> str:
+def _excerpt(text: str, limit: int = 160) -> str:
+    """The opening of a story for its description meta: whitespace collapsed,
+    cut at a word boundary."""
+    flat = " ".join(text.split())
+    if len(flat) <= limit:
+        return flat
+    return flat[:limit].rsplit(" ", 1)[0] + "…"
+
+
+def _stories_html(lang: str, story: dict | None = None) -> str:
     """Render one language of the stories page from stories.html: same page at
-    /geschichten and /stories, only the instruction language differs."""
+    /geschichten and /stories, only the instruction language differs. With a
+    story it is that story's permalink: the same page, the story pinned on top
+    by the script, and its title and text in the meta so a shared link unfurls
+    as the story rather than as the board."""
     html = (STATIC_DIR / "stories.html").read_text(encoding="utf-8")
-    title, description, og_description = STORIES_META[lang]
-    url = SITE + STORIES_PATHS[lang]
     other = "de" if lang == "en" else "en"
+    paths = {l: STORIES_PATHS[l] + (f"/{story['id']}" if story else "") for l in ("de", "en")}
+    if story:
+        # user text: escaped for the markup, and backslashes doubled so re.sub
+        # reads them as characters rather than as group references
+        title, description = (
+            escape(s, quote=True).replace("\\", "\\\\")
+            for s in (f"{story['title']} – {STORIES_ALT[lang]}", _excerpt(story["text"]))
+        )
+        og_description = description
+    else:
+        title, description, og_description = STORIES_META[lang]
+    url = SITE + paths[lang]
     logo = "/logo_delay_stories_tall_transparent.png" if lang == "en" else (
         "/logo_delay_stories_tall_german_transparent.png")
     subs = [
@@ -1063,21 +1086,23 @@ def _stories_html(lang: str) -> str:
         (r"<title>[^<]*</title>", f"<title>{title}</title>"),
         (r'(<meta name="description" content=")[^"]*', rf"\g<1>{description}"),
         (r'(<link rel="canonical" href=")[^"]*', rf"\g<1>{url}"),
-        (r'(<link rel="alternate" hreflang="de" href=")[^"]*', rf"\g<1>{SITE}{STORIES_PATHS['de']}"),
-        (r'(<link rel="alternate" hreflang="en" href=")[^"]*', rf"\g<1>{SITE}{STORIES_PATHS['en']}"),
-        (r'(<link rel="alternate" hreflang="x-default" href=")[^"]*', rf"\g<1>{SITE}{STORIES_PATHS['de']}"),
+        (r'(<link rel="alternate" hreflang="de" href=")[^"]*', rf"\g<1>{SITE}{paths['de']}"),
+        (r'(<link rel="alternate" hreflang="en" href=")[^"]*', rf"\g<1>{SITE}{paths['en']}"),
+        (r'(<link rel="alternate" hreflang="x-default" href=")[^"]*', rf"\g<1>{SITE}{paths['de']}"),
         (r'(<meta property="og:url" content=")[^"]*', rf"\g<1>{url}"),
         (r'(<meta property="og:title" content=")[^"]*', rf"\g<1>{title}"),
         (r'(<meta property="og:description" content=")[^"]*', rf"\g<1>{og_description}"),
         (r'(<meta property="og:image" content=")[^"]*', rf"\g<1>{SITE}{logo}"),
         (r'(<meta property="og:locale" content=")[^"]*', rf"\g<1>{OG_LOCALE[lang]}"),
         (r'(<meta property="og:locale:alternate" content=")[^"]*', rf"\g<1>{OG_LOCALE[other]}"),
-        (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{STORIES_PATHS['de']}\g<2>"),
-        (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{STORIES_PATHS['en']}\g<2>"),
+        (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{paths['de']}\g<2>"),
+        (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{paths['en']}\g<2>"),
         # in-page navigation stays inside the current language
         (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
         (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{PAGE_PATHS[('future', lang)]}\g<2>"),
     ]
+    if story:
+        subs.append((r'(<meta property="og:type" content=")[^"]*', r"\g<1>article"))
     for pattern, repl in subs:
         html = re.sub(pattern, repl, html, count=1)
     if lang == "en":
@@ -1108,6 +1133,87 @@ async def stories_alias_de() -> RedirectResponse:
 @app.get("/stories.html")
 async def stories_alias_en() -> RedirectResponse:
     return RedirectResponse("/stories", status_code=301)
+
+
+async def _story_page(story_id: int, lang: str) -> HTMLResponse:
+    story = await anyio.to_thread.run_sync(stories.get_story, story_id)
+    # a dead link still gets the board, with "that story is gone" where the
+    # story would sit (the script asks the API and hears the 404 itself) -
+    # a JSON error is no page to land on. A tombstone keeps its thread, so it
+    # renders as a normal permalink; only the meta stays generic.
+    live = story if story and not story["deleted"] else None
+    return HTMLResponse(
+        _stories_html(lang, live),
+        status_code=200 if story else 404,
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/geschichten/{story_id:int}")
+async def story_page_de(story_id: int) -> HTMLResponse:
+    return await _story_page(story_id, "de")
+
+
+@app.get("/stories/{story_id:int}")
+async def story_page_en(story_id: int) -> HTMLResponse:
+    return await _story_page(story_id, "en")
+
+
+def _embed_html(story: dict, lang: str) -> str:
+    """A story as a self-contained card for other sites' iframes: no page
+    chrome, its own few lines of CSS, every link opening in the parent. The
+    labels come from the same I18N table the board uses."""
+    strings = _en_strings("stories.js", lang)
+    leg = story["from_station"]
+    if story["to_station"]:
+        leg += f" → {story['to_station']}"
+    posted = datetime.fromisoformat(story["ts"])
+    labels = [
+        story["problem_other"] if code == "other" and story["problem_other"]
+        else strings.get("problem_" + code, code)
+        for code in story["problems"]
+    ]
+    tags = "".join(f'<span class="tag">{escape(label)}</span>' for label in labels)
+    n = story["comments"]
+    comments = (strings.get("comments1", "1") if n == 1
+                else strings.get("commentsN", "{n}").replace("{n}", str(n)))
+    values = {
+        "lang": lang,
+        "title": escape(story["title"]),
+        "url": SITE + STORIES_PATHS[lang] + f"/{story['id']}",
+        "board_url": SITE + STORIES_PATHS[lang],
+        "board_name": STORIES_ALT[lang],
+        "logo": STORIES_LOGO[lang],
+        "leg": escape(leg),
+        "author": escape(story["author"] or strings.get("anon", "")),
+        "date": posted.strftime("%d.%m.%Y" if lang == "de" else "%b %d, %Y"),
+        "tags": f'<div class="tags">{tags}</div>' if tags else "",
+        "text": escape(story["text"]),
+        "score": str(story["score"]),
+        "comments": escape(comments),
+        "read_more": escape(strings.get("embedRead", "")),
+    }
+    html = (STATIC_DIR / "embed.html").read_text(encoding="utf-8")
+    for key, value in values.items():
+        html = html.replace("{{" + key + "}}", value)
+    return html
+
+
+async def _story_embed(story_id: int, lang: str) -> HTMLResponse:
+    story = await anyio.to_thread.run_sync(stories.get_story, story_id)
+    if story is None or story["deleted"]:
+        raise HTTPException(404, "story not found")
+    return HTMLResponse(_embed_html(story, lang), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/embed/geschichten/{story_id:int}")
+async def story_embed_de(story_id: int) -> HTMLResponse:
+    return await _story_embed(story_id, "de")
+
+
+@app.get("/embed/stories/{story_id:int}")
+async def story_embed_en(story_id: int) -> HTMLResponse:
+    return await _story_embed(story_id, "en")
 
 
 @app.get("/login")
@@ -1283,7 +1389,9 @@ class StoryCommentIn(BaseModel):
 
 
 class StoryVoteIn(BaseModel):
-    vote: bool = True
+    # Reddit-style: 1 up, -1 down, 0 clears. Booleans from a pre-downvote
+    # cached script coerce to 1/0, which is exactly what they used to mean.
+    vote: Literal[-1, 0, 1, True, False] = 1
 
 
 # a tap on a board tile: the story's leg fields without the story. Origin is
@@ -1599,7 +1707,7 @@ async def stories_vote(story_id: int, vote: StoryVoteIn, request: Request):
     user = await _require_user(request)
     _stories_throttle(stories.vote_limiter, request)
     result = await anyio.to_thread.run_sync(
-        stories.set_vote, story_id, user["id"], vote.vote
+        stories.set_vote, story_id, user["id"], int(vote.vote)
     )
     if result is None:
         raise HTTPException(404, "story not found")
@@ -1615,6 +1723,18 @@ async def stories_comments(story_id: int, request: Request):
     if result is None:
         raise HTTPException(404, "story not found")
     return result
+
+
+@app.get("/api/stories/{story_id}")
+async def stories_show(story_id: int, request: Request):
+    # the fixed /api/stories/problems path is registered earlier and keeps winning
+    user = await _session_user(request)
+    story = await anyio.to_thread.run_sync(
+        stories.get_story, story_id, user["id"] if user else None
+    )
+    if story is None:
+        raise HTTPException(404, "story not found")
+    return story
 
 
 @app.patch("/api/stories/{story_id}")
@@ -1646,7 +1766,7 @@ async def comment_vote(comment_id: int, vote: StoryVoteIn, request: Request):
     user = await _require_user(request)
     _stories_throttle(stories.vote_limiter, request)
     result = await anyio.to_thread.run_sync(
-        stories.set_comment_vote, comment_id, user["id"], vote.vote
+        stories.set_comment_vote, comment_id, user["id"], int(vote.vote)
     )
     if result is None:
         raise HTTPException(404, "comment not found")

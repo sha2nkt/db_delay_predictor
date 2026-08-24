@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<base target="_top">
+<title>{{title}} – {{board_name}}</title>
+<style>
+  :root { --brand-red: #fd1c17; --gray-bg: #f0f3f5; --gray-border: #d7dce1; --text: #282d37; --text-muted: #646973; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--text); background: #fff; }
+  .card {
+    box-sizing: border-box; height: 100%; overflow: auto; padding: 14px 16px;
+    border: 1px solid var(--gray-border); border-radius: 8px;
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    font-size: 12px; font-weight: 700; color: var(--text-muted); text-decoration: none;
+  }
+  .brand img { width: 24px; height: 24px; border-radius: 4px; }
+  h1 { font-size: 16px; margin: 0 0 4px; overflow-wrap: anywhere; }
+  h1 a { color: inherit; text-decoration: none; }
+  h1 a:hover { text-decoration: underline; }
+  .meta { margin: 0; font-size: 12px; color: var(--text-muted); }
+  .tags { margin-top: 6px; }
+  .tag {
+    display: inline-block; margin: 0 4px 4px 0; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; background: var(--gray-bg); color: var(--text-muted);
+  }
+  .text { margin: 8px 0 0; font-size: 14px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+  .foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--gray-border);
+    font-size: 12px; color: var(--text-muted);
+  }
+  .foot a { color: var(--brand-red); font-weight: 700; text-decoration: none; }
+  .arrow { width: 14px; height: 14px; margin-right: 2px; vertical-align: -3px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+  .foot a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<article class="card">
+  <a class="brand" href="{{board_url}}"><img src="{{logo}}" alt="">{{board_name}}</a>
+  <h1><a href="{{url}}">{{title}}</a></h1>
+  <p class="meta">{{leg}} · {{author}} · {{date}}</p>
+  {{tags}}
+  <p class="text">{{text}}</p>
+  <p class="foot"><span><svg class="arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3 17 10h-3.5v7h-7v-7H3z"/></svg>{{score}} · {{comments}}</span><a href="{{url}}">{{read_more}} →</a></p>
+</article>
+</body>
+</html>
