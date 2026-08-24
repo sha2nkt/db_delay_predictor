@@ -45,11 +45,11 @@ _SUBJECT = {
 }
 
 _INTRO = {
-    ("welcome", "de"): "willkommen bei den Bahnhofs-Geschichten! Bestätige dein "
-                       "Konto und melde dich an:",
-    ("welcome", "en"): "welcome to Station Stories! Confirm your account and log in:",
-    ("login", "de"): "hier ist dein Anmelde-Link für die Bahnhofs-Geschichten:",
-    ("login", "en"): "here is your login link for Station Stories:",
+    ("welcome", "de"): "willkommen bei Delay Geschichten! Bestätige dein Konto "
+                       "und melde dich an:",
+    ("welcome", "en"): "welcome to Delay Stories! Confirm your account and log in:",
+    ("login", "de"): "hier ist dein Anmelde-Link für Delay Geschichten:",
+    ("login", "en"): "here is your login link for Delay Stories:",
 }
 
 _IGNORE = {

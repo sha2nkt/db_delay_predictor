@@ -1,11 +1,11 @@
 "use strict";
-/* Station stories: a small HN-style board. All user content is rendered via
+/* Delay Stories: a small HN-style board. All user content is rendered via
    textContent — nothing user-written ever reaches innerHTML. */
 (function () {
 
 const I18N = {
   de: {
-    docTitle: "Bahnhofs-Geschichten – DelayBahn",
+    docTitle: "Delay Geschichten – DelayBahn",
     logoSrc: "/logo_delay_stories_wide_german_transparent.png",
     logoAlt: "Delay Geschichten",
     tagline: "Gestrandet, verspätet, überlebt – erzähl’s hier",
@@ -102,7 +102,7 @@ const I18N = {
     dayAgo: "vor {n} Tagen",
   },
   en: {
-    docTitle: "Station Stories – DelayBahn",
+    docTitle: "Delay Stories – DelayBahn",
     logoSrc: "/logo_delay_stories_wide_transparent.png",
     logoAlt: "Delay Stories",
     tagline: "Stranded, delayed, survived – tell it here",

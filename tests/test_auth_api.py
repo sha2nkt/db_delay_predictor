@@ -755,7 +755,7 @@ def test_stories_page_has_one_url_per_language(client):
     assert '<a class="logo-link" href="/stories">' in en.text
     assert '<a href="/en/" data-i18n="footerBack">' in en.text
     # English text is in the markup, not only after the script runs
-    assert "<title>Station Stories – DelayBahn</title>" in en.text
+    assert "<title>Delay Stories – DelayBahn</title>" in en.text
     assert 'data-i18n="sortLiked">Most liked<' in en.text
     assert 'data-i18n="sortLiked">Beliebteste<' in de.text
     assert 'data-lang="en" class="lang-btn active"' in en.text

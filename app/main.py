@@ -1025,7 +1025,7 @@ async def de_home() -> RedirectResponse:
 # I18N.docTitle in static/stories.js, which retitles the tab on load
 STORIES_META = {
     "de": (
-        "Bahnhofs-Geschichten – DelayBahn",
+        "Delay Geschichten – DelayBahn",
         "Horror-Geschichten von deutschen Bahnhöfen: verpasste Anschlüsse, Nächte "
         "auf dem Bahnsteig, Ansagen zum Verzweifeln. Lies mit, stimm ab oder erzähl "
         "deine eigene.",
@@ -1033,7 +1033,7 @@ STORIES_META = {
         "gestrandet sind.",
     ),
     "en": (
-        "Station Stories – DelayBahn",
+        "Delay Stories – DelayBahn",
         "Horror stories from German train stations: missed connections, nights on "
         "the platform, announcements to despair at. Read along, vote, or tell your "
         "own.",
