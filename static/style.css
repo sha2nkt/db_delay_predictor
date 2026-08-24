@@ -94,7 +94,7 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
   font-family: inherit; display: flex; align-items: center; gap: 6px;
 }
 .advanced-toggle:hover { color: var(--text); }
-.advanced-chevron { font-size: 11px; transition: transform .15s; }
+.advanced-chevron { font-size: 18px; line-height: 1; transition: transform .15s; }
 .advanced-toggle[aria-expanded="true"] .advanced-chevron { transform: rotate(90deg); }
 .advanced-panel {
   flex-basis: 100%;
