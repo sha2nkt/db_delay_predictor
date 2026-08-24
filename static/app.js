@@ -194,6 +194,9 @@ const I18N = {
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
     refundCtaLead: "Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.",
     refundCtaSub: "Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks",
+    storiesCtaNew: "Neu",
+    storiesCtaLead: "Gestrandet, verspätet, überlebt? Echte Geschichten von deutschen Bahnhöfen – von Reisenden wie dir.",
+    storiesCtaGo: "Lesen, abstimmen oder selbst erzählen →",
     pastTitle: "Verspätungs-Check für vergangene Reisen",
     pastLead: "Gib deine Reise ein, um zu sehen, wie sie tatsächlich verlief – mit Verspätungen, verpassten Anschlüssen und deinem Entschädigungsanspruch.",
     pastCoverageLabel: "Daten verfügbar:",
@@ -388,6 +391,9 @@ const I18N = {
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
     refundCtaSub: "Get your money back from DB in 3 easy clicks",
+    storiesCtaNew: "New",
+    storiesCtaLead: "Stranded, delayed, survived? Real stories from German train stations – from travellers like you.",
+    storiesCtaGo: "Read, vote or tell your own →",
     pastTitle: "Delay check for past journeys",
     pastLead: "Enter your journey to see the trip you actually took – including delays, missed connections and what you can claim back.",
     pastCoverageLabel: "Data available:",
@@ -1210,6 +1216,7 @@ async function initPastPage() {
 }
 
 document.getElementById("refund-cta").addEventListener("click", () => track("refund-cta"));
+document.getElementById("stories-cta").addEventListener("click", () => track("stories-cta"));
 document.getElementById("refund-nav").addEventListener("click", () => track("refund-nav"));
 document.getElementById("donate-footer-item").hidden = !DONATE_ENABLED;
 document.getElementById("donate-footer").addEventListener("click", () =>
@@ -1473,6 +1480,7 @@ async function runSearch() {
   laterBtn.classList.add("hidden");
   document.getElementById("hero-chart").classList.add("hidden");
   document.getElementById("refund-cta").classList.add("hidden");
+  document.getElementById("stories-cta").classList.add("hidden");
   setDonateNudge(false);
   setFeedbackNudge(false);
   searchBtn.disabled = true;

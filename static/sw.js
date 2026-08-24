@@ -23,7 +23,7 @@ const PRECACHE = [
   "/",
   "/en/",
   "/style.css?v=84",
-  "/app.js?v=104",
+  "/app.js?v=105",
   "/manifest.json",
   "/favicon.png",
   "/logo.png?v=3",
