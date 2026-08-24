@@ -683,6 +683,8 @@ PAGE_PATHS = {
     ("past", "en"): "/en/compensation",
 }
 
+STORIES_PATHS = {"de": "/geschichten", "en": "/stories"}
+
 OG_LOCALE = {"de": "de_DE", "en": "en_US"}
 
 # (title, meta description, og:description) per variant. The titles mirror
@@ -743,16 +745,17 @@ _I18N_EL = re.compile(
 )
 
 
-@lru_cache(maxsize=1)
-def _en_strings() -> dict[str, str]:
-    """The plain English strings from I18N.en in static/app.js.
+@lru_cache(maxsize=4)
+def _en_strings(script: str = "app.js") -> dict[str, str]:
+    """The plain English strings from I18N.en in a static script (app.js, or
+    stories.js for the stories page).
 
-    app.js translates the page on load, but then the markup a crawler fetches is
-    German on an English URL until it renders the JS. Reusing the same table
-    server-side means /en/ ships English text without a second copy of it.
-    Anything not parsed here just stays German until app.js runs.
+    The script translates the page on load, but then the markup a crawler fetches
+    is German on an English URL until it renders the JS. Reusing the same table
+    server-side means the English URL ships English text without a second copy
+    of it. Anything not parsed here just stays German until the script runs.
     """
-    src = (STATIC_DIR / "app.js").read_text(encoding="utf-8")
+    src = (STATIC_DIR / script).read_text(encoding="utf-8")
     try:
         start = src.index("\n  en: {", src.index("const I18N = {"))
         block = src[start : src.index("\n  },\n", start)]
@@ -764,8 +767,8 @@ def _en_strings() -> dict[str, str]:
     }
 
 
-def _translate(html: str) -> str:
-    strings = _en_strings()
+def _translate(html: str, script: str = "app.js") -> str:
+    strings = _en_strings(script)
 
     def sub(m: re.Match[str]) -> str:
         text = strings.get(m["key"])
@@ -807,6 +810,7 @@ def _page_html(mode: str, lang: str) -> str:
         (r'(<a id="refund-nav" class="refund-nav" href=")[^"]*', rf"\g<1>{past}"),
         (r'(<a id="refund-cta" class="refund-cta" href=")[^"]*', rf"\g<1>{past}"),
         (r'(<a id="past-exit" class="past-exit" href=")[^"]*', rf"\g<1>{home}"),
+        (r'(<a href=")[^"]*(" data-i18n="footerStories")', rf"\g<1>{STORIES_PATHS[lang]}\g<2>"),
     ]
     if lang == "en":
         subs += [
@@ -878,18 +882,86 @@ async def de_home() -> RedirectResponse:
     return RedirectResponse("/", status_code=301)
 
 
-@app.get("/stories")
-async def stories_page() -> FileResponse:
-    # one language-neutral URL: the page localizes itself from localStorage.
+# (title, meta description, og:description) per language; the titles mirror
+# I18N.docTitle in static/stories.js, which retitles the tab on load
+STORIES_META = {
+    "de": (
+        "Bahnhofs-Geschichten – DelayBahn",
+        "Horror-Geschichten von deutschen Bahnhöfen: verpasste Anschlüsse, Nächte "
+        "auf dem Bahnsteig, Ansagen zum Verzweifeln. Lies mit, stimm ab oder erzähl "
+        "deine eigene.",
+        "Horror-Geschichten von deutschen Bahnhöfen – erzählt von denen, die dort "
+        "gestrandet sind.",
+    ),
+    "en": (
+        "Station Stories – DelayBahn",
+        "Horror stories from German train stations: missed connections, nights on "
+        "the platform, announcements to despair at. Read along, vote, or tell your "
+        "own.",
+        "Horror stories from German train stations – told by the people stranded "
+        "there.",
+    ),
+}
+
+
+def _stories_html(lang: str) -> str:
+    """Render one language of the stories page from stories.html: same page at
+    /geschichten and /stories, only the instruction language differs."""
+    html = (STATIC_DIR / "stories.html").read_text(encoding="utf-8")
+    title, description, og_description = STORIES_META[lang]
+    url = SITE + STORIES_PATHS[lang]
+    other = "de" if lang == "en" else "en"
+    logo = "/logo_delay_stories_tall_transparent.png" if lang == "en" else (
+        "/logo_delay_stories_tall_german_transparent.png")
+    subs = [
+        (r'<html lang="[^"]*"', f'<html lang="{lang}"'),
+        (r"<title>[^<]*</title>", f"<title>{title}</title>"),
+        (r'(<meta name="description" content=")[^"]*', rf"\g<1>{description}"),
+        (r'(<link rel="canonical" href=")[^"]*', rf"\g<1>{url}"),
+        (r'(<link rel="alternate" hreflang="de" href=")[^"]*', rf"\g<1>{SITE}{STORIES_PATHS['de']}"),
+        (r'(<link rel="alternate" hreflang="en" href=")[^"]*', rf"\g<1>{SITE}{STORIES_PATHS['en']}"),
+        (r'(<link rel="alternate" hreflang="x-default" href=")[^"]*', rf"\g<1>{SITE}{STORIES_PATHS['de']}"),
+        (r'(<meta property="og:url" content=")[^"]*', rf"\g<1>{url}"),
+        (r'(<meta property="og:title" content=")[^"]*', rf"\g<1>{title}"),
+        (r'(<meta property="og:description" content=")[^"]*', rf"\g<1>{og_description}"),
+        (r'(<meta property="og:image" content=")[^"]*', rf"\g<1>{SITE}{logo}"),
+        (r'(<meta property="og:locale" content=")[^"]*', rf"\g<1>{OG_LOCALE[lang]}"),
+        (r'(<meta property="og:locale:alternate" content=")[^"]*', rf"\g<1>{OG_LOCALE[other]}"),
+        (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{STORIES_PATHS['de']}\g<2>"),
+        (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{STORIES_PATHS['en']}\g<2>"),
+        # in-page navigation stays inside the current language
+        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
+        (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{PAGE_PATHS[('future', lang)]}\g<2>"),
+    ]
+    for pattern, repl in subs:
+        html = re.sub(pattern, repl, html, count=1)
+    if lang == "en":
+        html = html.replace('data-lang="en" class="lang-btn"', 'data-lang="en" class="lang-btn active"')
+        html = html.replace('data-lang="de" class="lang-btn active"', 'data-lang="de" class="lang-btn"')
+        html = _translate(html, "stories.js")
+    return html
+
+
+@app.get("/geschichten")
+async def stories_page_de() -> HTMLResponse:
     # no-cache like the other HTML documents (no ?v= buster on the document)
-    return FileResponse(
-        STATIC_DIR / "stories.html", headers={"Cache-Control": "no-cache"}
-    )
+    return HTMLResponse(_stories_html("de"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/stories")
+async def stories_page_en() -> HTMLResponse:
+    return HTMLResponse(_stories_html("en"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/geschichten/")
+@app.get("/geschichten.html")
+async def stories_alias_de() -> RedirectResponse:
+    return RedirectResponse("/geschichten", status_code=301)
 
 
 @app.get("/stories/")
 @app.get("/stories.html")
-async def stories_alias() -> RedirectResponse:
+async def stories_alias_en() -> RedirectResponse:
     return RedirectResponse("/stories", status_code=301)
 
 
@@ -964,7 +1036,7 @@ class Feedback(BaseModel):
     vote: Literal["up", "down"]
     text: str = Field("", max_length=1000)
     lang: Literal["de", "en"] = "de"
-    context: Literal["future", "past"] = "future"
+    context: Literal["future", "past", "stories"] = "future"
 
 
 _tasks: set[asyncio.Task] = set()

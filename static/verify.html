@@ -109,7 +109,7 @@
       });
       if (resp.ok) {
         if (window.umami) window.umami.track("login-link");
-        location.assign("/stories");
+        location.assign(lang === "en" ? "/stories" : "/geschichten");
         return;
       }
       if (resp.status === 401) { dead(t.errExpired); return; }

@@ -738,3 +738,32 @@ def test_a_tap_needs_a_leg_but_taking_it_back_does_not(client, wiring):
     # clearing names no leg
     assert client.post("/api/stories/problems/delay", json={"vote": False}).status_code == 200
     assert client.get("/api/stories/problems").json()["mine"] == ["other"]
+
+
+def test_stories_page_has_one_url_per_language(client):
+    de = client.get("/geschichten")
+    en = client.get("/stories")
+    assert de.status_code == en.status_code == 200
+    assert '<html lang="de">' in de.text and '<html lang="en">' in en.text
+    assert '<link rel="canonical" href="https://delaybahn.com/geschichten">' in de.text
+    assert '<link rel="canonical" href="https://delaybahn.com/stories">' in en.text
+    # each variant points at the other and keeps its own navigation in-language
+    for page in (de, en):
+        assert 'hreflang="de" href="https://delaybahn.com/geschichten"' in page.text
+        assert 'hreflang="en" href="https://delaybahn.com/stories"' in page.text
+    assert '<a class="logo-link" href="/geschichten">' in de.text
+    assert '<a class="logo-link" href="/stories">' in en.text
+    assert '<a href="/en/" data-i18n="footerBack">' in en.text
+    # English text is in the markup, not only after the script runs
+    assert "<title>Station Stories – DelayBahn</title>" in en.text
+    assert 'data-i18n="sortLiked">Most liked<' in en.text
+    assert 'data-i18n="sortLiked">Beliebteste<' in de.text
+    assert 'data-lang="en" class="lang-btn active"' in en.text
+    # the old spellings still land somewhere
+    for path in ("/stories/", "/stories.html", "/geschichten/"):
+        assert client.get(path, follow_redirects=False).status_code == 301
+
+
+def test_home_footer_links_to_the_stories_page_in_its_language(client):
+    assert 'href="/geschichten" data-i18n="footerStories"' in client.get("/").text
+    assert 'href="/stories" data-i18n="footerStories"' in client.get("/en/").text

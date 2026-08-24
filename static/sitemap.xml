@@ -16,8 +16,18 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://delaybahn.com/"/>
   </url>
   <url>
+    <loc>https://delaybahn.com/geschichten</loc>
+    <changefreq>daily</changefreq>
+    <xhtml:link rel="alternate" hreflang="de" href="https://delaybahn.com/geschichten"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://delaybahn.com/stories"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://delaybahn.com/geschichten"/>
+  </url>
+  <url>
     <loc>https://delaybahn.com/stories</loc>
     <changefreq>daily</changefreq>
+    <xhtml:link rel="alternate" hreflang="de" href="https://delaybahn.com/geschichten"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://delaybahn.com/stories"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://delaybahn.com/geschichten"/>
   </url>
   <url>
     <loc>https://delaybahn.com/entschaedigung</loc>

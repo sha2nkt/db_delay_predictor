@@ -5,13 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bahnhofs-Geschichten – DelayBahn</title>
 <meta name="description" content="Horror-Geschichten von deutschen Bahnhöfen: verpasste Anschlüsse, Nächte auf dem Bahnsteig, Ansagen zum Verzweifeln. Lies mit, stimm ab oder erzähl deine eigene.">
-<link rel="canonical" href="https://delaybahn.com/stories">
+<link rel="canonical" href="https://delaybahn.com/geschichten">
+<link rel="alternate" hreflang="de" href="https://delaybahn.com/geschichten">
+<link rel="alternate" hreflang="en" href="https://delaybahn.com/stories">
+<link rel="alternate" hreflang="x-default" href="https://delaybahn.com/geschichten">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://delaybahn.com/stories">
+<meta property="og:url" content="https://delaybahn.com/geschichten">
 <meta property="og:site_name" content="DelayBahn">
 <meta property="og:title" content="Bahnhofs-Geschichten – DelayBahn">
 <meta property="og:description" content="Horror-Geschichten von deutschen Bahnhöfen – erzählt von denen, die dort gestrandet sind.">
 <meta property="og:image" content="https://delaybahn.com/logo_delay_stories_tall_german_transparent.png">
+<meta property="og:locale" content="de_DE">
+<meta property="og:locale:alternate" content="en_US">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="stylesheet" href="/style.css?v=82">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
@@ -19,15 +24,15 @@
 <body>
 <header class="stories-header">
   <div class="header-inner">
-    <a class="logo-link" href="/stories"><img id="site-logo" class="logo" src="/logo_delay_stories_wide_german_transparent.png" alt="Delay Geschichten"></a>
+    <a class="logo-link" href="/geschichten"><img id="site-logo" class="logo" src="/logo_delay_stories_wide_german_transparent.png" alt="Delay Geschichten"></a>
     <span class="header-title tagline" data-i18n="tagline">Gestrandet, verspätet, überlebt – erzähl’s hier</span>
     <span class="header-auth">
       <a id="auth-login" class="auth-link hidden" href="/login" data-i18n="navLogin">Anmelden</a>
       <span id="auth-user" class="auth-user hidden"><strong id="auth-name"></strong><button id="auth-logout" class="auth-logout" type="button" data-i18n="navLogout">Abmelden</button></span>
     </span>
     <div class="header-lang">
-      <button type="button" data-lang="de" class="lang-btn active">DE</button>
-      <button type="button" data-lang="en" class="lang-btn">EN</button>
+      <a href="/geschichten" hreflang="de" data-lang="de" class="lang-btn active">DE</a>
+      <a href="/stories" hreflang="en" data-lang="en" class="lang-btn">EN</a>
     </div>
   </div>
 </header>
@@ -169,6 +174,19 @@
     <p id="stories-status" class="stories-status" role="status"></p>
     <button id="more-btn" class="page-btn hidden" type="button"><span data-i18n="loadMore">Mehr laden</span> <span class="arrow">↓</span></button>
   </section>
+
+  <div id="feedback-nudge" class="feedback-nudge" aria-live="polite">
+    <div class="feedback-row">
+      <span id="feedback-lead" data-i18n="feedbackAsk">Wie findest du Delay Geschichten?</span>
+      <button class="feedback-vote" data-vote="up" type="button" data-i18n-title="feedbackYes" title="Gut" aria-label="Gut">👍</button>
+      <button class="feedback-vote" data-vote="down" type="button" data-i18n-title="feedbackNo" title="Nicht gut" aria-label="Nicht gut">👎</button>
+      <button id="feedback-skip" class="feedback-skip" type="button" data-i18n-title="feedbackDismiss" title="Ausblenden" aria-label="Ausblenden">✕</button>
+    </div>
+    <form id="feedback-form" class="feedback-form hidden">
+      <textarea id="feedback-text" rows="4" maxlength="1000" data-i18n-placeholder="feedbackPlaceholder" placeholder="Was gefällt dir, was fehlt oder stört? Je konkreter, desto besser."></textarea>
+      <button type="submit" class="feedback-send" data-i18n="feedbackSend">Senden</button>
+    </form>
+  </div>
 </main>
 
 <footer class="site-footer">
@@ -177,6 +195,6 @@
   <a href="mailto:kontakt@delaybahn.com?subject=DelayBahn%20Stories" data-i18n="footerContact">Kontakt</a>
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerUgc">Beiträge stammen von Nutzerinnen und Nutzern und geben nicht die Meinung von DelayBahn wieder. Beiträge mit Beleidigungen oder personenbezogenen Daten werden entfernt.</span></p>
 </footer>
-<script src="/stories.js?v=12"></script>
+<script src="/stories.js?v=14"></script>
 </body>
 </html>

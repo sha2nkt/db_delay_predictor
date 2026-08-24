@@ -14,6 +14,14 @@ const I18N = {
     sortNew: "Neueste",
     sortLiked: "Beliebteste",
     sortCommented: "Meistkommentiert",
+    feedbackAsk: "Wie findest du Delay Geschichten?",
+    feedbackYes: "Gut",
+    feedbackNo: "Nicht gut",
+    feedbackDismiss: "Ausblenden",
+    feedbackFollowUp: "Danke! Was können wir besser machen?",
+    feedbackPlaceholder: "Was gefällt dir, was fehlt oder stört? Je konkreter, desto besser.",
+    feedbackSend: "Senden",
+    feedbackThanks: "Danke für dein Feedback.",
     composeToggle: "+ Geschichte erzählen",
     fromLabel: "Von",
     fromPlaceholder: "z.B. Hannover Hbf",
@@ -103,6 +111,14 @@ const I18N = {
     sortNew: "Newest",
     sortLiked: "Most liked",
     sortCommented: "Most commented",
+    feedbackAsk: "How do you like Delay Stories?",
+    feedbackYes: "Good",
+    feedbackNo: "Not good",
+    feedbackDismiss: "Dismiss",
+    feedbackFollowUp: "Thanks! What could be better?",
+    feedbackPlaceholder: "What do you like, what is missing or in the way? The more specific, the better.",
+    feedbackSend: "Send",
+    feedbackThanks: "Thanks for your feedback.",
     composeToggle: "+ Tell your story",
     fromLabel: "From",
     fromPlaceholder: "e.g. Hannover Hbf",
@@ -184,12 +200,14 @@ const I18N = {
   },
 };
 
-const PAGE = 30;
+const PAGE = 10;
 const TOP_N = 5;
 const CLAMP = 600;
 
-let lang = "de";
-try { if (localStorage.getItem("lang") === "en") lang = "en"; } catch (e) {}
+// the URL is the language: /stories is English, /geschichten German. The
+// login and verify pages have no language of their own and read it from here.
+const lang = location.pathname.startsWith("/stories") ? "en" : "de";
+try { localStorage.setItem("lang", lang); } catch (e) {}
 const t = (key) => (I18N[lang][key] != null ? I18N[lang][key] : I18N.de[key]);
 const fmt = (key, n) => t(key).replace("{n}", n);
 // no-op when the Umami script is blocked or unavailable. Events carry
@@ -1213,6 +1231,60 @@ document.getElementById("auth-logout").addEventListener("click", async () => {
   location.reload();
 });
 
+/* -- feedback ask at the foot of the page -------------------------------
+   Same widget as the connection search: a vote, then an optional comment
+   under the same id so the two land as one row. A failed send is swallowed -
+   the visitor is doing us a favour and must never see an error for it. */
+(function initFeedback() {
+  const box = document.getElementById("feedback-nudge");
+  const lead = document.getElementById("feedback-lead");
+  const form = document.getElementById("feedback-form");
+  const input = document.getElementById("feedback-text");
+  const sid = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  async function send(vote, text) {
+    try {
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sid, vote, text, lang, context: "stories" }),
+      });
+    } catch (e) { /* swallowed by design */ }
+  }
+  // swapping data-i18n keeps the line right if the language changes afterwards
+  function say(key) { lead.dataset.i18n = key; lead.textContent = t(key); }
+
+  box.querySelectorAll(".feedback-vote").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      box.dataset.vote = btn.dataset.vote;
+      track(`feedback-${btn.dataset.vote}`);
+      send(btn.dataset.vote, "");
+      say("feedbackFollowUp");
+      box.classList.add("feedback-voted");
+      form.classList.remove("hidden");
+      input.focus();
+    });
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) form.requestSubmit();
+  });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (text) {
+      track("feedback-text", { vote: box.dataset.vote });
+      send(box.dataset.vote, text);
+    }
+    say("feedbackThanks");
+    form.classList.add("hidden");
+    box.classList.add("feedback-done");
+  });
+  document.getElementById("feedback-skip").addEventListener("click", () => {
+    track("feedback-dismiss");
+    box.classList.add("hidden");
+  });
+})();
+
 /* -- language -- */
 function applyStatic() {
   document.documentElement.lang = lang;
@@ -1228,26 +1300,15 @@ function applyStatic() {
     const text = I18N[lang][node.dataset.i18nPlaceholder];
     if (text != null) node.placeholder = text;
   });
+  document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    const text = I18N[lang][node.dataset.i18nTitle];
+    if (text != null) { node.title = text; node.setAttribute("aria-label", text); }
+  });
   document.querySelectorAll(".lang-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.lang === lang);
   });
 }
 
-document.querySelectorAll(".lang-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    if (btn.dataset.lang === lang) return;
-    lang = btn.dataset.lang;
-    try { localStorage.setItem("lang", lang); } catch (e) {}
-    applyStatic();
-    renderTop();
-    rerenderNew();
-    relabelBoard();
-    if (tap.code) {
-      document.getElementById("tap-title").textContent =
-        fmt("tapTitle", t("problem_" + tap.code));
-    }
-  });
-});
 
 applyStatic();
 initCompose();

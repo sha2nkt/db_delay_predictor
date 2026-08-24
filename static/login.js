@@ -95,6 +95,8 @@ try { if (localStorage.getItem("lang") === "en") lang = "en"; } catch (e) {}
 const t = (key) => (I18N[lang][key] != null ? I18N[lang][key] : I18N.de[key]);
 // no-op when the Umami script is blocked or unavailable; never the address
 const track = (name, data) => window.umami?.track(name, data);
+// the stories page lives at one URL per language
+const storiesPath = () => (lang === "en" ? "/stories" : "/geschichten");
 
 // exactly one of these is visible; the header and the tab title follow it
 const VIEWS = {
@@ -152,6 +154,7 @@ function applyStatic() {
   document.querySelectorAll(".lang-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.lang === lang);
   });
+  document.getElementById("footer-stories").href = storiesPath();
   // glyph-only button: its accessible name has nowhere to live but here
   shuffleBtn.title = t("shuffleTitle");
   shuffleBtn.setAttribute("aria-label", t("shuffleTitle"));
@@ -316,7 +319,7 @@ document.getElementById("code-form").addEventListener("submit", async (ev) => {
       return;
     }
     track("login-code");
-    location.assign("/stories");
+    location.assign(storiesPath());
   } catch (e) {
     status.textContent = t("errGeneric");
     send.disabled = false;
