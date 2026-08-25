@@ -62,10 +62,18 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .field-date input::-webkit-date-and-time-value,
 .field-time input::-webkit-date-and-time-value { text-align: left; }
-.field-window select, .field-transfer select { min-width: 110px; }
-/* own line under the age select and D-Ticket switches; flex-start keeps the
-   select at its natural width instead of stretching across the row */
-.field-transfer { flex-basis: 100%; align-items: flex-start; }
+.field-window select { min-width: 110px; }
+/* the Umstiegszeit select and the Verkehrsmittel picker read as one pair, so they
+   share a width — and it is the age select's, so the two rows line up */
+.field-transfer select, .transport-btn { min-width: 150px; }
+/* Umstiegszeit and the Verkehrsmittel picker share a line of their own under the
+   age select and the D-Ticket switches; flex-start keeps each control at its
+   natural width instead of stretching across the row */
+.advanced-row {
+  flex-basis: 100%;
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px;
+}
+.field-transfer, .field-transport { align-items: flex-start; }
 /* sized by its longest option label, not the 200px input default */
 .field-age select { min-width: 150px; }
 .field input:focus, .field select:focus { outline: 2px solid var(--brand-red); outline-offset: -1px; }
@@ -922,7 +930,10 @@ body.nudge-on #donate-footer-item { display: none; }
   /* stacked card: the toggle centers on its line, the button spans below it */
   .search-actions { flex-direction: column; align-items: stretch; gap: 4px; }
   .advanced-toggle { justify-content: center; }
-  .field input, .field select { min-width: 0; width: 100%; }
+  .field input, .field select, .transport-btn { min-width: 0; width: 100%; }
+  /* stacked card: split the line evenly so the pair keeps matching boxes even
+     though their labels are different lengths */
+  .advanced-row .field { flex: 1 1 0; }
   #swap { align-self: center; }
   .return-add, .stopover-add { align-self: stretch; text-align: center; }
   .return-fields, .stopover-row { flex-direction: column; align-items: stretch; }
@@ -1603,3 +1614,94 @@ body.nudge-on #donate-footer-item { display: none; }
   .top-station { display: none; }
   .story { padding: 12px; gap: 8px; }
 }
+
+/* --- transport-mode filter: the bahn.de "Verkehrsmittel" dialog --- */
+
+/* a picker, not an action: the same box as the selects it sits beside, down to
+   the caret standing in for their native arrow */
+.transport-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 4px;
+  color: var(--text); font-family: inherit; font-size: 15px;
+  /* a select's inner line box is taller than a button's at the same font size;
+     1.25 buys back the 2px so the two boxes end up the same height */
+  padding: 10px 12px; line-height: 1.25; text-align: left;
+  cursor: pointer; white-space: nowrap;
+}
+.transport-btn:hover { border-color: var(--text-muted); }
+.transport-btn:focus-visible { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.transport-caret { flex: none; color: var(--text); }
+/* the count stands in for a select's value, so a narrowed search reads at a glance */
+.transport-value.transport-filtered { color: var(--brand-red); font-weight: 600; }
+
+.tm-modal {
+  border: none; border-radius: 14px; padding: 0; margin: auto;  /* the * reset drops the UA centering */
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  box-shadow: 0 12px 40px rgba(0,0,0,.28);
+  color: var(--text);
+}
+.tm-modal::backdrop { background: rgba(20, 24, 28, .55); }
+.tm-inner { padding: 20px 22px 18px; position: relative; }
+.tm-title { font-size: 19px; margin-right: 28px; line-height: 1.3; }
+
+.tm-section { margin-top: 14px; }
+.tm-section.hidden { display: none; }
+.tm-section label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.tm-section select {
+  width: 100%; padding: 10px; font-family: inherit; font-size: 14px;
+  border: 1px solid var(--gray-border); border-radius: 4px; background: #fff; color: var(--text);
+}
+
+/* quick select: one of the three rows carries a check when the toggles match it */
+.tm-quick { margin-top: 12px; border: 1px solid var(--gray-border); border-radius: 8px; overflow: hidden; }
+.tm-quick-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: none; border-bottom: 1px solid var(--gray-border);
+  font-family: inherit; font-size: 14px; color: var(--text); text-align: left;
+  padding: 11px 12px; cursor: pointer;
+}
+.tm-quick-btn:last-child { border-bottom: none; }
+.tm-quick-btn:hover { background: var(--gray-bg); }
+.tm-quick-btn[aria-pressed="true"] { background: var(--gray-bg); }
+.tm-check { color: var(--green); font-weight: 700; width: 16px; visibility: hidden; }
+.tm-quick-btn[aria-pressed="true"] .tm-check { visibility: visible; }
+
+.tm-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.tm-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; cursor: pointer; user-select: none; }
+.tm-label { flex: 1; font-size: 14px; }
+.tm-icon {
+  flex: none; width: 34px; height: 34px; border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 17px; font-weight: 800; line-height: 1;
+}
+.tm-i-ice { background: #282d37; color: #fff; }
+.tm-i-ic { background: #646973; color: #fff; }
+.tm-i-ir { background: #afb4bb; color: #282d37; }
+.tm-i-regional { background: #d7dce1; color: #282d37; }
+.tm-i-sbahn { background: #4d9f3e; color: #fff; }
+.tm-i-bus { background: #814997; color: #fff; }
+.tm-i-boat { background: #55b9e6; color: #282d37; }
+.tm-i-ubahn { background: #1455c0; color: #fff; }
+.tm-i-tram { background: #a9455d; color: #fff; }
+.tm-i-taxi { background: #ffd800; color: #282d37; }
+
+/* same look as the D-Ticket switches, but green like on bahn.de */
+.tm-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+.tm-row input:checked + .dticket-switch { background: var(--green); }
+.tm-row input:checked + .dticket-switch::after { left: 18px; }
+.tm-row input:focus-visible + .dticket-switch { outline: 2px solid var(--brand-red); outline-offset: 2px; }
+
+.tm-none { margin: 10px 0 0; font-size: 12.5px; color: var(--red); }
+.tm-none.hidden { display: none; }
+
+.tm-actions { display: flex; gap: 10px; margin-top: 16px; }
+.tm-reset, .tm-accept {
+  flex: 1; padding: 12px; border-radius: 6px; font-family: inherit;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.tm-reset { background: #fff; border: 1px solid var(--gray-border); color: var(--text); }
+.tm-reset:hover { background: var(--gray-bg); }
+.tm-accept { background: var(--brand-red); border: 1px solid var(--brand-red); color: #fff; }
+.tm-accept:hover { background: var(--brand-red-dark); border-color: var(--brand-red-dark); }
+.tm-accept:disabled { opacity: .5; cursor: not-allowed; }

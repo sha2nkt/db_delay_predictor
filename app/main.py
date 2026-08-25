@@ -613,6 +613,7 @@ async def journeys(
     via1_stay: int = Query(0, alias="via1Stay", ge=0, le=1439),
     via2: str | None = Query(None),
     via2_stay: int = Query(0, alias="via2Stay", ge=0, le=1439),
+    products: str | None = None,
 ):
     if window not in (7, 15, 30):
         raise HTTPException(422, "window must be 7, 15 or 30")
@@ -622,6 +623,17 @@ async def journeys(
         raise HTTPException(422, "mode must be future or past")
     if age not in bahn_api.TRAVELLER_TYPES:
         raise HTTPException(422, "age must be adult, senior, young, child or toddler")
+    # bahn.de's "Verkehrsmittel" filter: a comma-separated subset of the product
+    # list. Normalized to canonical order so equivalent selections share a cache
+    # entry; the full set (or none) means unfiltered.
+    product_filter = None
+    if products:
+        requested = set(products.split(","))
+        unknown = requested.difference(bahn_api.ALL_PRODUCTS)
+        if unknown:
+            raise HTTPException(422, f"unknown products: {', '.join(sorted(unknown))}")
+        if len(requested) < len(bahn_api.ALL_PRODUCTS):
+            product_filter = tuple(p for p in bahn_api.ALL_PRODUCTS if p in requested)
     # "1" is the legacy value from before the "all trains" mode existed; links
     # and cached frontends still send it
     dticket = {"1": "only", "only": "only", "all": "all"}.get(dticket, "off")
@@ -650,7 +662,7 @@ async def journeys(
         (via, stay) for via, stay in ((via1, via1_stay), (via2, via2_stay)) if via)
     try:
         data, stale_age = await bahn_api.journeys(
-            from_id, to_id, departure, paging_ref, dticket, age, transfer, vias)
+            from_id, to_id, departure, paging_ref, dticket, age, transfer, vias, product_filter)
     except bahn_api.UpstreamError as e:
         raise _upstream_http_error(e)
     if stale_age:

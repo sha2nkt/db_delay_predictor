@@ -653,7 +653,8 @@ TRAVELLER_TYPES = {
 
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
                    dticket: str = "off", age: str = "adult", transfer: int = 0,
-                   vias: tuple = (), source: str = "search") -> tuple[dict, int]:
+                   vias: tuple = (), products: tuple[str, ...] | None = None,
+                   source: str = "search") -> tuple[dict, int]:
     """Returns (data, stale_age_seconds); age is 0 for a fresh answer, else how
     old the served fallback is. from_id/to_id are full HAFAS location ids
     (A=1@O=...@L=...@) from locations().
@@ -676,6 +677,9 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     vias are the search mask's stopovers, ((location_id, stay_minutes), ...) in
     visiting order, at most two — bahn.de then only returns connections passing
     through them with at least that much dwell.
+
+    products narrows the search to a subset of ALL_PRODUCTS (the bahn.de
+    "Verkehrsmittel" toggles); None searches everything.
     """
     vias = tuple((via_id, stay) for via_id, stay in vias)
     # Searches default to "now", so the departure minute fragments the cache: the
@@ -690,7 +694,7 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
         "anfrageZeitpunkt": departure_iso,
         "ankunftSuche": "ABFAHRT",
         "klasse": "KLASSE_2",
-        "produktgattungen": ALL_PRODUCTS,
+        "produktgattungen": list(products) if products else ALL_PRODUCTS,
         "reisende": [{
             "typ": TRAVELLER_TYPES[age],
             "ermaessigungen": [{"art": "KEINE_ERMAESSIGUNG", "klasse": "KLASSENLOS"}],
@@ -702,7 +706,9 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
         # "all trains" mode showing nothing the D-Ticket covers on exactly the
         # routes where it pays off (München -> Augsburg: 5 paid ICEs, 0 covered).
         # Routes without a slower covered alternative return the same list either way.
-        "schnelleVerbindungen": dticket != "all",
+        # A narrowed product set drops it too: whoever toggles modes explicitly
+        # wants to see those trains, and the pruning is what would hide them.
+        "schnelleVerbindungen": dticket != "all" and products is None,
         "sitzplatzOnly": False,
         "bikeCarriage": False,
         "reservierungsKontingenteVorhanden": False,
@@ -716,10 +722,10 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
             {"id": via_id, "aufenthaltsdauer": stay} for via_id, stay in vias]
     if paging_ref:
         body["pagingReference"] = paging_ref
-    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket, age, transfer, vias)
+    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket, age, transfer, vias, products)
     # paged responses are offsets into a result list, so they only ever stand in
     # for the same page (exact key), never for the route's primary answer
-    route = (from_id, to_id, dticket, age, transfer, vias) if paging_ref is None else None
+    route = (from_id, to_id, dticket, age, transfer, vias, products) if paging_ref is None else None
 
     def keep(data: dict) -> None:
         now = time.monotonic()

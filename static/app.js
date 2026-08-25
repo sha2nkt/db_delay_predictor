@@ -40,6 +40,7 @@ const state = {
   returnJourney: null,  // journey picked on the return step
   returnResults: null,  // cached return list, so going back doesn't refetch
   returnPrefetch: null,  // {departure, data} proven answerable by the search's preflight
+  products: null,  // {outbound, return}: Sets of enabled produktgattungen, initialized below
 };
 
 // DB digital compensation flow lives in the customer account's past-trips list
@@ -80,7 +81,7 @@ const I18N = {
     stopover1: "Zwischenhalt 1",
     stopover2: "Zwischenhalt 2",
     stopoverPlaceholder: "z.B. Frankfurt(Main)Hbf",
-    stayLabel: "Aufenthalt (Min.)",
+    stayLabel: "Aufenthalt (hh:mm)",
     stopoverRemoveTitle: "Zwischenhalt entfernen",
     stopoverUnresolved: "Bitte wähle den Zwischenhalt aus der Vorschlagsliste.",
     stepOutbound: "Hinfahrt",
@@ -165,6 +166,28 @@ const I18N = {
     ageYoung: "Person (15-26 Jahre)",
     ageChild: "Kind (6-14 Jahre)",
     ageToddler: "Kind (0-5 Jahre)",
+    transportTitle: "Verkehrsmittel",
+    transportTooltip: "Nach Verkehrsmitteln filtern",
+    transportSection: "Streckenabschnitt",
+    transportEntire: "Gesamte Reise",
+    transportOutbound: "Hinfahrt",
+    transportReturn: "Rückfahrt",
+    transportAll: "Alle",
+    transportLocal: "Nur Nahverkehr",
+    transportLong: "Nur Fernverkehr",
+    tmIce: "Hochgeschwindigkeitszüge",
+    tmIc: "Intercity- und Eurocityzüge",
+    tmIr: "Interregio- und Schnellzüge",
+    tmRegional: "Nahverkehr und sonstige Züge",
+    tmSbahn: "S-Bahn",
+    tmBus: "Busse",
+    tmBoat: "Schiffe",
+    tmUbahn: "U-Bahn",
+    tmTram: "Straßenbahn",
+    tmOnCall: "Anrufpflichtige Fahrten",
+    transportNone: "Mindestens ein Verkehrsmittel auswählen.",
+    transportReset: "Zurücksetzen",
+    transportAccept: "Übernehmen",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
     tightTitle: "Knapper Umstieg:",
@@ -285,7 +308,7 @@ const I18N = {
     stopover1: "Stopover 1",
     stopover2: "Stopover 2",
     stopoverPlaceholder: "e.g. Frankfurt(Main)Hbf",
-    stayLabel: "Stay (min)",
+    stayLabel: "Stay (hh:mm)",
     stopoverRemoveTitle: "Remove stopover",
     stopoverUnresolved: "Please pick the stopover from the suggestion list.",
     stepOutbound: "Outbound",
@@ -370,6 +393,28 @@ const I18N = {
     ageYoung: "Person (aged 15-26)",
     ageChild: "Child (aged 6-14)",
     ageToddler: "Child (aged 0-5)",
+    transportTitle: "Mode of transport",
+    transportTooltip: "Filter by mode of transport",
+    transportSection: "Route section",
+    transportEntire: "Entire journey",
+    transportOutbound: "Outbound journey",
+    transportReturn: "Return journey",
+    transportAll: "All",
+    transportLocal: "Local transport only",
+    transportLong: "Long-distance travel only",
+    tmIce: "High-speed trains",
+    tmIc: "Intercity and Eurocity trains",
+    tmIr: "Interregio and fast trains",
+    tmRegional: "Regional and other trains",
+    tmSbahn: "S-Bahn",
+    tmBus: "Buses",
+    tmBoat: "Boats",
+    tmUbahn: "Underground",
+    tmTram: "Tram",
+    tmOnCall: "Services requiring tel. registration",
+    transportNone: "Select at least one mode of transport.",
+    transportReset: "Reset",
+    transportAccept: "Accept",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
     tightTitle: "Tight transfer:",
@@ -660,6 +705,7 @@ function applyLang(lang) {
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.ariaLabel = t(el.dataset.i18nAria); });
 
   updateChartImg();
+  updateTransportBtn();  // its value is set from JS, so data-i18n cannot retranslate it
 
   if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
   if (state.staleSeconds) setStaleNotice(state.staleSeconds);
@@ -934,6 +980,138 @@ function ageMode() {
 
 // pricing is server-side: refetch, but only if results are showing
 document.getElementById("age").addEventListener("change", refetchCurrentLeg);
+// --- transport-mode filter (bahn.de "Verkehrsmittel") ---
+
+// order matches app/bahn_api.py ALL_PRODUCTS and the bahn.de vm= URL codes
+const PRODUCTS = ["ICE", "EC_IC", "IR", "REGIONAL", "SBAHN", "BUS", "SCHIFF", "UBAHN", "TRAM", "ANRUFPFLICHTIG"];
+const LONG_DISTANCE = ["ICE", "EC_IC", "IR"];
+const LOCAL_TRANSPORT = PRODUCTS.filter((p) => !LONG_DISTANCE.includes(p));
+// per-leg sets so a round trip can filter its two searches differently
+state.products = { outbound: new Set(PRODUCTS), return: new Set(PRODUCTS) };
+
+const transportModal = document.getElementById("transport-modal");
+const tmSectionSel = document.getElementById("tm-section");
+const tmAcceptBtn = document.getElementById("tm-accept");
+const tmInputs = [...transportModal.querySelectorAll(".tm-row input")];
+const tmQuickBtns = [...transportModal.querySelectorAll(".tm-quick-btn")];
+
+let tmDraft = null;  // edited copy of state.products; only Accept commits it
+
+function productsParam(dir) {
+  // the picker is hidden in past mode, where a leftover selection must not narrow
+  // the compensation check away from the train that was actually taken
+  if (state.mode === "past") return null;
+  const set = state.products[dir];
+  return set.size === PRODUCTS.length ? null : PRODUCTS.filter((p) => set.has(p)).join(",");
+}
+
+// a removed return must not keep a diverged filter around for a later re-add
+function syncReturnProducts() {
+  state.products.return = new Set(state.products.outbound);
+}
+
+// the button carries its own value the way the selects beside it do: "Alle"
+// until something is switched off, then the counts (two, when the legs diverge)
+function updateTransportBtn() {
+  const parts = [state.products.outbound];
+  if (state.returnTrip && productsParam("return") !== productsParam("outbound")) parts.push(state.products.return);
+  const valueEl = document.getElementById("transport-value");
+  const filtered = parts.some((s) => s.size < PRODUCTS.length);
+  valueEl.textContent = filtered
+    ? parts.map((s) => `${s.size}/${PRODUCTS.length}`).join(" · ") : t("transportAll");
+  valueEl.classList.toggle("transport-filtered", filtered);
+}
+
+// the sets the dialog is editing; "entire journey" writes through to both legs
+function tmActiveSets() {
+  const section = state.returnTrip ? tmSectionSel.value : "entire";
+  return section === "outbound" ? [tmDraft.outbound]
+    : section === "return" ? [tmDraft.return]
+    : [tmDraft.outbound, tmDraft.return];
+}
+
+function tmQuickTarget(btn) {
+  return btn.dataset.quick === "all" ? PRODUCTS
+    : btn.dataset.quick === "local" ? LOCAL_TRANSPORT : LONG_DISTANCE;
+}
+
+function renderTransportModal() {
+  const sets = tmActiveSets();
+  // a product shows as on only when every edited leg allows it
+  for (const input of tmInputs) input.checked = sets.every((s) => s.has(input.dataset.product));
+  for (const btn of tmQuickBtns) {
+    const target = tmQuickTarget(btn);
+    const match = sets.every((s) => s.size === target.length && target.every((p) => s.has(p)));
+    btn.setAttribute("aria-pressed", String(match));
+  }
+  const empty = !tmDraft.outbound.size || (state.returnTrip && !tmDraft.return.size);
+  tmAcceptBtn.disabled = empty;
+  document.getElementById("tm-none").classList.toggle("hidden", !empty);
+}
+
+function openTransportModal() {
+  tmDraft = { outbound: new Set(state.products.outbound), return: new Set(state.products.return) };
+  document.getElementById("tm-section-wrap").classList.toggle("hidden", !state.returnTrip);
+  tmSectionSel.value = "entire";
+  // the section picker names the two legs like bahn.de does
+  const ogOut = document.getElementById("tm-og-outbound");
+  const ogRet = document.getElementById("tm-og-return");
+  ogOut.label = t("transportOutbound");
+  ogRet.label = t("transportReturn");
+  const named = state.from?.name && state.to?.name;
+  ogOut.firstElementChild.textContent = named ? `${state.from.name} – ${state.to.name}` : t("transportOutbound");
+  ogRet.firstElementChild.textContent = named ? `${state.to.name} – ${state.from.name}` : t("transportReturn");
+  renderTransportModal();
+  transportModal.showModal();
+  track("transport-modal");
+}
+
+document.getElementById("transport-btn").addEventListener("click", openTransportModal);
+document.getElementById("transport-close").addEventListener("click", () => transportModal.close());
+// a click on the backdrop lands on the dialog element itself (the inner wrapper covers the rest)
+transportModal.addEventListener("click", (e) => { if (e.target === transportModal) transportModal.close(); });
+// X, Esc and backdrop all discard; Accept has already nulled the draft by the time it closes
+transportModal.addEventListener("close", () => { tmDraft = null; });
+
+tmSectionSel.addEventListener("change", renderTransportModal);
+
+for (const input of tmInputs) {
+  input.addEventListener("change", () => {
+    for (const s of tmActiveSets()) input.checked ? s.add(input.dataset.product) : s.delete(input.dataset.product);
+    renderTransportModal();
+  });
+}
+
+for (const btn of tmQuickBtns) {
+  btn.addEventListener("click", () => {
+    const target = tmQuickTarget(btn);
+    for (const s of tmActiveSets()) { s.clear(); for (const p of target) s.add(p); }
+    renderTransportModal();
+  });
+}
+
+document.getElementById("tm-reset").addEventListener("click", () => {
+  tmDraft = { outbound: new Set(PRODUCTS), return: new Set(PRODUCTS) };
+  renderTransportModal();
+});
+
+tmAcceptBtn.addEventListener("click", () => {
+  const before = [productsParam("outbound"), productsParam("return")].join("|");
+  state.products = tmDraft;
+  tmDraft = null;
+  const after = [productsParam("outbound"), productsParam("return")].join("|");
+  transportModal.close();
+  updateTransportBtn();
+  // filtering is server-side like the window and D-Ticket: refetch, but only if
+  // results are showing
+  if (after !== before) {
+    track("transport-filter", {
+      outbound: productsParam("outbound") || "all",
+      return: productsParam("return") || "all",
+    });
+    refetchCurrentLeg();
+  }
+});
 
 // --- return journey ---
 
@@ -951,6 +1129,8 @@ function returnDepartureIso() {
 function setReturnTrip(on) {
   // the compensation check looks at one journey that already happened
   state.returnTrip = on && state.mode !== "past";
+  if (!state.returnTrip) syncReturnProducts();
+  updateTransportBtn();
   returnAddBtn.classList.toggle("hidden", state.returnTrip);
   returnFieldsEl.classList.toggle("hidden", !state.returnTrip);
   syncStopoverUI();  // the return direction's stopover group follows the trip type
@@ -988,20 +1168,32 @@ const ALL_VIA_KEYS = [...VIA_KEYS.outbound, ...VIA_KEYS.return];
 const viaRow = (key) => document.getElementById(`${key}-row`);
 const viaStayEl = (key) => document.getElementById(`${key}Stay`);
 
-// the picked stopovers of one direction, in row order; the stay is clamped to
-// the input's bounds because type=number doesn't enforce them on typed text
+// a stay is entered as hh:mm ("1:30", "1h30"), but bare digits stay minutes so
+// habit and older shared links keep working; unreadable input counts as no stay
+function parseStay(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return 0;
+  const hhmm = text.match(/^(\d{1,2})\s*[:hH]\s*(\d{1,2})?$/);
+  const minutes = hhmm ? Number(hhmm[1]) * 60 + Number(hhmm[2] || 0) : Number(text);
+  if (!Number.isFinite(minutes)) return 0;
+  return Math.max(0, Math.min(1439, Math.round(minutes)));
+}
+
+const formatStay = (minutes) => `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
+
+// the picked stopovers of one direction, in row order
 function viasFor(direction) {
   if (state.mode === "past") return [];
   return VIA_KEYS[direction].filter((k) => state[k]).map((k) => ({
     station: state[k],
-    stay: Math.max(0, Math.min(1439, Math.round(Number(viaStayEl(k).value)) || 0)),
+    stay: parseStay(viaStayEl(k).value),
   }));
 }
 
 function clearVia(key) {
   state[key] = null;
   document.getElementById(key).value = "";
-  viaStayEl(key).value = "0";
+  viaStayEl(key).value = "";
 }
 
 // keeps the stopover controls consistent with the state: which groups and rows
@@ -1037,6 +1229,15 @@ for (const direction of ["outbound", "return"]) {
     track("stopover-add");
   });
 }
+
+// what was typed only has to be readable, not well formed: it settles into hh:mm
+// on the way out, and an empty field keeps meaning no stay at all
+document.querySelectorAll(".stay-input").forEach((el) => {
+  el.addEventListener("change", () => {
+    const minutes = parseStay(el.value);
+    el.value = minutes ? formatStay(minutes) : "";
+  });
+});
 
 document.querySelectorAll(".stopover-remove").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -1378,6 +1579,8 @@ async function fetchJourneys(pagingRef, opts = {}) {
   const dticket = dticketMode();
   const age = ageMode();
   const leg = opts.leg ?? searchLeg();
+  // opts.dir names the trip half being fetched when it is not the one on screen
+  const dir = opts.dir ?? (state.leg === "return" ? "return" : "outbound");
   const params = new URLSearchParams({
     from: leg.from.id, to: leg.to.id, departure: leg.departure, window: win,
   });
@@ -1385,6 +1588,8 @@ async function fetchJourneys(pagingRef, opts = {}) {
   if (dticket !== "off") params.set("dticket", dticket);
   if (age !== "adult") params.set("age", age);
   if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
+  const tm = productsParam(dir);
+  if (tm) params.set("products", tm);
   if (pagingRef) params.set("pagingRef", pagingRef);
   (leg.vias || []).forEach((v, i) => {
     params.set(`via${i + 1}`, v.station.id);
@@ -1486,6 +1691,11 @@ function syncUrl() {
   if (dticketMode() !== "off") params.set("dticket", dticketMode());
   if (ageMode() !== "adult") params.set("age", ageMode());
   if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
+  const tm = productsParam("outbound");
+  if (tm) params.set("tm", tm);
+  // "all" marks a return deliberately left unfiltered next to a filtered outbound
+  const tmr = productsParam("return");
+  if (state.returnTrip && tmr !== tm) params.set("tmr", tmr || "all");
   if (state.returnTrip && returnDateEl.value) {
     params.set("rdate", returnDateEl.value);
     params.set("rtime", returnTimeEl.value);
@@ -1584,6 +1794,7 @@ async function search() {
     transfer: Number(transferMinutes()),
     returnTrip: state.returnTrip,
     stopovers: viasFor("outbound").length + viasFor("return").length,
+    transport: productsParam("outbound") || "all",
   });
   await runSearch();
 }
@@ -1656,6 +1867,7 @@ async function preflightReturn() {
   try {
     const data = await fetchJourneys(null, {
       leg,
+      dir: "return",
       maxTotal: PREFLIGHT_MAX_TOTAL_S,
       retryStatusKey: "returnRetryIn",
       retryAgainStatusKey: "returnRetryAgainIn",
@@ -2404,8 +2616,16 @@ function bahnDeUrl(journey, outbound) {
   // departure time rather than an arrival time
   const returnDep = outbound ? ((journey.legs || [])[0]?.plannedDeparture || "").slice(0, 19) : "";
   const rt = returnDep ? `&hza=D&rd=${returnDep}&rza=D` : "";
+  // vm carries the Verkehrsmittel toggles over as bahn.de's two-digit codes
+  // (indices into PRODUCTS); the mask has one list, so a round trip gets the
+  // union of both legs' filters. Omitted when nothing is filtered.
+  const used = new Set(outbound
+    ? [...state.products.outbound, ...state.products.return]
+    : state.products[state.leg === "return" ? "return" : "outbound"]);
+  const vm = state.mode === "past" || used.size === PRODUCTS.length ? ""
+    : `&vm=${PRODUCTS.flatMap((p, i) => used.has(p) ? [String(i).padStart(2, "0")] : []).join(",")}`;
   return `https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=${encodeURIComponent(fromName)}` +
-    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}${rt}&kl=2${dt}${r}`;
+    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}${rt}&kl=2${dt}${r}${vm}`;
 }
 
 // --- claim modal: walks through the steps on bahn.de instead of a bare redirect ---
@@ -3091,7 +3311,17 @@ const qp = new URLSearchParams(location.search);
     if (["10", "15", "20", "25", "30", "35", "40", "45"].includes(qp.get("transfer"))) {
       document.getElementById("transfer").value = qp.get("transfer");
     }
-    if (dticketMode() !== "off" || ageMode() !== "adult" || transferMinutes() !== "0") setAdvancedOpen(true);
+    const parseProducts = (raw) => {
+      const names = (raw || "").split(",").filter((p) => PRODUCTS.includes(p));
+      return names.length ? new Set(names) : null;
+    };
+    const tm = parseProducts(qp.get("tm"));
+    if (tm) state.products.outbound = tm;
+    // no tmr means the legs were filtered alike; "all" is a deliberately open return
+    state.products.return = qp.get("tmr") === "all" ? new Set(PRODUCTS)
+      : parseProducts(qp.get("tmr")) || new Set(state.products.outbound);
+    updateTransportBtn();
+    if (dticketMode() !== "off" || ageMode() !== "adult" || transferMinutes() !== "0" || productsParam("outbound") || productsParam("return")) setAdvancedOpen(true);
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1
@@ -3104,8 +3334,8 @@ const qp = new URLSearchParams(location.search);
         if (!qp.get(`${param}Id`)) return;
         state[key] = { id: qp.get(`${param}Id`), name: qp.get(param) || "" };
         document.getElementById(key).value = state[key].name;
-        const stay = Math.round(Number(qp.get(`${param}Stay`)));
-        if (Number.isFinite(stay) && stay > 0) viaStayEl(key).value = String(Math.min(1439, stay));
+        const stay = parseStay(qp.get(`${param}Stay`));
+        if (stay > 0) viaStayEl(key).value = formatStay(stay);
         viaRow(key).classList.remove("hidden");
       };
       restoreVia("vo1", "viaOut1");
