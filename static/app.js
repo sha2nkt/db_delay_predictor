@@ -13,6 +13,10 @@ const pagePath = (mode, lang = URL_LANG) => PATHS[lang][mode];
 const state = {
   from: null,   // {id, name}
   to: null,
+  viaOut1: null,  // stopover stations, {id, name} like from/to; Out = outbound
+  viaOut2: null,  // leg of the trip, Ret = return leg (round trips only)
+  viaRet1: null,
+  viaRet2: null,
   journeys: [],
   sort: "departure",
   windowUsed: 7,  // stats window that produced the current results
@@ -72,6 +76,13 @@ const I18N = {
     returnRemoveTitle: "Rückfahrt entfernen",
     returnIncomplete: "Bitte Datum und Uhrzeit der Rückfahrt angeben.",
     returnBeforeOutbound: "Die Rückfahrt kann nicht vor der Hinfahrt liegen.",
+    stopoverAdd: "+ Zwischenhalt hinzufügen",
+    stopover1: "Zwischenhalt 1",
+    stopover2: "Zwischenhalt 2",
+    stopoverPlaceholder: "z.B. Frankfurt(Main)Hbf",
+    stayLabel: "Aufenthalt (Min.)",
+    stopoverRemoveTitle: "Zwischenhalt entfernen",
+    stopoverUnresolved: "Bitte wähle den Zwischenhalt aus der Vorschlagsliste.",
     stepOutbound: "Hinfahrt",
     stepReturn: "Rückfahrt",
     stepSummary: "Übersicht",
@@ -270,6 +281,13 @@ const I18N = {
     returnRemoveTitle: "Remove return journey",
     returnIncomplete: "Please enter a date and time for the return journey.",
     returnBeforeOutbound: "The return journey can't start before the outbound one.",
+    stopoverAdd: "+ Add stopover",
+    stopover1: "Stopover 1",
+    stopover2: "Stopover 2",
+    stopoverPlaceholder: "e.g. Frankfurt(Main)Hbf",
+    stayLabel: "Stay (min)",
+    stopoverRemoveTitle: "Remove stopover",
+    stopoverUnresolved: "Please pick the stopover from the suggestion list.",
     stepOutbound: "Outbound",
     stepReturn: "Return",
     stepSummary: "Summary",
@@ -701,7 +719,7 @@ function paintStar(button, on) {
 
 // --- autocomplete ---
 
-function setupAutocomplete(inputId, dropdownId, key) {
+function setupAutocomplete(inputId, dropdownId, key, onChange) {
   const input = document.getElementById(inputId);
   const dropdown = document.getElementById(dropdownId);
   let timer = null;
@@ -734,6 +752,7 @@ function setupAutocomplete(inputId, dropdownId, key) {
       state[key] = item;
       input.value = item.name;
       dropdown.classList.remove("open");
+      onChange?.();
     });
     return row;
   }
@@ -756,6 +775,7 @@ function setupAutocomplete(inputId, dropdownId, key) {
 
   input.addEventListener("input", () => {
     state[key] = null;
+    onChange?.();
     clearTimeout(timer);
     const q = input.value.trim();
     if (q.length < 2) {
@@ -782,11 +802,16 @@ function setupAutocomplete(inputId, dropdownId, key) {
     input.value = "";
     input.focus();
     showSaved();
+    onChange?.();
   });
 }
 
 setupAutocomplete("from", "from-dropdown", "from");
 setupAutocomplete("to", "to-dropdown", "to");
+setupAutocomplete("viaOut1", "viaOut1-dropdown", "viaOut1", syncStopoverUI);
+setupAutocomplete("viaOut2", "viaOut2-dropdown", "viaOut2", syncStopoverUI);
+setupAutocomplete("viaRet1", "viaRet1-dropdown", "viaRet1", syncStopoverUI);
+setupAutocomplete("viaRet2", "viaRet2-dropdown", "viaRet2", syncStopoverUI);
 
 document.getElementById("swap").addEventListener("click", () => {
   const fromInput = document.getElementById("from");
@@ -928,6 +953,7 @@ function setReturnTrip(on) {
   state.returnTrip = on && state.mode !== "past";
   returnAddBtn.classList.toggle("hidden", state.returnTrip);
   returnFieldsEl.classList.toggle("hidden", !state.returnTrip);
+  syncStopoverUI();  // the return direction's stopover group follows the trip type
   if (!state.returnTrip) return;
   returnDateEl.min = dateEl.value;
   if (!returnDateEl.value || returnDateEl.value < dateEl.value) returnDateEl.value = dateEl.value;
@@ -952,6 +978,72 @@ document.getElementById("return-remove").addEventListener("click", () => {
 dateEl.addEventListener("change", () => {
   returnDateEl.min = dateEl.value;
   if (returnDateEl.value && returnDateEl.value < dateEl.value) returnDateEl.value = dateEl.value;
+});
+
+// --- stopovers (the last row of the advanced-options panel) ---
+
+const VIA_KEYS = { outbound: ["viaOut1", "viaOut2"], return: ["viaRet1", "viaRet2"] };
+const ALL_VIA_KEYS = [...VIA_KEYS.outbound, ...VIA_KEYS.return];
+
+const viaRow = (key) => document.getElementById(`${key}-row`);
+const viaStayEl = (key) => document.getElementById(`${key}Stay`);
+
+// the picked stopovers of one direction, in row order; the stay is clamped to
+// the input's bounds because type=number doesn't enforce them on typed text
+function viasFor(direction) {
+  if (state.mode === "past") return [];
+  return VIA_KEYS[direction].filter((k) => state[k]).map((k) => ({
+    station: state[k],
+    stay: Math.max(0, Math.min(1439, Math.round(Number(viaStayEl(k).value)) || 0)),
+  }));
+}
+
+function clearVia(key) {
+  state[key] = null;
+  document.getElementById(key).value = "";
+  viaStayEl(key).value = "0";
+}
+
+// keeps the stopover controls consistent with the state: which groups and rows
+// show, and whether each add button still has a row left to reveal
+function syncStopoverUI() {
+  for (const [direction, keys] of Object.entries(VIA_KEYS)) {
+    const returnGroup = direction === "return";
+    // dropping the return trip drops its stopovers with it
+    if (returnGroup && !state.returnTrip) {
+      keys.forEach((k) => { clearVia(k); viaRow(k).classList.add("hidden"); });
+    }
+    document.getElementById(`stopover-group-${direction}`)
+      .classList.toggle("hidden", returnGroup && !state.returnTrip);
+    const anyHidden = keys.some((k) => viaRow(k).classList.contains("hidden"));
+    document.getElementById(`stopover-add-${direction}`).classList.toggle("hidden", !anyHidden);
+  }
+  // the direction labels only mean something once there are two directions
+  document.querySelectorAll(".stopover-group-label").forEach((el) =>
+    el.classList.toggle("hidden", !state.returnTrip));
+}
+
+function revealVia(direction) {
+  const key = VIA_KEYS[direction].find((k) => viaRow(k).classList.contains("hidden"));
+  if (!key) return;
+  viaRow(key).classList.remove("hidden");
+  syncStopoverUI();
+  document.getElementById(key).focus();
+}
+
+for (const direction of ["outbound", "return"]) {
+  document.getElementById(`stopover-add-${direction}`).addEventListener("click", () => {
+    revealVia(direction);
+    track("stopover-add");
+  });
+}
+
+document.querySelectorAll(".stopover-remove").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    clearVia(btn.dataset.via);
+    viaRow(btn.dataset.via).classList.add("hidden");
+    syncStopoverUI();
+  });
 });
 
 // --- past mode (compensation check) ---
@@ -1227,8 +1319,8 @@ document.querySelector("#donate-nudge a").addEventListener("click", () =>
 // the result list shows one leg at a time; the return leg runs the search backwards
 function searchLeg() {
   return state.leg === "outbound"
-    ? { from: state.from, to: state.to, departure: state.departure }
-    : { from: state.to, to: state.from, departure: state.returnDeparture };
+    ? { from: state.from, to: state.to, departure: state.departure, vias: viasFor("outbound") }
+    : { from: state.to, to: state.from, departure: state.returnDeparture, vias: viasFor("return") };
 }
 
 // bahn.de rate-limits the session all our searches share, and says how long it
@@ -1294,6 +1386,10 @@ async function fetchJourneys(pagingRef, opts = {}) {
   if (age !== "adult") params.set("age", age);
   if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
   if (pagingRef) params.set("pagingRef", pagingRef);
+  (leg.vias || []).forEach((v, i) => {
+    params.set(`via${i + 1}`, v.station.id);
+    if (v.stay) params.set(`via${i + 1}Stay`, String(v.stay));
+  });
 
   const gen = searchGen;
   let waited = 0;
@@ -1394,18 +1490,42 @@ function syncUrl() {
     params.set("rdate", returnDateEl.value);
     params.set("rtime", returnTimeEl.value);
   }
+  const VIA_URL_PARAMS = { viaOut1: "vo1", viaOut2: "vo2", viaRet1: "vr1", viaRet2: "vr2" };
+  for (const [direction, keys] of Object.entries(VIA_KEYS)) {
+    for (const [i, via] of viasFor(direction).entries()) {
+      // re-numbered on write, so a lone second-row pick restores as row one
+      const p = VIA_URL_PARAMS[keys[i]];
+      params.set(`${p}Id`, via.station.id);
+      params.set(p, via.station.name);
+      if (via.stay) params.set(`${p}Stay`, String(via.stay));
+    }
+  }
   history.replaceState(null, "", `?${params}`);
 }
 
 async function search() {
-  await Promise.all([resolveTyped("from"), resolveTyped("to")]);
+  // stopover fields count like from/to, but only where their direction is live
+  const viaKeys = state.mode === "past" ? []
+    : [...VIA_KEYS.outbound, ...(state.returnTrip ? VIA_KEYS.return : [])]
+      .filter((k) => !viaRow(k).classList.contains("hidden"));
+  await Promise.all([resolveTyped("from"), resolveTyped("to"),
+    ...viaKeys.map((k) => resolveTyped(k))]);
   if (!state.from || !state.to) {
     setStatus("pickStations");
     statusEl.classList.add("error");
     return;
   }
+  // typed but unresolved stopover text must not silently search without it
+  if (viaKeys.some((k) => !state[k] && document.getElementById(k).value.trim())) {
+    setAdvancedOpen(true);  // the field the error is about must be visible
+    setStatus("stopoverUnresolved");
+    statusEl.classList.add("error");
+    return;
+  }
+  syncStopoverUI();  // resolveTyped may have just turned text into a pick
   saveRecent(state.from);
   saveRecent(state.to);
+  viaKeys.forEach((k) => { if (state[k]) saveRecent(state[k]); });
   if (state.mode === "past") {
     await ensureCoverage();
     const day = document.getElementById("date").value;
@@ -1463,6 +1583,7 @@ async function search() {
     age: ageMode(),
     transfer: Number(transferMinutes()),
     returnTrip: state.returnTrip,
+    stopovers: viasFor("outbound").length + viasFor("return").length,
   });
   await runSearch();
 }
@@ -1531,7 +1652,7 @@ async function runSearch() {
 // shown at all, and hand that proven answer to step 2 rather than asking twice.
 async function preflightReturn() {
   setStatus("returnChecking");
-  const leg = { from: state.to, to: state.from, departure: state.returnDeparture };
+  const leg = { from: state.to, to: state.from, departure: state.returnDeparture, vias: viasFor("return") };
   try {
     const data = await fetchJourneys(null, {
       leg,
@@ -2977,6 +3098,24 @@ const qp = new URLSearchParams(location.search);
       setReturnTrip(true);
       returnDateEl.value = qp.get("rdate");
       if (qp.get("rtime")) returnTimeEl.value = qp.get("rtime");
+    }
+    if (!PAST_PAGE) {
+      const restoreVia = (param, key) => {
+        if (!qp.get(`${param}Id`)) return;
+        state[key] = { id: qp.get(`${param}Id`), name: qp.get(param) || "" };
+        document.getElementById(key).value = state[key].name;
+        const stay = Math.round(Number(qp.get(`${param}Stay`)));
+        if (Number.isFinite(stay) && stay > 0) viaStayEl(key).value = String(Math.min(1439, stay));
+        viaRow(key).classList.remove("hidden");
+      };
+      restoreVia("vo1", "viaOut1");
+      restoreVia("vo2", "viaOut2");
+      if (state.returnTrip) {
+        restoreVia("vr1", "viaRet1");
+        restoreVia("vr2", "viaRet2");
+      }
+      if (ALL_VIA_KEYS.some((k) => state[k])) setAdvancedOpen(true);
+      syncStopoverUI();
     }
     search();
   }

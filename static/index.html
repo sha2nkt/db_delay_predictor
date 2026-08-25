@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=88">
+<link rel="stylesheet" href="/style.css?v=89">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -181,6 +181,68 @@ try {
         <option value="40">40 min</option>
         <option value="45">45 min</option>
       </select>
+    </div>
+    <div id="stopover-fields" class="stopover-fields">
+      <div class="stopover-group" id="stopover-group-outbound">
+        <span class="stopover-group-label hidden" data-i18n="stepOutbound">Hinfahrt</span>
+        <div class="stopover-row hidden" id="viaOut1-row">
+          <div class="field autocomplete-wrap">
+            <label for="viaOut1" data-i18n="stopover1">Zwischenhalt 1</label>
+            <input id="viaOut1" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+            <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+            <div class="dropdown" id="viaOut1-dropdown"></div>
+          </div>
+          <div class="field field-stay">
+            <label for="viaOut1Stay" data-i18n="stayLabel">Aufenthalt (Min.)</label>
+            <input id="viaOut1Stay" type="number" min="0" max="1439" step="5" value="0">
+          </div>
+          <button class="stopover-remove" type="button" data-via="viaOut1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+        </div>
+        <div class="stopover-row hidden" id="viaOut2-row">
+          <div class="field autocomplete-wrap">
+            <label for="viaOut2" data-i18n="stopover2">Zwischenhalt 2</label>
+            <input id="viaOut2" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+            <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+            <div class="dropdown" id="viaOut2-dropdown"></div>
+          </div>
+          <div class="field field-stay">
+            <label for="viaOut2Stay" data-i18n="stayLabel">Aufenthalt (Min.)</label>
+            <input id="viaOut2Stay" type="number" min="0" max="1439" step="5" value="0">
+          </div>
+          <button class="stopover-remove" type="button" data-via="viaOut2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+        </div>
+        <button class="stopover-add" id="stopover-add-outbound" type="button" data-i18n="stopoverAdd">+ Zwischenhalt hinzufügen</button>
+      </div>
+      <div class="stopover-group hidden" id="stopover-group-return">
+        <span class="stopover-group-label hidden" data-i18n="stepReturn">Rückfahrt</span>
+        <div class="stopover-row hidden" id="viaRet1-row">
+          <div class="field autocomplete-wrap">
+            <label for="viaRet1" data-i18n="stopover1">Zwischenhalt 1</label>
+            <input id="viaRet1" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+            <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+            <div class="dropdown" id="viaRet1-dropdown"></div>
+          </div>
+          <div class="field field-stay">
+            <label for="viaRet1Stay" data-i18n="stayLabel">Aufenthalt (Min.)</label>
+            <input id="viaRet1Stay" type="number" min="0" max="1439" step="5" value="0">
+          </div>
+          <button class="stopover-remove" type="button" data-via="viaRet1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+        </div>
+        <div class="stopover-row hidden" id="viaRet2-row">
+          <div class="field autocomplete-wrap">
+            <label for="viaRet2" data-i18n="stopover2">Zwischenhalt 2</label>
+            <input id="viaRet2" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+            <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+            <div class="dropdown" id="viaRet2-dropdown"></div>
+          </div>
+          <div class="field field-stay">
+            <label for="viaRet2Stay" data-i18n="stayLabel">Aufenthalt (Min.)</label>
+            <input id="viaRet2Stay" type="number" min="0" max="1439" step="5" value="0">
+          </div>
+          <button class="stopover-remove" type="button" data-via="viaRet2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+        </div>
+        <button class="stopover-add" id="stopover-add-return" type="button" data-i18n="stopoverAdd">+ Zwischenhalt hinzufügen</button>
+      </div>
     </div>
     </div>
   </section>
@@ -422,7 +484,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=105"></script>
+<script src="/app.js?v=106"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
