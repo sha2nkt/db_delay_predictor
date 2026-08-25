@@ -91,6 +91,37 @@ async def test_transfer_time_sent_upstream_and_never_shares_a_cache_entry(bahn):
     assert bodies[1]["minUmstiegszeit"] == 30
 
 
+async def test_vias_sent_as_zwischenhalte_and_never_share_a_cache_entry(bahn):
+    sess = bahn.use(FakeResponse(payload=PAYLOAD))
+    bodies = []
+    post = sess.post
+    sess.post = lambda url, **kw: (bodies.append(kw.get("json")), post(url, **kw))[1]
+
+    vias = (("A=1@O=Frankfurt(Main)Hbf@L=8000105@", 30),)
+    await search()
+    for _ in range(2):
+        await bahn_api.journeys("A=1@O=Berlin@L=8011160@", "A=1@O=Muenchen@L=8000261@",
+                                "2026-08-13T10:00:00", vias=vias)
+    assert sess.calls == 2  # the via search misses the plain one's entry, then hits its own
+    assert "zwischenhalte" not in bodies[0]
+    assert bodies[1]["zwischenhalte"] == [
+        {"id": "A=1@O=Frankfurt(Main)Hbf@L=8000105@", "aufenthaltsdauer": 30}]
+
+
+async def test_route_level_stale_never_answers_across_via_sets(bahn):
+    """A Berlin->München search must not degrade to a Berlin->(via Frankfurt,
+    30 min)->München answer, however close the departure times are."""
+    bahn.use(FakeResponse(payload=PAYLOAD))
+    await search(departure="2026-08-13T10:00:00")
+    bahn.clock.advance(400)
+    bahn.use(FakeResponse(429))
+    with pytest.raises(bahn_api.UpstreamRateLimited):
+        await bahn_api.journeys(
+            "A=1@O=Berlin@L=8011160@", "A=1@O=Muenchen@L=8000261@", "2026-08-13T10:30:00",
+            vias=(("A=1@O=Frankfurt(Main)Hbf@L=8000105@", 30),))
+    assert bahn_api.metrics["stale_hits_route"] == 0
+
+
 # --- stale fallback ---
 
 

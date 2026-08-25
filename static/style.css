@@ -128,24 +128,35 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .dticket-toggle input:checked + .dticket-switch::after { left: 18px; }
 .dticket-toggle input:focus-visible + .dticket-switch { outline: 2px solid var(--brand-red); outline-offset: 2px; }
 
-.return-add {
+.return-add, .stopover-add {
   align-self: flex-end;
   background: #fff; border: 1px dashed var(--gray-border); border-radius: 4px;
   color: var(--brand-red); font-family: inherit; font-size: 13px; font-weight: 600;
   padding: 11px 14px; cursor: pointer; white-space: nowrap;
 }
-.return-add:hover { border-color: var(--brand-red); background: color-mix(in srgb, var(--brand-red) 4%, #fff); }
-.return-add.hidden { display: none; }
+.return-add:hover, .stopover-add:hover { border-color: var(--brand-red); background: color-mix(in srgb, var(--brand-red) 4%, #fff); }
+.return-add.hidden, .stopover-add.hidden { display: none; }
 
 .return-fields { display: flex; gap: 12px; align-items: flex-end; }
 .return-fields.hidden { display: none; }
-.return-remove {
+.return-remove, .stopover-remove {
   background: none; border: none; color: var(--text-muted); font-family: inherit;
   font-size: 15px; line-height: 1; cursor: pointer; padding: 11px 6px; border-radius: 4px;
 }
-.return-remove:hover { background: var(--gray-bg); color: var(--text); }
+.return-remove:hover, .stopover-remove:hover { background: var(--gray-bg); color: var(--text); }
 /* stacked on mobile the bare glyph loses its context, so it gets a label there */
-.return-remove-label { display: none; }
+.return-remove-label, .stopover-remove-label { display: none; }
+
+/* stopovers take the last full row of the advanced-options panel */
+.stopover-fields { flex-basis: 100%; display: flex; flex-direction: column; gap: 10px; }
+.stopover-group { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.stopover-group.hidden { display: none; }
+.stopover-group-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+.stopover-group-label.hidden { display: none; }
+.stopover-row { display: flex; gap: 12px; align-items: flex-end; }
+.stopover-row.hidden { display: none; }
+.field-stay input { min-width: 120px; }
+.stopover-add { align-self: flex-start; }
 
 .autocomplete-wrap { position: relative; }
 .autocomplete-wrap input { padding-right: 34px; }
@@ -913,13 +924,14 @@ body.nudge-on #donate-footer-item { display: none; }
   .advanced-toggle { justify-content: center; }
   .field input, .field select { min-width: 0; width: 100%; }
   #swap { align-self: center; }
-  .return-add { align-self: stretch; }
-  .return-fields { flex-direction: column; align-items: stretch; }
-  .return-remove {
+  .return-add, .stopover-add { align-self: stretch; text-align: center; }
+  .return-fields, .stopover-row { flex-direction: column; align-items: stretch; }
+  .stopover-group { align-items: stretch; }
+  .return-remove, .stopover-remove {
     align-self: flex-end; padding: 6px 4px;
     display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
   }
-  .return-remove-label { display: inline; }
+  .return-remove-label, .stopover-remove-label { display: inline; }
   .trip-stepper { flex-direction: column; }
   .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
   .header-title { font-size: 15px; }

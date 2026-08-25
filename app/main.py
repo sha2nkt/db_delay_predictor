@@ -609,6 +609,10 @@ async def journeys(
     dticket: str = Query("0"),
     age: str = Query("adult"),
     transfer: int = Query(0),
+    via1: str | None = Query(None),
+    via1_stay: int = Query(0, alias="via1Stay", ge=0, le=1439),
+    via2: str | None = Query(None),
+    via2_stay: int = Query(0, alias="via2Stay", ge=0, le=1439),
 ):
     if window not in (7, 15, 30):
         raise HTTPException(422, "window must be 7, 15 or 30")
@@ -640,8 +644,13 @@ async def journeys(
         # bracket doesn't either; pinning it keeps past searches on one cache entry
         age = "adult"
         transfer = 0
+    # stopovers are a planning tool; the past check inspects one journey that
+    # already happened, so the frontend hides them there like the return trip
+    vias = () if past else tuple(
+        (via, stay) for via, stay in ((via1, via1_stay), (via2, via2_stay)) if via)
     try:
-        data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket, age, transfer)
+        data, stale_age = await bahn_api.journeys(
+            from_id, to_id, departure, paging_ref, dticket, age, transfer, vias)
     except bahn_api.UpstreamError as e:
         raise _upstream_http_error(e)
     if stale_age:
