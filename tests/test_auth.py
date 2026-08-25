@@ -4,7 +4,7 @@ the erasure that spans Firebase and the local tables. Firebase itself is
 stood in by the `firebase` fixture (conftest.py)."""
 
 import re
-from types import SimpleNamespace
+import sys
 
 import pytest
 
@@ -175,3 +175,16 @@ def test_a_missing_service_account_file_is_unavailable(monkeypatch, tmp_path):
     assert auth.configured() is True   # set, so /health says so ...
     with pytest.raises(auth.AuthUnavailable):
         auth._firebase()               # ... but nothing can be done with it
+
+
+def test_an_uninstalled_sdk_is_unavailable_not_a_traceback(monkeypatch, tmp_path):
+    """A deploy that pulled the new code without `uv sync`. The endpoints
+    answer 503 off AuthUnavailable, so an ImportError escaping here would be
+    a 500 with a traceback instead."""
+    sa = tmp_path / "sa.json"
+    sa.write_text("{}")
+    monkeypatch.setenv("FIREBASE_SA_FILE", str(sa))
+    monkeypatch.setattr(auth, "_app", None)
+    monkeypatch.setitem(sys.modules, "firebase_admin", None)  # makes the import raise
+    with pytest.raises(auth.AuthUnavailable, match="not installed"):
+        auth._firebase()

@@ -83,9 +83,14 @@ def _firebase():
             sa_file = os.environ.get("FIREBASE_SA_FILE")
             if not sa_file or not Path(sa_file).is_file():
                 raise AuthUnavailable("FIREBASE_SA_FILE is unset or missing")
-            import firebase_admin
-            from firebase_admin import credentials, firestore
-
+            try:
+                import firebase_admin
+                from firebase_admin import credentials, firestore
+            except ImportError as exc:
+                # a deploy that pulled the new code without `uv sync`: the site
+                # is fine, accounts are simply unavailable, and that has to
+                # read as 503 rather than a traceback
+                raise AuthUnavailable(f"firebase-admin is not installed: {exc}") from exc
             _app = firebase_admin.initialize_app(credentials.Certificate(sa_file))
             _db = firestore.client(_app)
     from firebase_admin import auth as fb_auth

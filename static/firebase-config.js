@@ -5,10 +5,10 @@
    An empty apiKey means "not set up": the login page says so, and the
    stories board simply has nobody logged in. */
 export const config = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  appId: "",
+  apiKey: "AIzaSyAxOg0am2kjbsRvOi8CiLKH9VYmbTmszFA",
+  authDomain: "delaybahndb.firebaseapp.com",
+  projectId: "delaybahndb",
+  appId: "1:859714693884:web:91f58e45ec0ca2ab714579",
 };
 
 /* Which ways in the login page offers. Each must also be enabled under
