@@ -122,6 +122,23 @@ async def test_route_level_stale_never_answers_across_via_sets(bahn):
     assert bahn_api.metrics["stale_hits_route"] == 0
 
 
+async def test_products_narrow_the_payload_and_fragment_the_cache(bahn):
+    sess = bahn.use(FakeResponse(payload=PAYLOAD))
+    bodies = []
+    post = sess.post
+    sess.post = lambda url, **kw: (bodies.append(kw.get("json")), post(url, **kw))[1]
+
+    await search()
+    await bahn_api.journeys("A=1@O=Berlin@L=8011160@", "A=1@O=Muenchen@L=8000261@",
+                            "2026-08-13T10:00:00", products=("ICE", "EC_IC"))
+    assert sess.calls == 2  # a filtered search never shares the unfiltered cache entry
+    assert bodies[0]["produktgattungen"] == bahn_api.ALL_PRODUCTS
+    assert bodies[1]["produktgattungen"] == ["ICE", "EC_IC"]
+    # an explicit mode selection must not have its slower options pruned away
+    assert bodies[0]["schnelleVerbindungen"] is True
+    assert bodies[1]["schnelleVerbindungen"] is False
+
+
 # --- stale fallback ---
 
 
