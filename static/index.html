@@ -203,8 +203,8 @@ try {
             <div class="dropdown" id="viaOut1-dropdown"></div>
           </div>
           <div class="field field-stay">
-            <label for="viaOut1Stay" data-i18n="stayLabel">Aufenthalt (Min.)</label>
-            <input id="viaOut1Stay" type="number" min="0" max="1439" step="5" value="0">
+            <label for="viaOut1Stay" data-i18n="stayLabel">Aufenthalt (hh:mm)</label>
+            <input id="viaOut1Stay" class="stay-input" type="text" inputmode="numeric" maxlength="5" placeholder="0:00" autocomplete="off">
           </div>
           <button class="stopover-remove" type="button" data-via="viaOut1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
         </div>
@@ -216,8 +216,8 @@ try {
             <div class="dropdown" id="viaOut2-dropdown"></div>
           </div>
           <div class="field field-stay">
-            <label for="viaOut2Stay" data-i18n="stayLabel">Aufenthalt (Min.)</label>
-            <input id="viaOut2Stay" type="number" min="0" max="1439" step="5" value="0">
+            <label for="viaOut2Stay" data-i18n="stayLabel">Aufenthalt (hh:mm)</label>
+            <input id="viaOut2Stay" class="stay-input" type="text" inputmode="numeric" maxlength="5" placeholder="0:00" autocomplete="off">
           </div>
           <button class="stopover-remove" type="button" data-via="viaOut2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
         </div>
@@ -233,8 +233,8 @@ try {
             <div class="dropdown" id="viaRet1-dropdown"></div>
           </div>
           <div class="field field-stay">
-            <label for="viaRet1Stay" data-i18n="stayLabel">Aufenthalt (Min.)</label>
-            <input id="viaRet1Stay" type="number" min="0" max="1439" step="5" value="0">
+            <label for="viaRet1Stay" data-i18n="stayLabel">Aufenthalt (hh:mm)</label>
+            <input id="viaRet1Stay" class="stay-input" type="text" inputmode="numeric" maxlength="5" placeholder="0:00" autocomplete="off">
           </div>
           <button class="stopover-remove" type="button" data-via="viaRet1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
         </div>
@@ -246,8 +246,8 @@ try {
             <div class="dropdown" id="viaRet2-dropdown"></div>
           </div>
           <div class="field field-stay">
-            <label for="viaRet2Stay" data-i18n="stayLabel">Aufenthalt (Min.)</label>
-            <input id="viaRet2Stay" type="number" min="0" max="1439" step="5" value="0">
+            <label for="viaRet2Stay" data-i18n="stayLabel">Aufenthalt (hh:mm)</label>
+            <input id="viaRet2Stay" class="stay-input" type="text" inputmode="numeric" maxlength="5" placeholder="0:00" autocomplete="off">
           </div>
           <button class="stopover-remove" type="button" data-via="viaRet2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
         </div>
@@ -613,7 +613,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=107"></script>
+<script src="/app.js?v=108"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

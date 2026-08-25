@@ -81,7 +81,7 @@ const I18N = {
     stopover1: "Zwischenhalt 1",
     stopover2: "Zwischenhalt 2",
     stopoverPlaceholder: "z.B. Frankfurt(Main)Hbf",
-    stayLabel: "Aufenthalt (Min.)",
+    stayLabel: "Aufenthalt (hh:mm)",
     stopoverRemoveTitle: "Zwischenhalt entfernen",
     stopoverUnresolved: "Bitte wähle den Zwischenhalt aus der Vorschlagsliste.",
     stepOutbound: "Hinfahrt",
@@ -308,7 +308,7 @@ const I18N = {
     stopover1: "Stopover 1",
     stopover2: "Stopover 2",
     stopoverPlaceholder: "e.g. Frankfurt(Main)Hbf",
-    stayLabel: "Stay (min)",
+    stayLabel: "Stay (hh:mm)",
     stopoverRemoveTitle: "Remove stopover",
     stopoverUnresolved: "Please pick the stopover from the suggestion list.",
     stepOutbound: "Outbound",
@@ -1168,20 +1168,32 @@ const ALL_VIA_KEYS = [...VIA_KEYS.outbound, ...VIA_KEYS.return];
 const viaRow = (key) => document.getElementById(`${key}-row`);
 const viaStayEl = (key) => document.getElementById(`${key}Stay`);
 
-// the picked stopovers of one direction, in row order; the stay is clamped to
-// the input's bounds because type=number doesn't enforce them on typed text
+// a stay is entered as hh:mm ("1:30", "1h30"), but bare digits stay minutes so
+// habit and older shared links keep working; unreadable input counts as no stay
+function parseStay(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return 0;
+  const hhmm = text.match(/^(\d{1,2})\s*[:hH]\s*(\d{1,2})?$/);
+  const minutes = hhmm ? Number(hhmm[1]) * 60 + Number(hhmm[2] || 0) : Number(text);
+  if (!Number.isFinite(minutes)) return 0;
+  return Math.max(0, Math.min(1439, Math.round(minutes)));
+}
+
+const formatStay = (minutes) => `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
+
+// the picked stopovers of one direction, in row order
 function viasFor(direction) {
   if (state.mode === "past") return [];
   return VIA_KEYS[direction].filter((k) => state[k]).map((k) => ({
     station: state[k],
-    stay: Math.max(0, Math.min(1439, Math.round(Number(viaStayEl(k).value)) || 0)),
+    stay: parseStay(viaStayEl(k).value),
   }));
 }
 
 function clearVia(key) {
   state[key] = null;
   document.getElementById(key).value = "";
-  viaStayEl(key).value = "0";
+  viaStayEl(key).value = "";
 }
 
 // keeps the stopover controls consistent with the state: which groups and rows
@@ -1217,6 +1229,15 @@ for (const direction of ["outbound", "return"]) {
     track("stopover-add");
   });
 }
+
+// what was typed only has to be readable, not well formed: it settles into hh:mm
+// on the way out, and an empty field keeps meaning no stay at all
+document.querySelectorAll(".stay-input").forEach((el) => {
+  el.addEventListener("change", () => {
+    const minutes = parseStay(el.value);
+    el.value = minutes ? formatStay(minutes) : "";
+  });
+});
 
 document.querySelectorAll(".stopover-remove").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -3313,8 +3334,8 @@ const qp = new URLSearchParams(location.search);
         if (!qp.get(`${param}Id`)) return;
         state[key] = { id: qp.get(`${param}Id`), name: qp.get(param) || "" };
         document.getElementById(key).value = state[key].name;
-        const stay = Math.round(Number(qp.get(`${param}Stay`)));
-        if (Number.isFinite(stay) && stay > 0) viaStayEl(key).value = String(Math.min(1439, stay));
+        const stay = parseStay(qp.get(`${param}Stay`));
+        if (stay > 0) viaStayEl(key).value = formatStay(stay);
         viaRow(key).classList.remove("hidden");
       };
       restoreVia("vo1", "viaOut1");
