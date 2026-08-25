@@ -1553,6 +1553,40 @@ body.nudge-on #donate-footer-item { display: none; }
 .auth-switch .link-btn { font-weight: 600; text-decoration: none; }
 .auth-switch .link-btn:hover { text-decoration: underline; }
 
+/* The sign-in card: every way in stacked the way the big apps do it - one
+   pill per provider, a divider, and the address as the last resort. Pills
+   throughout so the provider buttons, the field and the primary button read
+   as one set; the site's own red stays the primary. */
+.auth-modal h2 { text-align: center; font-size: 22px; font-weight: 600; margin: 4px 0 8px; }
+.auth-lead { text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 18px; }
+.sso-list { display: flex; flex-direction: column; gap: 10px; }
+.sso-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 48px; padding: 0 16px;
+  border: 1px solid var(--gray-border); border-radius: 999px; background: #fff;
+  font: inherit; font-size: 15px; font-weight: 500; color: var(--text); cursor: pointer;
+}
+.sso-btn:hover { background: var(--gray-bg); }
+.sso-btn:disabled { opacity: .6; cursor: wait; }
+.sso-btn svg { width: 20px; height: 20px; flex: none; }
+.sso-btn.hidden, .auth-or.hidden { display: none; }
+.auth-or {
+  display: flex; align-items: center; gap: 12px; margin: 16px 0;
+  font-size: 12px; color: var(--text-muted); letter-spacing: .04em;
+}
+.auth-or::before, .auth-or::after { content: ""; flex: 1; border-top: 1px solid var(--gray-border); }
+.auth-form .auth-primary {
+  align-self: stretch; width: 100%; min-height: 48px; border-radius: 999px; font-size: 15px;
+}
+.auth-modal .field input { min-height: 48px; border-radius: 999px; padding: 0 18px; font-size: 15px; }
+.auth-modal .auth-note { margin-top: 12px; }
+/* the two ways on from a password that did not fit: create, or reset */
+.auth-alt { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; align-items: flex-start; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
 @media (max-width: 640px) {
   .top-station { display: none; }
   .story { padding: 12px; gap: 8px; }

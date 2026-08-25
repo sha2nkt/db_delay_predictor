@@ -7,9 +7,10 @@ and prunes files directly under data/).
 
 Reading is anonymous; posting, commenting and voting need an account (see
 auth.py), which pins every post to one stable name and makes votes count once
-per person instead of once per browser. An account stores the self-chosen
-name and an email address used only to confirm the account; only the name is
-ever shown. The per-IP throttles live in memory.
+per person instead of once per browser. Accounts themselves live in Firebase;
+the only trace of one here is the opaque Firebase uid on its votes and taps
+(what makes them count once) and the public username on its posts. The
+per-IP throttles live in memory.
 """
 
 import logging
@@ -40,30 +41,6 @@ vote_limiter = SlidingWindowLimiter(
 _ntfy = httpx.AsyncClient(timeout=5)
 
 _SCHEMA = """
-CREATE TABLE IF NOT EXISTS users (
-  id            INTEGER PRIMARY KEY,
-  name          TEXT NOT NULL UNIQUE COLLATE NOCASE,
-  ts            TEXT NOT NULL,
-  email         TEXT NOT NULL DEFAULT '',
-  verified_ts   TEXT,
-  magic_hash    TEXT,
-  magic_code    TEXT,
-  magic_expires TEXT,
-  magic_tries   INTEGER NOT NULL DEFAULT 0,
-  budget_day    TEXT,
-  links_sent    INTEGER NOT NULL DEFAULT 0,
-  code_fails    INTEGER NOT NULL DEFAULT 0,
-  link_last_sent TEXT,
-  pending_name  TEXT
-);
--- email doubles as the login identifier, so one account per address; partial
--- so legacy rows with the '' default don't collide
-CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email <> '';
-CREATE TABLE IF NOT EXISTS sessions (
-  token_hash TEXT PRIMARY KEY,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  ts         TEXT NOT NULL
-) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS stories (
   id           INTEGER PRIMARY KEY,
   ts           TEXT NOT NULL,
@@ -87,29 +64,6 @@ CREATE TABLE IF NOT EXISTS story_problems (
   code     TEXT NOT NULL,
   PRIMARY KEY (story_id, code)
 ) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS votes (
-  story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
-  user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  value    INTEGER NOT NULL DEFAULT 1,
-  PRIMARY KEY (story_id, user_id)
-) WITHOUT ROWID;
--- a tap on a board tile: "this happened to me today, on this leg", with no
--- story behind it. Keyed per account, code and UTC day, so one person can add
--- one to each counter per day and a tap is a toggle rather than a button to
--- lean on. The leg columns mirror stories: a count with no train and no
--- station behind it would be a number nobody could do anything with.
-CREATE TABLE IF NOT EXISTS problem_reports (
-  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  code         TEXT NOT NULL,
-  day          TEXT NOT NULL,
-  ts           TEXT NOT NULL,
-  from_station TEXT NOT NULL,
-  to_station   TEXT NOT NULL DEFAULT '',
-  departure    TEXT NOT NULL DEFAULT '',
-  train        TEXT NOT NULL DEFAULT '',
-  problem_other TEXT NOT NULL DEFAULT '',
-  PRIMARY KEY (user_id, code, day)
-) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS comments (
   id        INTEGER PRIMARY KEY,
   story_id  INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
@@ -121,27 +75,67 @@ CREATE TABLE IF NOT EXISTS comments (
   deleted_ts TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_comments_story ON comments(story_id);
--- comments carry their own upvotes, on the same once-per-account terms as
--- stories; separate table because a comment id and a story id are different
--- namespaces and one shared column could not be a foreign key to both
+"""
+
+# The tables that pin something to an account, one DDL each so the migration
+# below can recreate a single one. uid is the Firebase account id: opaque
+# here, resolvable only in Firebase, and the one thing that makes a vote
+# count once per person.
+_ACCOUNT_TABLES = {
+    "votes": """
+CREATE TABLE IF NOT EXISTS votes (
+  story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  uid      TEXT NOT NULL,
+  value    INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (story_id, uid)
+) WITHOUT ROWID;
+""",
+    # a tap on a board tile: "this happened to me today, on this leg", with
+    # no story behind it. Keyed per account, code and UTC day, so one person
+    # can add one to each counter per day and a tap is a toggle rather than
+    # a button to lean on. The leg columns mirror stories: a count with no
+    # train and no station behind it would be a number nobody could do
+    # anything with.
+    "problem_reports": """
+CREATE TABLE IF NOT EXISTS problem_reports (
+  uid          TEXT NOT NULL,
+  code         TEXT NOT NULL,
+  day          TEXT NOT NULL,
+  ts           TEXT NOT NULL,
+  from_station TEXT NOT NULL,
+  to_station   TEXT NOT NULL DEFAULT '',
+  departure    TEXT NOT NULL DEFAULT '',
+  train        TEXT NOT NULL DEFAULT '',
+  problem_other TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (uid, code, day)
+) WITHOUT ROWID;
+""",
+    # comments carry their own upvotes, on the same once-per-account terms
+    # as stories; separate table because a comment id and a story id are
+    # different namespaces and one shared column could not be a foreign key
+    # to both
+    "comment_votes": """
 CREATE TABLE IF NOT EXISTS comment_votes (
   comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  uid        TEXT NOT NULL,
   value      INTEGER NOT NULL DEFAULT 1,
-  PRIMARY KEY (comment_id, user_id)
+  PRIMARY KEY (comment_id, uid)
 ) WITHOUT ROWID;
-"""
+""",
+}
+
+_FULL_SCHEMA = _SCHEMA + "".join(_ACCOUNT_TABLES.values())
 
 # score, comment count and the viewer's own vote are computed, never stored: a
 # count can't drift from the votes that back it, and the tables stay small
-# enough that it never matters. The ? is the viewing user's id; NULL (no
-# session) matches no vote, so `voted` is 0 for anonymous readers.
+# enough that it never matters. The ? is the viewing account's uid; NULL (not
+# logged in) matches no vote, so `voted` is 0 for anonymous readers.
 _STORY_COLS = (
     "s.id, s.ts, s.from_station, s.to_station, s.departure, s.train, s.problem_other,"
     " s.edited_ts, s.deleted_ts,"
     " s.title, s.text, s.author,"
     " (SELECT COALESCE(SUM(v.value), 0) FROM votes v WHERE v.story_id = s.id) AS score,"
-    " (SELECT v.value FROM votes v WHERE v.story_id = s.id AND v.user_id = ?) AS voted,"
+    " (SELECT v.value FROM votes v WHERE v.story_id = s.id AND v.uid = ?) AS voted,"
     " (SELECT COUNT(*) FROM comments c WHERE c.story_id = s.id) AS comments,"
     " (SELECT GROUP_CONCAT(code) FROM story_problems p WHERE p.story_id = s.id)"
     "   AS problems"
@@ -170,23 +164,50 @@ def _story_dict(row: sqlite3.Row) -> dict:
     return story
 
 
-# users predates the magic-link columns; CREATE TABLE IF NOT EXISTS never
-# changes an existing table, so missing columns are added - and the password
-# era's leftovers dropped - on connect
-_USER_COLUMNS = {
-    "email": "TEXT NOT NULL DEFAULT ''",
-    "verified_ts": "TEXT",
-    "magic_hash": "TEXT",
-    "magic_code": "TEXT",
-    "magic_expires": "TEXT",
-    "magic_tries": "INTEGER NOT NULL DEFAULT 0",
-    "budget_day": "TEXT",
-    "links_sent": "INTEGER NOT NULL DEFAULT 0",
-    "code_fails": "INTEGER NOT NULL DEFAULT 0",
-    "link_last_sent": "TEXT",
-    "pending_name": "TEXT",
+# Accounts used to be rows here (users + sessions, keyed by an integer id)
+# and moved out to Firebase. The tables that pinned something to an account
+# are rebuilt around the Firebase uid; rows from the SQLite era keep theirs
+# under 'legacy-<id>', the uid scripts/import_users_to_firebase.py gives
+# that account in Firebase, so scores and taps survive the move. Same column
+# order as the new tables, with the id swapped for its uid form.
+_LEGACY_COLUMNS = {
+    "votes": "story_id, 'legacy-' || user_id, value",
+    "comment_votes": "comment_id, 'legacy-' || user_id, value",
+    "problem_reports": "'legacy-' || user_id, code, day, ts, from_station,"
+                       " to_station, departure, train, problem_other",
 }
-_DROPPED_USER_COLUMNS = ("pw", "verify_hash", "verify_expires")
+
+
+def _move_accounts_out(conn: sqlite3.Connection) -> None:
+    """One-time: re-key the per-account tables by uid, drop the sessions,
+    and set the old users table aside as users_legacy for the import script
+    to read and then drop - deleting it here would make forgetting to run
+    the import the same as losing every account. One explicit transaction:
+    the module's DML auto-begins but a read-only caller never commits, and
+    a half-applied rebuild would strand rows in an *_old table."""
+    def columns(table: str) -> set[str]:
+        return {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+
+    tables = {row["name"] for row in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table'"
+    )}
+    rebuild = [t for t in _LEGACY_COLUMNS if "user_id" in columns(t)]
+    if not rebuild and "sessions" not in tables and "users" not in tables:
+        return
+    conn.execute("BEGIN")
+    for table in rebuild:
+        if table != "problem_reports" and "value" not in columns(table):
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN value INTEGER NOT NULL DEFAULT 1")
+        conn.execute(f"ALTER TABLE {table} RENAME TO {table}_old")
+        conn.execute(_ACCOUNT_TABLES[table])
+        conn.execute(f"INSERT INTO {table} SELECT {_LEGACY_COLUMNS[table]} FROM {table}_old")
+        conn.execute(f"DROP TABLE {table}_old")
+    conn.execute("DROP TABLE IF EXISTS sessions")
+    if "users" in tables and "users_legacy" not in tables:
+        conn.execute("ALTER TABLE users RENAME TO users_legacy")
+    conn.execute("DROP INDEX IF EXISTS idx_users_email")
+    conn.commit()
+
 
 # stories predates the journey fields: a story used to name one station, and
 # now names the leg it happened on. The old column IS the origin, so it is
@@ -210,18 +231,8 @@ def connect() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH, timeout=5)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.executescript(_SCHEMA)
-    for table in ("votes", "comment_votes"):
-        cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
-        if "value" not in cols:
-            conn.execute(f"ALTER TABLE {table} ADD COLUMN value INTEGER NOT NULL DEFAULT 1")
-    have = {row["name"] for row in conn.execute("PRAGMA table_info(users)")}
-    for col, decl in _USER_COLUMNS.items():
-        if col not in have:
-            conn.execute(f"ALTER TABLE users ADD COLUMN {col} {decl}")
-    for col in _DROPPED_USER_COLUMNS:
-        if col in have:
-            conn.execute(f"ALTER TABLE users DROP COLUMN {col}")
+    conn.executescript(_FULL_SCHEMA)
+    _move_accounts_out(conn)
     have = {row["name"] for row in conn.execute("PRAGMA table_info(stories)")}
     if "station" in have and "from_station" not in have:
         conn.execute("ALTER TABLE stories RENAME COLUMN station TO from_station")
@@ -285,7 +296,7 @@ SORTS = {
 }
 
 
-def list_stories(sort: str, limit: int, offset: int, user_id: int | None = None) -> list[dict]:
+def list_stories(sort: str, limit: int, offset: int, uid: str | None = None) -> list[dict]:
     inner = f"SELECT {_STORY_COLS} FROM stories s"
     # a tombstone keeps its votes and thread but has nothing to rank; it stays
     # on the new list only, where the replies hang off it. And an unvoted story
@@ -298,19 +309,19 @@ def list_stories(sort: str, limit: int, offset: int, user_id: int | None = None)
     where = f" WHERE {' AND '.join(conds)}" if conds else ""
     sql = f"SELECT * FROM ({inner}){where} ORDER BY {SORTS[sort]} LIMIT ? OFFSET ?"
     with closing(connect()) as conn:
-        rows = conn.execute(sql, (user_id, limit, offset)).fetchall()
+        rows = conn.execute(sql, (uid, limit, offset)).fetchall()
     return [_story_dict(r) for r in rows]
 
 
 SPANS = ("week", "month", "year", "all")
 
 
-def get_story(story_id: int, user_id: int | None = None) -> dict | None:
+def get_story(story_id: int, uid: str | None = None) -> dict | None:
     """One story by id, for its permalink and embed pages - tombstone included,
     the card knows how to render one; None when it never existed."""
     with closing(connect()) as conn:
         row = conn.execute(
-            f"SELECT {_STORY_COLS} FROM stories s WHERE s.id = ?", (user_id, story_id)
+            f"SELECT {_STORY_COLS} FROM stories s WHERE s.id = ?", (uid, story_id)
         ).fetchone()
     return _story_dict(row) if row else None
 
@@ -360,20 +371,20 @@ def _today() -> str:
     return _now()[:10]
 
 
-def my_reports(user_id: int) -> list[str]:
+def my_reports(uid: str) -> list[str]:
     """The codes this account has tapped today, in board order, so the tiles
     can show which counters already carry the viewer's one."""
     with closing(connect()) as conn:
         rows = conn.execute(
-            "SELECT code FROM problem_reports WHERE user_id = ? AND day = ?",
-            (user_id, _today()),
+            "SELECT code FROM problem_reports WHERE uid = ? AND day = ?",
+            (uid, _today()),
         ).fetchall()
     return sorted((r["code"] for r in rows if r["code"] in _PROBLEM_RANK),
                   key=_PROBLEM_RANK.get)
 
 
 def set_report(
-    user_id: int, code: str, vote: bool,
+    uid: str, code: str, vote: bool,
     from_station: str = "", to_station: str = "", departure: str = "", train: str = "",
     problem_other: str = "",
 ) -> bool | None:
@@ -390,21 +401,21 @@ def set_report(
         if vote:
             conn.execute(
                 "INSERT OR REPLACE INTO problem_reports"
-                " (user_id, code, day, ts, from_station, to_station, departure, train,"
+                " (uid, code, day, ts, from_station, to_station, departure, train,"
                 " problem_other)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (user_id, code, _today(), _now(),
+                (uid, code, _today(), _now(),
                  from_station, to_station, departure, train, problem_other),
             )
         else:
             conn.execute(
-                "DELETE FROM problem_reports WHERE user_id = ? AND code = ? AND day = ?",
-                (user_id, code, _today()),
+                "DELETE FROM problem_reports WHERE uid = ? AND code = ? AND day = ?",
+                (uid, code, _today()),
             )
     return vote
 
 
-def set_vote(story_id: int, user_id: int, vote: int) -> dict | None:
+def set_vote(story_id: int, uid: str, vote: int) -> dict | None:
     """Idempotent set of this user's vote, Reddit-style: 1 up, -1 down, 0
     clears it. None when the story doesn't exist. Score is the net sum, so a
     repeated request is a no-op, not a second vote."""
@@ -413,12 +424,12 @@ def set_vote(story_id: int, user_id: int, vote: int) -> dict | None:
             return None
         if vote:
             conn.execute(
-                "INSERT OR REPLACE INTO votes (story_id, user_id, value) VALUES (?, ?, ?)",
-                (story_id, user_id, vote),
+                "INSERT OR REPLACE INTO votes (story_id, uid, value) VALUES (?, ?, ?)",
+                (story_id, uid, vote),
             )
         else:
             conn.execute(
-                "DELETE FROM votes WHERE story_id = ? AND user_id = ?", (story_id, user_id)
+                "DELETE FROM votes WHERE story_id = ? AND uid = ?", (story_id, uid)
             )
         score = conn.execute(
             "SELECT COALESCE(SUM(value), 0) FROM votes WHERE story_id = ?", (story_id,)
@@ -431,7 +442,7 @@ _COMMENT_COLS = (
     " (SELECT COALESCE(SUM(v.value), 0) FROM comment_votes v"
     "   WHERE v.comment_id = c.id) AS score,"
     " (SELECT v.value FROM comment_votes v"
-    "   WHERE v.comment_id = c.id AND v.user_id = ?) AS voted"
+    "   WHERE v.comment_id = c.id AND v.uid = ?) AS voted"
 )
 
 
@@ -443,7 +454,7 @@ def _comment_dict(row: sqlite3.Row) -> dict:
     return comment
 
 
-def list_comments(story_id: int, user_id: int | None = None) -> list[dict] | None:
+def list_comments(story_id: int, uid: str | None = None) -> list[dict] | None:
     """All comments of a story, oldest first; the client builds the tree from
     parent_id. Removed comments are still listed - a tombstone is what keeps
     the replies under it attached to something. None when the story doesn't
@@ -453,7 +464,7 @@ def list_comments(story_id: int, user_id: int | None = None) -> list[dict] | Non
             return None
         rows = conn.execute(
             f"SELECT {_COMMENT_COLS} FROM comments c WHERE c.story_id = ? ORDER BY c.id",
-            (user_id, story_id),
+            (uid, story_id),
         ).fetchall()
     return [_comment_dict(r) for r in rows]
 
@@ -535,7 +546,7 @@ def delete_story(story_id: int, author: str) -> bool:
     return True
 
 
-def set_comment_vote(comment_id: int, user_id: int, vote: int) -> dict | None:
+def set_comment_vote(comment_id: int, uid: str, vote: int) -> dict | None:
     """Same contract as set_vote, for a comment. None when the comment is gone
     or removed - a tombstone is not something to vote on."""
     with closing(connect()) as conn, conn:
@@ -546,14 +557,14 @@ def set_comment_vote(comment_id: int, user_id: int, vote: int) -> dict | None:
             return None
         if vote:
             conn.execute(
-                "INSERT OR REPLACE INTO comment_votes (comment_id, user_id, value)"
+                "INSERT OR REPLACE INTO comment_votes (comment_id, uid, value)"
                 " VALUES (?, ?, ?)",
-                (comment_id, user_id, vote),
+                (comment_id, uid, vote),
             )
         else:
             conn.execute(
-                "DELETE FROM comment_votes WHERE comment_id = ? AND user_id = ?",
-                (comment_id, user_id),
+                "DELETE FROM comment_votes WHERE comment_id = ? AND uid = ?",
+                (comment_id, uid),
             )
         score = conn.execute(
             "SELECT COALESCE(SUM(value), 0) FROM comment_votes WHERE comment_id = ?",
@@ -600,6 +611,17 @@ def delete_comment(comment_id: int, author: str) -> bool:
                 "DELETE FROM comment_votes WHERE comment_id = ?", (comment_id,)
             )
     return True
+
+
+def forget_account(uid: str, name: str | None) -> None:
+    """The local half of an account erasure (auth.delete_account): its votes
+    and taps go, its posts stay with the name removed."""
+    with closing(connect()) as conn, conn:
+        for table in _ACCOUNT_TABLES:
+            conn.execute(f"DELETE FROM {table} WHERE uid = ?", (uid,))
+        if name:
+            conn.execute("UPDATE stories SET author = '' WHERE author = ?", (name,))
+            conn.execute("UPDATE comments SET author = '' WHERE author = ?", (name,))
 
 
 _warned_no_topic = False

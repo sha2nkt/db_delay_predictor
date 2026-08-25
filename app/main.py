@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, StringConstraints
 
-from app import auth, bahn_api, delays, feedback, live_delays, mailer, ratelimit, stories
+from app import auth, bahn_api, delays, feedback, live_delays, ratelimit, stories
 from app.config import env_int
 
 log = logging.getLogger(__name__)
@@ -103,9 +103,7 @@ async def lifespan(app: FastAPI):
     delays.init()
     # counted once here: COUNT(*) over 19.7M rows must not run per /health call
     _rows = delays.row_count()
-    credits_watch = asyncio.create_task(mailer.watch_credits())
     yield
-    credits_watch.cancel()
     await bahn_api.close()
     await live_delays.close()
     await feedback.close()
@@ -789,7 +787,7 @@ async def health():
             "departureOnDate": len(delays._dep_date_cache),
         },
         "upstream": bahn_api.status(),
-        "mail": mailer.status(),
+        "auth": auth.status(),
     }
 
 
@@ -1422,62 +1420,54 @@ class CommentEditIn(BaseModel):
     text: _text_field(1, 2000)
 
 
-# Addresses arrive pasted, so surrounding whitespace is trimmed before the
-# shape check rather than rejected by it. The check is only a shape check -
-# the emailed link is what actually proves the address exists.
-_EmailField = Annotated[
-    str,
-    StringConstraints(
-        strip_whitespace=True, max_length=254,
-        pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
-    ),
-]
-
-
-class RegisterIn(BaseModel):
+class HandleIn(BaseModel):
     # HN-style handles: short, ASCII, no spaces - what makes a name recognizable
     # across posts. The stricter charset also keeps names trivially safe to echo.
     name: str = Field(pattern=r"^[A-Za-z0-9_-]{2,25}$")
-    email: _EmailField
-    lang: Literal["de", "en"] = "de"
 
 
-class RequestLinkIn(BaseModel):
-    email: _EmailField
-    lang: Literal["de", "en"] = "de"
+# Identity is a Firebase ID token in the Authorization header, never a cookie:
+# nothing about a login is kept on this server, and a bearer is not sent by a
+# cross-site form, which is the whole CSRF story.
+def _bearer(request: Request) -> str | None:
+    scheme, _, token = request.headers.get("authorization", "").partition(" ")
+    token = token.strip()
+    return token if scheme.lower() == "bearer" and token else None
 
 
-class ConsumeIn(BaseModel):
-    token: str = Field(min_length=1, max_length=128)
+def _auth_down(exc: Exception) -> HTTPException:
+    log.warning("firebase unavailable: %s", exc)
+    return HTTPException(503, "accounts are temporarily unavailable")
 
 
-class ConsumeCodeIn(BaseModel):
-    email: _EmailField
-    code: str = Field(pattern=r"^[0-9]{6}$")
-
-
-SESSION_COOKIE = "db_session"
-
-
-def _set_session_cookie(response: Response, token: str) -> None:
-    # Lax + JSON-only POST bodies double as the CSRF story: a cross-site form
-    # can neither send the cookie nor produce application/json
-    response.set_cookie(
-        SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400,
-        httponly=True, samesite="lax", secure=True, path="/",
-    )
-
-
-async def _session_user(request: Request) -> dict | None:
-    return await anyio.to_thread.run_sync(
-        auth.session_user, request.cookies.get(SESSION_COOKIE)
-    )
+async def _optional_user(request: Request) -> dict | None:
+    """The account behind the request's bearer, or None without one. A token
+    that is present but bad is a 401 rather than "anonymous": the SDK
+    refreshes tokens on its own, so a bad one is a stale page or a forgery,
+    and both should hear about it rather than quietly lose their votes."""
+    token = _bearer(request)
+    if token is None:
+        return None
+    try:
+        user = await anyio.to_thread.run_sync(auth.account, token)
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
+    if user is None:
+        raise HTTPException(401, "invalid or expired login token")
+    return user
 
 
 async def _require_user(request: Request) -> dict:
-    user = await _session_user(request)
+    """An account that may write: signed in, contact proven, name claimed.
+    The two 403s name the missing step so the page can send the visitor
+    there rather than to a generic error."""
+    user = await _optional_user(request)
     if user is None:
         raise HTTPException(401, "login required")
+    if not user["verified"]:
+        raise HTTPException(403, "unverified")
+    if not user["name"]:
+        raise HTTPException(403, "unnamed")
     return user
 
 
@@ -1490,49 +1480,30 @@ def _stories_throttle(limiter: ratelimit.SlidingWindowLimiter, request: Request)
         )
 
 
-async def _send_link(
-    email: str, name: str, token: str, code: str, lang: str, kind: str
-) -> None:
-    """Send the magic link on the request's clock - a second or so of SMTP -
-    so a relay refusal (out of Brevo credits, most likely) reaches the user as
-    a 503 instead of a "check your inbox" for a mail that will not come. The
-    budget the failed send spent is handed back, so the retry we just asked
-    for is not swallowed by the cooldown."""
-    sent = await anyio.to_thread.run_sync(
-        mailer.send_magic_link, email, name, token, code, lang, kind
-    )
-    if not sent:
-        await anyio.to_thread.run_sync(auth.refund_link, email)
-        raise HTTPException(503, "email could not be sent; please try again later")
-
-
-def _resend_hint() -> dict:
-    """How long the login page must wait before offering "resend" again. The
-    same constant for every caller - an account's real remaining cooldown
-    would say when it last asked for a login, which is not something to hand
-    out. Read per request so tests can move it."""
-    return {"resend_after": auth.RESEND_COOLDOWN_SECONDS}
-
-
-@app.post("/api/auth/register", status_code=202)
-async def auth_register(reg: RegisterIn, request: Request) -> dict:
-    """No session yet - that starts when the emailed link is consumed. An
-    email that already has an account gets a login link to it instead of a
-    second account, so a sign-up with an address already in use still ends in
-    a working login."""
+@app.post("/api/auth/handle", status_code=201)
+async def auth_handle(body: HandleIn, request: Request) -> dict:
+    """The one write a fresh account makes here: its public name, once. It
+    needs a proven contact first (see auth.account), so a squatted name
+    always has a reachable person behind it. The 409 says which of the two
+    conflicts it is: "taken" wants another name, "named" means this account
+    already has one and the page merely holds a token from before it did."""
+    user = await _optional_user(request)
+    if user is None:
+        raise HTTPException(401, "login required")
+    if not user["verified"]:
+        raise HTTPException(403, "unverified")
+    if user["name"]:
+        raise HTTPException(409, "named")
     _stories_throttle(auth.register_limiter, request)
-    result = await anyio.to_thread.run_sync(auth.register, reg.name, reg.email)
-    if result is None:
-        raise HTTPException(409, "name already taken")
-    kind, stored_name, magic_token, code = result
-    # a spent per-account budget yields no token: the account is fine, there is
-    # simply no new mail, and the answer stays the same 202 either way
-    if magic_token is not None:
-        await _send_link(
-            auth.normalize_email(reg.email), stored_name, magic_token, code,
-            reg.lang, "welcome" if kind == "new" else "login",
+    try:
+        result = await anyio.to_thread.run_sync(
+            auth.claim_handle, user["uid"], body.name
         )
-    return _resend_hint()
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
+    if result != "ok":
+        raise HTTPException(409, result)
+    return {"name": body.name}
 
 
 @app.get("/api/auth/suggest-name")
@@ -1544,7 +1515,10 @@ async def auth_suggest_name(
     endpoint taking a name would be a handle-enumeration oracle, and this
     answers the same question without being one."""
     _stories_throttle(auth.suggest_limiter, request)
-    name = await anyio.to_thread.run_sync(auth.suggest_name, lang)
+    try:
+        name = await anyio.to_thread.run_sync(auth.suggest_name, lang)
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
     if name is None:
         raise HTTPException(503, "no free name found")
     # every caller must get its own name; an edge cache serving one twice
@@ -1553,76 +1527,14 @@ async def auth_suggest_name(
     return {"name": name}
 
 
-@app.post("/api/auth/request-link", status_code=202)
-async def auth_request_link(req: RequestLinkIn, request: Request) -> dict:
-    """Login step one. 404 when the address has no account, so the page can
-    say so and offer to create one - a login form that answers "check your
-    inbox" for an address that will never receive anything is a dead end.
-    That does make this an "is this address registered?" oracle; login_limiter
-    is what keeps it to a trickle rather than a scrape. A spent resend budget
-    still answers 202 - when an account last logged in stays private."""
-    _stories_throttle(auth.login_limiter, request)
-    result = await anyio.to_thread.run_sync(auth.request_link, req.email)
-    if result is None:
-        raise HTTPException(404, "no account for this address")
-    stored_name, magic_token, code = result
-    if magic_token is not None:
-        await _send_link(
-            auth.normalize_email(req.email), stored_name, magic_token, code,
-            req.lang, "login",
-        )
-    return _resend_hint()
-
-
-@app.post("/api/auth/consume")
-async def auth_consume(body: ConsumeIn, response: Response):
-    """Login step two, POSTed by the /verify landing page so a mail scanner
-    prefetching the GET can't burn the single-use token."""
-    result = await anyio.to_thread.run_sync(auth.consume, body.token)
-    if result is None:
-        raise HTTPException(401, "link invalid or expired")
-    user, token = result
-    _set_session_cookie(response, token)
-    return {"name": user["name"]}
-
-
-@app.post("/api/auth/consume-code")
-async def auth_consume_code(body: ConsumeCodeIn, request: Request, response: Response):
-    """The typed-code half of the same login, for when the mail was opened on
-    another device. One 401 for every failure - which of wrong/expired/used-up
-    applies is not something the response should spell out."""
-    _stories_throttle(auth.code_limiter, request)
-    result = await anyio.to_thread.run_sync(auth.consume_code, body.email, body.code)
-    if result is None:
-        raise HTTPException(401, "code invalid or expired")
-    user, token = result
-    _set_session_cookie(response, token)
-    return {"name": user["name"]}
-
-
-@app.post("/api/auth/logout", status_code=204)
-async def auth_logout(request: Request) -> Response:
-    await anyio.to_thread.run_sync(
-        auth.logout, request.cookies.get(SESSION_COOKIE)
-    )
-    response = Response(status_code=204)
-    response.delete_cookie(SESSION_COOKIE, path="/")
-    return response
-
-
 @app.get("/api/auth/me")
 async def auth_me(request: Request):
-    user = await _session_user(request)
-    return {"name": user["name"] if user else None}
-
-
-@app.get("/verify")
-async def verify_page() -> FileResponse:
-    """Magic-link landing page: it reads ?token= client-side and redeems it
-    via POST /api/auth/consume on a button click, never on the GET itself."""
-    return FileResponse(
-        STATIC_DIR / "verify.html", headers={"Cache-Control": "no-cache"}
-    )
+    """What the server reads from the token. The page learns the same from
+    the SDK's own claims without a round trip; this is the wiring check."""
+    user = await _optional_user(request)
+    if user is None:
+        return {"name": None}
+    return {"name": user["name"], "uid": user["uid"], "verified": user["verified"]}
 
 
 @app.get("/api/stories")
@@ -1632,9 +1544,9 @@ async def stories_index(
     limit: int = Query(30, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
-    user = await _session_user(request)
+    user = await _optional_user(request)
     return await anyio.to_thread.run_sync(
-        stories.list_stories, sort, limit, offset, user["id"] if user else None
+        stories.list_stories, sort, limit, offset, user["uid"] if user else None
     )
 
 
@@ -1660,22 +1572,22 @@ async def stories_create(story: StoryIn, request: Request):
 BoardSpan = Literal["week", "month", "year", "all"]
 
 
-def _board(span: str, user_id: int | None) -> dict:
+def _board(span: str, uid: str | None) -> dict:
     """Counts over the span plus the codes the viewer tapped today - the
     tiles render both from one answer, and a tap is answered with the same
     shape so it needs no second round trip."""
     return {
         "counts": stories.count_problems(span),
-        "mine": stories.my_reports(user_id) if user_id is not None else [],
+        "mine": stories.my_reports(uid) if uid is not None else [],
     }
 
 
-# public and anonymous, like reading the stories themselves; a session only
+# public and anonymous, like reading the stories themselves; a login only
 # adds which tiles are the viewer's own
 @app.get("/api/stories/problems")
 async def stories_problems(request: Request, span: BoardSpan = "month"):
-    user = await _session_user(request)
-    return await anyio.to_thread.run_sync(_board, span, user["id"] if user else None)
+    user = await _optional_user(request)
+    return await anyio.to_thread.run_sync(_board, span, user["uid"] if user else None)
 
 
 @app.post("/api/stories/problems/{code}")
@@ -1693,13 +1605,13 @@ async def stories_report(
         raise HTTPException(422, "problem_other required")
     _stories_throttle(stories.vote_limiter, request)
     result = await anyio.to_thread.run_sync(
-        stories.set_report, user["id"], code, report.vote,
+        stories.set_report, user["uid"], code, report.vote,
         report.from_station, report.to_station, report.departure, report.train,
         report.problem_other,
     )
     if result is None:
         raise HTTPException(404, "unknown problem")
-    return await anyio.to_thread.run_sync(_board, span, user["id"])
+    return await anyio.to_thread.run_sync(_board, span, user["uid"])
 
 
 @app.post("/api/stories/{story_id}/vote")
@@ -1707,7 +1619,7 @@ async def stories_vote(story_id: int, vote: StoryVoteIn, request: Request):
     user = await _require_user(request)
     _stories_throttle(stories.vote_limiter, request)
     result = await anyio.to_thread.run_sync(
-        stories.set_vote, story_id, user["id"], int(vote.vote)
+        stories.set_vote, story_id, user["uid"], int(vote.vote)
     )
     if result is None:
         raise HTTPException(404, "story not found")
@@ -1716,9 +1628,9 @@ async def stories_vote(story_id: int, vote: StoryVoteIn, request: Request):
 
 @app.get("/api/stories/{story_id}/comments")
 async def stories_comments(story_id: int, request: Request):
-    user = await _session_user(request)
+    user = await _optional_user(request)
     result = await anyio.to_thread.run_sync(
-        stories.list_comments, story_id, user["id"] if user else None
+        stories.list_comments, story_id, user["uid"] if user else None
     )
     if result is None:
         raise HTTPException(404, "story not found")
@@ -1728,9 +1640,9 @@ async def stories_comments(story_id: int, request: Request):
 @app.get("/api/stories/{story_id}")
 async def stories_show(story_id: int, request: Request):
     # the fixed /api/stories/problems path is registered earlier and keeps winning
-    user = await _session_user(request)
+    user = await _optional_user(request)
     story = await anyio.to_thread.run_sync(
-        stories.get_story, story_id, user["id"] if user else None
+        stories.get_story, story_id, user["uid"] if user else None
     )
     if story is None:
         raise HTTPException(404, "story not found")
@@ -1766,7 +1678,7 @@ async def comment_vote(comment_id: int, vote: StoryVoteIn, request: Request):
     user = await _require_user(request)
     _stories_throttle(stories.vote_limiter, request)
     result = await anyio.to_thread.run_sync(
-        stories.set_comment_vote, comment_id, user["id"], int(vote.vote)
+        stories.set_comment_vote, comment_id, user["uid"], int(vote.vote)
     )
     if result is None:
         raise HTTPException(404, "comment not found")

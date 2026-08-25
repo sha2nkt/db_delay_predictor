@@ -6,7 +6,7 @@
 <title>Impressum & Datenschutz – DelayBahn</title>
 <meta name="robots" content="noindex, follow">
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=88">
+<link rel="stylesheet" href="style.css?v=90">
 </head>
 <body>
 <header>
@@ -96,36 +96,48 @@
     <h2>Nutzerkonten und Delay Geschichten</h2>
     <p>Für das Mitmach-Angebot „Delay Geschichten“ (delaybahn.com/geschichten) ist zum Schreiben,
     Kommentieren und Abstimmen ein Nutzerkonto erforderlich; das Lesen ist ohne Konto möglich.
-    Beim Erstellen eines Kontos werden gespeichert: der selbst gewählte Benutzername, die
-    E-Mail-Adresse sowie die Zeitpunkte der Registrierung und der E-Mail-Bestätigung. Ein
-    Passwort gibt es nicht: Die Anmeldung erfolgt über einen einmalig verwendbaren, kurz
-    gültigen Anmelde-Link, der an die hinterlegte E-Mail-Adresse geschickt wird; die erste
-    Verwendung bestätigt zugleich das Konto (Double-Opt-In). Öffentlich sichtbar ist nur der
-    Benutzername. Die E-Mail-Adresse dient allein dieser Anmeldung; sie wird nicht für Werbung
-    verwendet und nicht an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO
-    (Bereitstellung des Nutzerkontos). Konten, deren E-Mail-Adresse nicht innerhalb von 7 Tagen
-    bestätigt wird, werden samt Adresse automatisch gelöscht.</p>
-    <p>Für den Versand der Anmelde-E-Mails wird der Dienst Brevo (Sendinblue GmbH,
-    Köpenicker Straße 126, 10179 Berlin) als Auftragsverarbeiter nach Art. 28 DSGVO eingesetzt;
-    dabei wird die E-Mail-Adresse an Brevo übermittelt. Weitere Informationen:
-    <a href="https://www.brevo.com/de/legal/privacypolicy/" target="_blank" rel="noopener">Datenschutzerklärung von Brevo</a>.</p>
+    Die Anmeldung erfolgt über Firebase Authentication, einen Dienst der Google Ireland Limited
+    (Gordon House, Barrow Street, Dublin 4, Irland), wahlweise mit einem Google-Konto, einem
+    Apple-Konto, einer Telefonnummer (Bestätigung per SMS) oder mit E-Mail-Adresse und Passwort
+    (Bestätigung per E-Mail). Bei Firebase werden dafür gespeichert: die Kennung des gewählten
+    Anmeldeverfahrens (z.&nbsp;B. die E-Mail-Adresse Ihres Google-Kontos oder Ihre
+    Telefonnummer), ein ggf. gewähltes Passwort in gehashter Form, der selbst gewählte
+    Benutzername, die Zeitpunkte von Registrierung und letzter Anmeldung sowie eine zufällige
+    Konto-Kennung. Google verarbeitet diese Daten als Auftragsverarbeiter nach Art. 28 DSGVO auf
+    Servern in den USA; die Übermittlung ist durch die Zertifizierung von Google LLC unter dem
+    EU-US Data Privacy Framework sowie die EU-Standardvertragsklauseln abgesichert. Weitere
+    Informationen: <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Datenschutz bei Firebase</a>.
+    Öffentlich sichtbar ist nur der Benutzername; er lässt sich nach der Wahl nicht mehr ändern.
+    Ihre Kontaktdaten dienen allein der Anmeldung; sie werden nicht für Werbung verwendet.
+    Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung des Nutzerkontos).</p>
+    <p>Auf dem Server dieser Website selbst werden keine Anmeldedaten gespeichert: Er prüft bei
+    jeder Anfrage nur die Signatur des von Firebase ausgestellten Anmelde-Tokens. Gespeichert
+    werden hier lediglich die zufällige Konto-Kennung, damit Stimmen und Meldungen pro Konto
+    einmal zählen, sowie der Benutzername an veröffentlichten Beiträgen. Damit ein Benutzername
+    nur einmal vergeben wird, wird die Zuordnung Benutzername&nbsp;→&nbsp;Konto-Kennung in Cloud
+    Firestore (ebenfalls Google, Speicherort Frankfurt am Main) abgelegt.</p>
+    <p>Bei der Anmeldung per Telefonnummer setzt Google reCAPTCHA ein, um automatisierte
+    Anfragen zu erkennen; dabei werden Nutzungsdaten (etwa IP-Adresse und Browserinformationen)
+    an Google übermittelt. Bei der Anmeldung mit Google oder Apple gelten zusätzlich die
+    Datenschutzbestimmungen des jeweiligen Anbieters.</p>
     <p>Veröffentlichte Geschichten, Kommentare und Stimmen werden dem Benutzernamen zugeordnet
     gespeichert. Zum Schutz vor Missbrauch wird die Zahl der Anfragen pro IP-Adresse kurzzeitig
     nur im Arbeitsspeicher mitgezählt. Sie können Ihr Konto jederzeit löschen lassen: eine
     formlose E-Mail an <a href="mailto:kontakt@delaybahn.com">kontakt@delaybahn.com</a> genügt.
-    Dabei werden Konto, E-Mail-Adresse und abgegebene Stimmen gelöscht; bereits veröffentlichte
-    Beiträge werden anonymisiert (der Benutzername wird entfernt) oder auf Wunsch ebenfalls
-    gelöscht.</p>
+    Dabei werden das Firebase-Konto samt Anmeldedaten und abgegebene Stimmen gelöscht; bereits
+    veröffentlichte Beiträge werden anonymisiert (der Benutzername wird entfernt) oder auf Wunsch
+    ebenfalls gelöscht.</p>
 
     <h2>Lokale Speicherung im Browser</h2>
     <p>Im localStorage Ihres Browsers werden gespeichert: die gewählte Sprache (Deutsch/Englisch)
     sowie die zuletzt von Ihnen gesuchten Bahnhöfe zur schnelleren Eingabe. Diese
     Speicherung ist für die jeweils gewünschte Funktion erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG) und
     bedarf keiner Einwilligung. Die Daten verbleiben in Ihrem Browser und werden nicht an den Server
-    übertragen; Sie können sie jederzeit über die Einstellungen Ihres Browsers löschen. Ein
-    Cookie wird nur gesetzt, wenn Sie sich bei Delay Geschichten anmelden: ein technisch
-    notwendiges Sitzungs-Cookie (HttpOnly), das Sie bei Ihrem Konto angemeldet hält
-    (§ 25 Abs. 2 Nr. 2 TDDDG). Ohne Anmeldung kommt die Website ohne Cookies aus.</p>
+    übertragen; Sie können sie jederzeit über die Einstellungen Ihres Browsers löschen. Wenn
+    Sie sich bei Delay Geschichten anmelden, legt das Firebase-SDK Ihren Anmeldestatus (ein
+    Token) im Browserspeicher (IndexedDB) ab, damit Sie angemeldet bleiben – technisch
+    notwendig für die gewünschte Funktion (§ 25 Abs. 2 Nr. 2 TDDDG). Cookies setzt diese Website
+    nicht.</p>
 
     <h2>Externe Links</h2>
     <p>Links zu externen Angeboten (z.&nbsp;B. bahn.de, GitHub, Ko-fi, Instagram, LinkedIn, X) übertragen erst dann Daten
