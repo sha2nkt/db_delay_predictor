@@ -965,9 +965,10 @@ for (const [id, other] of [["dticket", "dticket-all"], ["dticket-all", "dticket"
   });
 }
 
-// D-Ticket modes, the age bracket and the minimum transfer time are occasional
-// settings: they fold away behind the "advanced options" toggle. Collapsing only
-// hides them — whatever is set keeps applying to searches.
+// the age bracket, the minimum transfer time, the transport filter and the
+// stopovers are occasional settings: they fold away behind the "advanced
+// options" toggle. Collapsing only hides them — whatever is set keeps applying
+// to searches. The D-Ticket switches stay out in the main row.
 const advancedToggle = document.getElementById("advanced-toggle");
 const advancedPanel = document.getElementById("advanced-panel");
 function setAdvancedOpen(open) {
@@ -3388,7 +3389,7 @@ const qp = new URLSearchParams(location.search);
     state.products.return = qp.get("tmr") === "all" ? new Set(PRODUCTS)
       : parseProducts(qp.get("tmr")) || new Set(state.products.outbound);
     updateTransportBtn();
-    if (dticketMode() !== "off" || ageMode() !== "adult" || transferMinutes() !== "0" || productsParam("outbound") || productsParam("return")) setAdvancedOpen(true);
+    if (ageMode() !== "adult" || transferMinutes() !== "0" || productsParam("outbound") || productsParam("return")) setAdvancedOpen(true);
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1
