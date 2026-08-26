@@ -1077,6 +1077,33 @@ body.nudge-on #donate-footer-item { display: none; }
   .install-lead { font-size: 12px; }
 }
 
+/* delay stories banner - one thin row under the install prompt */
+.stories-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+  text-decoration: none; color: inherit;
+}
+.stories-banner:hover { border-color: var(--brand-red); }
+.stories-banner-logo { flex: 0 0 auto; height: 20px; width: auto; }
+.stories-banner-text {
+  min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: 1px 6px; line-height: 1.35;
+}
+.stories-banner-text strong { font-size: 13px; font-weight: 600; color: var(--text); }
+.stories-banner-lead { font-size: 12.5px; color: var(--text-muted); }
+.stories-banner-go { flex: 0 0 auto; margin-left: auto; color: var(--brand-red); font-size: 15px; font-weight: 600; }
+body.past-mode .stories-banner { display: none; }
+@media (max-width: 700px) {
+  .stories-banner { gap: 8px; padding: 7px 10px; }
+  .stories-banner-logo { height: 18px; }
+  .stories-banner-text strong { font-size: 12.5px; }
+  .stories-banner-lead { font-size: 12px; }
+}
+/* under ~420px the two sentences would wrap to three lines: the pitch alone stays thin */
+@media (max-width: 420px) { .stories-banner-lead { display: none; } }
+
 /* iOS "add to home screen" bottom sheet */
 .ios-sheet {
   position: fixed; inset: auto 0 0 0; margin: 0 auto;

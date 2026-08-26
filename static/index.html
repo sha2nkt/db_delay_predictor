@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=100">
+<link rel="stylesheet" href="/style.css?v=102">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -91,6 +91,14 @@ try {
     <button id="install-accept" class="install-btn hidden" type="button" data-i18n="installBtn">Installieren</button>
     <button id="install-dismiss" class="install-dismiss" type="button" data-i18n-title="installDismiss" data-i18n-aria="installDismiss">✕</button>
   </div>
+  <a id="stories-banner" class="stories-banner" href="/geschichten">
+    <img id="stories-banner-logo" class="stories-banner-logo" src="/logo_delay_stories_wide_german_transparent.png" alt="Delay Geschichten" width="132" height="20">
+    <span class="stories-banner-text">
+      <strong data-i18n="storiesBannerTitle">Schlechte Fahrt gehabt? Erzähl sie hier.</strong>
+      <span class="stories-banner-lead" data-i18n="storiesBannerLead">Wir sammeln Probleme mit deutschen Zügen.</span>
+    </span>
+    <span class="stories-banner-go" aria-hidden="true">→</span>
+  </a>
   <section class="search-card">
     <div id="past-banner" class="past-banner">
       <strong data-i18n="pastTitle">Verspätungs-Check für vergangene Reisen</strong>
@@ -679,7 +687,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=114"></script>
+<script src="/app.js?v=116"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
