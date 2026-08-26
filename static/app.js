@@ -243,6 +243,8 @@ const I18N = {
     followX: "DelayBahn auf X",
     footerDisclaimer: "DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.",
     navRefund: "Entschädigung beantragen",
+    navLogin: "Anmelden",
+    navLogout: "Abmelden",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
     refundCtaLead: "Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.",
     refundCtaSub: "Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks",
@@ -508,6 +510,8 @@ const I18N = {
     followX: "DelayBahn on X",
     footerDisclaimer: "DelayBahn is an independent project and is not affiliated with Deutsche Bahn AG. “DB” and “Deutsche Bahn” are trademarks of Deutsche Bahn AG.",
     navRefund: "Apply for delay compensation",
+    navLogin: "Login",
+    navLogout: "Logout",
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
     refundCtaSub: "Get your money back from DB in 3 easy clicks",
@@ -3088,7 +3092,14 @@ async function currentAccount() {
   const user = fb.auth.currentUser;
   if (!user) return null;
   const who = await fb.identity(user);
-  return { user, email: user.email || "", verified: who.verified && !!user.email };
+  return {
+    user,
+    email: user.email || "",
+    verified: who.verified && !!user.email,
+    // the finished account's public name, which the header greets by; a visitor
+    // still short of a step (address unproven, name unclaimed) has none yet
+    name: who.verified ? who.name : null,
+  };
 }
 
 async function reportApi(user, path, opts = {}) {
@@ -3240,10 +3251,38 @@ reportCancelBtn.addEventListener("click", async () => {
   }
 });
 
-/* On load: complete an order that waited for the login, and light the bells of
-   journeys this account already ordered a report for. Both need the account,
-   which is only looked up when there is a reason to - a parked order, or the
-   hint the login page leaves behind. */
+/* The header's account corner: the name of the signed-in account, or the link
+   to sign in - which brings the visitor back to this page rather than to the
+   stories board. Filled from the same lookup that lights the bells. */
+const authLoginEl = document.getElementById("auth-login");
+
+function renderAuth(account) {
+  const name = account ? account.name : null;
+  authLoginEl.classList.toggle("hidden", !!name);
+  document.getElementById("auth-user").classList.toggle("hidden", !name);
+  document.getElementById("auth-name").textContent = name || "";
+}
+
+authLoginEl.addEventListener("click", () => {
+  // a search rewrites the URL as it goes, so the way back is set on the way out
+  authLoginEl.search = "?next=" + encodeURIComponent(location.pathname + location.search);
+  track("login-nav");
+});
+
+document.getElementById("auth-logout").addEventListener("click", async () => {
+  try {
+    await fb.signOut(fb.auth);
+  } catch (e) { /* the SDK may still hold the user; the reload sorts it out */ }
+  fb.remember(false);
+  // reload rather than patch state: the lit bells belong to the account that just left
+  location.reload();
+});
+
+/* On load: fill the account corner, complete an order that waited for the
+   login, and light the bells of journeys this account already ordered a report
+   for. All need the account, which is only looked up when there is a reason
+   to - a parked order, or the hint the login page leaves behind; without one
+   the corner simply offers the login. */
 async function initReports() {
   let pending = null;
   try {
@@ -3253,9 +3292,10 @@ async function initReports() {
   if (pending && !(pending.journey && Date.now() - pending.ts < REPORT_PENDING_MAX_AGE)) pending = null;
   let hinted = false;
   try { hinted = localStorage.getItem("account") === "1"; } catch (e) {}
-  if (!pending && !hinted) return;
+  if (!pending && !hinted) { renderAuth(null); return; }
   let account = null;
-  try { account = await currentAccount(); } catch (e) { return; }
+  try { account = await currentAccount(); } catch (e) { /* SDK unreachable: same as signed out */ }
+  renderAuth(account);
   if (!account || !account.verified) return;  // the login was abandoned: nothing is ordered
   if (pending) {
     openReportModal(pending.journey);

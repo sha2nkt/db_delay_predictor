@@ -65,14 +65,19 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=103">
+<link rel="stylesheet" href="/style.css?v=104">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
 <header>
-  <div class="header-inner">
+  <div class="header-inner header-home">
     <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
     <span class="header-title"><span data-i18n="headerTitle">Verbindungssuche</span> <small data-i18n="headerSubtitle">mit Verspätungsstatistik</small><span class="tagline" data-i18n="tagline">Den Zug buchen, nicht die Verspätung</span></span>
+    <!-- the Delay Stories account, shared by every page; app.js fills in the name -->
+    <span class="header-auth">
+      <a id="auth-login" class="auth-link hidden" href="/login" data-i18n="navLogin">Anmelden</a>
+      <span id="auth-user" class="auth-user hidden"><strong id="auth-name"></strong><button id="auth-logout" class="auth-logout" type="button" data-i18n="navLogout">Abmelden</button></span>
+    </span>
     <a id="refund-nav" class="refund-nav" href="/entschaedigung" data-i18n="navRefund">Entschädigung beantragen</a>
     <div class="header-lang">
       <a href="/" hreflang="de" data-lang="de" class="lang-btn active">DE</a>
@@ -707,7 +712,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=117"></script>
+<script src="/app.js?v=120"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

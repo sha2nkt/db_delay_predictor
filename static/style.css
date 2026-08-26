@@ -30,7 +30,8 @@ header { background: var(--brand-red); }
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .header-title { color: #fff; font-size: 18px; font-weight: 600; flex: 1; min-width: 0; }
-.header-title small { font-weight: 400; opacity: .85; }
+/* the subtitle moves down as a whole when the account corner needs the room */
+.header-title small { font-weight: 400; opacity: .85; white-space: nowrap; }
 .tagline { display: block; font-size: 12px; font-weight: 400; font-style: italic; opacity: .8; }
 
 main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
@@ -1011,6 +1012,13 @@ body.nudge-on #donate-footer-item { display: none; }
 
 @media (max-width: 700px) {
   .header-inner { flex-wrap: wrap; row-gap: 8px; }
+  /* the homepage header also carries the compensation CTA: the account corner
+     stays beside the title and the CTA drops to a second, right-aligned row
+     with the language switch, instead of the pill squeezing the title into
+     single words; a long name is clipped so the corner still fits the row */
+  .header-home { justify-content: flex-end; }
+  .header-home .header-title { flex-basis: 100px; }
+  .header-home .auth-user strong { max-width: 4em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
   /* stacked card: the toggle centers on its line, the button spans below it */
@@ -1049,7 +1057,8 @@ body.nudge-on #donate-footer-item { display: none; }
   }
   .return-remove-label, .stopover-remove-label, .traveller-remove-label { display: inline; }
   .trip-stepper { flex-direction: column; }
-  .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
+  /* single-row headers shrink the logo to fit; the two-row homepage header keeps it full size */
+  .header-inner:not(.header-home) .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
   .header-title { font-size: 15px; }
   .header-title small { display: none; }
 
