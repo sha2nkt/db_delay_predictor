@@ -219,7 +219,20 @@ def delete_account(uid: str) -> bool:
     """GDPR erasure helper (manual, on request via kontakt@): removes the
     Firebase account and its registry entries, drops its votes and taps,
     and anonymizes authored posts in place - the stories stay, the name
-    goes. False when Firebase has no such account."""
+    goes. False when Firebase has no such account.
+
+    One caveat, verified end-to-end rather than assumed: an ID token issued
+    before the deletion keeps verifying until it expires (Firebase tokens
+    last an hour, and account() checks the signature, not the account's
+    continued existence). So for up to an hour the erased account can still
+    write, and the username it released can be claimed by somebody else
+    while the old token still carries it. Refreshing is already impossible -
+    the account is gone - so the window cannot be extended. Closing it
+    outright means verify_id_token(check_revoked=True), which spends a
+    Firebase round trip on EVERY authenticated request; that is a poor
+    trade for a manual, rare operation, so the window is accepted. If
+    deletion ever becomes a moderation tool (banning), revisit this and
+    pass check_revoked on the write paths only."""
     fb_auth, _ = _firebase()
     try:
         fb_auth.delete_user(uid, app=_app)
