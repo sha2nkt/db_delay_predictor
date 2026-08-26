@@ -81,6 +81,103 @@ def sql_file_list(files: list[Path]) -> str:
     return "[" + ", ".join(f"'{f}'" for f in files) + "]"
 
 
+PLAN_COLS = (
+    "station_name, xml_station_name, eva, train_number, line_number,"
+    " final_destination_station, train_type, arrival_planned_time, departure_planned_time"
+)
+FCHG_COLS = "arrival_change_time, departure_change_time, is_canceled"
+
+
+def latest_per_id(cols: str, files: list[Path]) -> str:
+    """Newest row per stop id (by xml_timestamp) across the parsed files.
+
+    A row_number() window rather than DISTINCT ON: DuckDB plans DISTINCT ON as a
+    hash aggregate carrying one arg_min per column (a sort-key copy per column per
+    group) plus a full ORDER BY of the result, and that hit the 2 GB cap on the box
+    with 'failed to pin block'. The window partitions spill cleanly (plan: 0.2 GB
+    of temp vs 4.5 GB, fchg: 1.4 GB vs 3.3 GB) and picks the same rows (0 of 14 M
+    differ, no ties on xml_timestamp)."""
+    return f"""
+        SELECT id, {cols} FROM (
+            SELECT id, {cols},
+                   row_number() OVER (PARTITION BY id ORDER BY xml_timestamp DESC) AS rn
+            FROM read_parquet({sql_file_list(files)})
+        ) WHERE rn = 1
+    """
+
+
+def merge_parsed(plan_files: list[Path], fchg_files: list[Path], output_file: Path,
+                 window_start: date, window_end: date):
+    """Dedup the parsed plan/fchg days and join them into output_file.
+
+    merge/dedup SQL adapted from deutsche-bahn-data/scripts/create_monthly_data_release.py
+    main() (rolling window bounds instead of hardcoded month), staged so the peak fits
+    the 4 GB / 38 GB pipeline box: as one query DuckDB held all three sorted
+    intermediates plus the join spilled at once (~8 GB, more than the disk has free);
+    each dedup now goes to its own file before the join, so only one operator spills
+    at a time. Nothing downstream reads this file in order (merge_delays.py unions it,
+    build_db_file sorts the result), so no ORDER BY anywhere and insertion order is
+    not preserved either — both would be full external sorts of ~14 M rows."""
+    tmp_output = output_file.with_suffix(".parquet.tmp")
+    stage = output_file.parent / ".stage"
+    shutil.rmtree(stage, ignore_errors=True)
+    stage.mkdir()
+    con = duckdb.connect()
+    con.execute("SET memory_limit='2GB'")
+    con.execute("SET threads=2")  # the pipeline box's core count; more threads than that oversubscribe the cap
+    con.execute("SET preserve_insertion_order=false")
+    con.execute(f"COPY ({latest_per_id(PLAN_COLS, plan_files)}) TO '{stage / 'plan.parquet'}' (FORMAT PARQUET)")
+    con.execute(f"COPY ({latest_per_id(FCHG_COLS, fchg_files)}) TO '{stage / 'fchg.parquet'}' (FORMAT PARQUET)")
+    # latest delay-cause message per stop, independent of the newest fchg
+    # response (which may no longer carry the message)
+    con.execute(f"""
+        COPY (
+            SELECT id, arg_max(reason_code, reason_ts) AS reason_code
+            FROM read_parquet({sql_file_list(fchg_files)})
+            WHERE reason_code IS NOT NULL
+            GROUP BY id
+        ) TO '{stage / "reasons.parquet"}' (FORMAT PARQUET)
+    """)
+    con.execute(f"""
+        COPY (
+            WITH merged AS (
+                SELECT
+                    p.*,
+                    COALESCE(f.arrival_change_time, p.arrival_planned_time) AS arrival_change_time,
+                    COALESCE(f.departure_change_time, p.departure_planned_time) AS departure_change_time,
+                    COALESCE(f.is_canceled, false) AS is_canceled,
+                    r.reason_code
+                FROM '{stage / "plan.parquet"}' p
+                LEFT JOIN '{stage / "fchg.parquet"}' f ON p.id = f.id
+                LEFT JOIN '{stage / "reasons.parquet"}' r ON p.id = r.id
+            ),
+            transformed AS (
+                SELECT
+                    station_name, xml_station_name, eva, train_number, line_number,
+                    final_destination_station,
+                    CAST(COALESCE(
+                        date_diff('minute', departure_planned_time, departure_change_time),
+                        date_diff('minute', arrival_planned_time, arrival_change_time)
+                    ) AS INTEGER) AS delay_in_min,
+                    COALESCE(departure_change_time, arrival_change_time) AS time,
+                    is_canceled, train_type,
+                    regexp_extract(id, '^(.*)-\\d{{10}}-\\d+$', 1) AS train_line_ride_id,
+                    CAST(split_part(id, '-', -1) AS INTEGER) AS train_line_station_num,
+                    arrival_planned_time, arrival_change_time,
+                    departure_planned_time, departure_change_time, id,
+                    CAST(reason_code AS INTEGER) AS reason_code
+                FROM merged
+            )
+            SELECT * FROM transformed
+            WHERE time >= TIMESTAMP '{window_start} 00:00:00'
+                AND time < TIMESTAMP '{window_end} 00:00:00'
+        ) TO '{tmp_output}' (FORMAT PARQUET)
+    """)
+    con.close()
+    shutil.rmtree(stage)
+    os.replace(tmp_output, output_file)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Download raw DB delay data from HuggingFace and build data/delays.parquet")
     parser.add_argument("--days", type=int, default=31, help="days of raw data to use; the oldest only catches cross-midnight trains (default: 31 = 30 full days)")
@@ -153,67 +250,7 @@ def main():
     if not plan_files or not fchg_files:
         sys.exit("No parsed plan/fchg data for the requested window.")
 
-    # merge/dedup SQL adapted from deutsche-bahn-data/scripts/create_monthly_data_release.py main()
-    # (rolling window bounds instead of hardcoded month)
-    tmp_output = output_file.with_suffix(".parquet.tmp")
-    duckdb.sql(f"""
-        COPY (
-            WITH plan_deduped AS (
-                SELECT DISTINCT ON (id)
-                    id, station_name, xml_station_name, eva, train_number, line_number,
-                    final_destination_station, train_type, arrival_planned_time, departure_planned_time
-                FROM read_parquet({sql_file_list(plan_files)})
-                ORDER BY id, xml_timestamp DESC
-            ),
-            fchg_deduped AS (
-                SELECT DISTINCT ON (id)
-                    id, arrival_change_time, departure_change_time, is_canceled
-                FROM read_parquet({sql_file_list(fchg_files)})
-                ORDER BY id, xml_timestamp DESC
-            ),
-            -- latest delay-cause message per stop, independent of the newest
-            -- fchg response (which may no longer carry the message)
-            reasons AS (
-                SELECT id, arg_max(reason_code, reason_ts) AS reason_code
-                FROM read_parquet({sql_file_list(fchg_files)})
-                WHERE reason_code IS NOT NULL
-                GROUP BY id
-            ),
-            merged AS (
-                SELECT
-                    p.*,
-                    COALESCE(f.arrival_change_time, p.arrival_planned_time) AS arrival_change_time,
-                    COALESCE(f.departure_change_time, p.departure_planned_time) AS departure_change_time,
-                    COALESCE(f.is_canceled, false) AS is_canceled,
-                    r.reason_code
-                FROM plan_deduped p
-                LEFT JOIN fchg_deduped f ON p.id = f.id
-                LEFT JOIN reasons r ON p.id = r.id
-            ),
-            transformed AS (
-                SELECT
-                    station_name, xml_station_name, eva, train_number, line_number,
-                    final_destination_station,
-                    CAST(COALESCE(
-                        date_diff('minute', departure_planned_time, departure_change_time),
-                        date_diff('minute', arrival_planned_time, arrival_change_time)
-                    ) AS INTEGER) AS delay_in_min,
-                    COALESCE(departure_change_time, arrival_change_time) AS time,
-                    is_canceled, train_type,
-                    regexp_extract(id, '^(.*)-\\d{{10}}-\\d+$', 1) AS train_line_ride_id,
-                    CAST(split_part(id, '-', -1) AS INTEGER) AS train_line_station_num,
-                    arrival_planned_time, arrival_change_time,
-                    departure_planned_time, departure_change_time, id,
-                    CAST(reason_code AS INTEGER) AS reason_code
-                FROM merged
-                ORDER BY time
-            )
-            SELECT * FROM transformed
-            WHERE time >= TIMESTAMP '{window_start} 00:00:00'
-                AND time < TIMESTAMP '{window_end} 00:00:00'
-        ) TO '{tmp_output}' (FORMAT PARQUET)
-    """)
-    os.replace(tmp_output, output_file)
+    merge_parsed(plan_files, fchg_files, output_file, window_start, window_end)
     prune_old_raw_days(args.data_dir / "raw_data", set(dates))
     prune_old_parsed_days(parsed_root, set(dates))
 

@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=92">
+<link rel="stylesheet" href="/style.css?v=98">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -139,6 +139,18 @@ try {
         <option value="30" data-i18n="days30">30 Tage</option>
       </select>
     </div>
+    <div class="dticket-toggles">
+      <label class="dticket-toggle" data-i18n-title="dticketTooltip">
+        <input id="dticket" type="checkbox">
+        <span class="dticket-switch" aria-hidden="true"></span>
+        <span data-i18n="dticket">Nur D-Ticket</span>
+      </label>
+      <label class="dticket-toggle" data-i18n-title="dticketAllTooltip">
+        <input id="dticket-all" type="checkbox">
+        <span class="dticket-switch" aria-hidden="true"></span>
+        <span data-i18n="dticketAll">D-Ticket + alle Züge</span>
+      </label>
+    </div>
     <div class="search-actions">
       <button id="advanced-toggle" class="advanced-toggle" type="button" aria-expanded="false" aria-controls="advanced-panel">
         <span class="advanced-chevron" aria-hidden="true">&#9656;</span>
@@ -156,18 +168,6 @@ try {
         <option value="toddler" data-i18n="ageToddler">Kind (0-5 Jahre)</option>
       </select>
     </div>
-      <div class="dticket-toggles">
-        <label class="dticket-toggle" data-i18n-title="dticketTooltip">
-          <input id="dticket" type="checkbox">
-          <span class="dticket-switch" aria-hidden="true"></span>
-          <span data-i18n="dticket">Nur D-Ticket</span>
-        </label>
-        <label class="dticket-toggle" data-i18n-title="dticketAllTooltip">
-          <input id="dticket-all" type="checkbox">
-          <span class="dticket-switch" aria-hidden="true"></span>
-          <span data-i18n="dticketAll">D-Ticket + alle Züge</span>
-        </label>
-      </div>
       <div class="advanced-row">
         <div class="field field-transfer">
           <label for="transfer" data-i18n="transferTime">Umstiegszeit</label>
@@ -203,8 +203,19 @@ try {
             <div class="dropdown" id="viaOut1-dropdown"></div>
           </div>
           <div class="field field-stay">
-            <label for="viaOut1Stay" data-i18n="stayLabel">Aufenthalt (hh:mm)</label>
-            <input id="viaOut1Stay" class="stay-input" type="text" inputmode="numeric" maxlength="5" placeholder="0:00" autocomplete="off">
+            <label for="viaOut1StayH" data-i18n="stayLabel">Aufenthalt</label>
+            <div class="stay-stepper" data-via="viaOut1">
+              <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+              <span class="stay-value">
+                <input id="viaOut1StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                <span class="stay-unit">h</span>
+                <span class="stay-sep">:</span>
+                <input id="viaOut1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                <span class="stay-unit">min</span>
+                <input id="viaOut1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+              </span>
+              <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+            </div>
           </div>
           <button class="stopover-remove" type="button" data-via="viaOut1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
         </div>
@@ -216,8 +227,19 @@ try {
             <div class="dropdown" id="viaOut2-dropdown"></div>
           </div>
           <div class="field field-stay">
-            <label for="viaOut2Stay" data-i18n="stayLabel">Aufenthalt (hh:mm)</label>
-            <input id="viaOut2Stay" class="stay-input" type="text" inputmode="numeric" maxlength="5" placeholder="0:00" autocomplete="off">
+            <label for="viaOut2StayH" data-i18n="stayLabel">Aufenthalt</label>
+            <div class="stay-stepper" data-via="viaOut2">
+              <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+              <span class="stay-value">
+                <input id="viaOut2StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                <span class="stay-unit">h</span>
+                <span class="stay-sep">:</span>
+                <input id="viaOut2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                <span class="stay-unit">min</span>
+                <input id="viaOut2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+              </span>
+              <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+            </div>
           </div>
           <button class="stopover-remove" type="button" data-via="viaOut2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
         </div>
@@ -233,8 +255,19 @@ try {
             <div class="dropdown" id="viaRet1-dropdown"></div>
           </div>
           <div class="field field-stay">
-            <label for="viaRet1Stay" data-i18n="stayLabel">Aufenthalt (hh:mm)</label>
-            <input id="viaRet1Stay" class="stay-input" type="text" inputmode="numeric" maxlength="5" placeholder="0:00" autocomplete="off">
+            <label for="viaRet1StayH" data-i18n="stayLabel">Aufenthalt</label>
+            <div class="stay-stepper" data-via="viaRet1">
+              <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+              <span class="stay-value">
+                <input id="viaRet1StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                <span class="stay-unit">h</span>
+                <span class="stay-sep">:</span>
+                <input id="viaRet1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                <span class="stay-unit">min</span>
+                <input id="viaRet1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+              </span>
+              <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+            </div>
           </div>
           <button class="stopover-remove" type="button" data-via="viaRet1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
         </div>
@@ -246,8 +279,19 @@ try {
             <div class="dropdown" id="viaRet2-dropdown"></div>
           </div>
           <div class="field field-stay">
-            <label for="viaRet2Stay" data-i18n="stayLabel">Aufenthalt (hh:mm)</label>
-            <input id="viaRet2Stay" class="stay-input" type="text" inputmode="numeric" maxlength="5" placeholder="0:00" autocomplete="off">
+            <label for="viaRet2StayH" data-i18n="stayLabel">Aufenthalt</label>
+            <div class="stay-stepper" data-via="viaRet2">
+              <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+              <span class="stay-value">
+                <input id="viaRet2StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                <span class="stay-unit">h</span>
+                <span class="stay-sep">:</span>
+                <input id="viaRet2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                <span class="stay-unit">min</span>
+                <input id="viaRet2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+              </span>
+              <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+            </div>
           </div>
           <button class="stopover-remove" type="button" data-via="viaRet2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
         </div>
@@ -613,7 +657,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=108"></script>
+<script src="/app.js?v=112"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

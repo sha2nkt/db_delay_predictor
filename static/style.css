@@ -30,13 +30,6 @@ header { background: var(--brand-red); }
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .header-title { color: #fff; font-size: 18px; font-weight: 600; flex: 1; min-width: 0; }
-/* the Delay Stories wordmark is flat red on transparent: recolour it white and
-   let it sit straight on the red header instead of in the DB logo's white tile */
-.stories-header .logo {
-  background: none; padding: 0; box-shadow: none; border-radius: 0;
-  height: 48px; filter: brightness(0) invert(1);
-}
-.stories-header .header-title { font-size: 15px; }
 .header-title small { font-weight: 400; opacity: .85; }
 .tagline { display: block; font-size: 12px; font-weight: 400; font-style: italic; opacity: .8; }
 
@@ -94,8 +87,8 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
    of width and wraps them to a line of their own, the button still sits right
    beside the switches instead of being orphaned under the fields. */
 .search-actions { display: flex; align-items: center; gap: 12px; }
-/* occasional settings (D-Ticket modes, age bracket) fold away behind a plain
-   text toggle so the card's main row keeps its shape */
+/* occasional settings (age bracket, transfer time, transport modes, stopovers)
+   fold away behind a plain text toggle so the card's main row keeps its shape */
 .advanced-toggle {
   background: none; border: none; cursor: pointer; padding: 10px 0;
   font-size: 13px; font-weight: 600; color: var(--text-muted);
@@ -111,8 +104,9 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .advanced-panel.hidden { display: none; }
 
-/* the two switches read as one choice, so they sit on a line together; the
-   padding matches the inputs' so they align with the search button beside them */
+/* the two switches read as one choice, so they sit on a line together in the
+   card's main row; the padding matches the inputs' so they align with the
+   fields and the search button beside them */
 .dticket-toggles {
   display: flex; align-items: center; flex-wrap: wrap;
   gap: 8px 18px; padding: 10px 0;
@@ -163,7 +157,43 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .stopover-group-label.hidden { display: none; }
 .stopover-row { display: flex; gap: 12px; align-items: flex-end; }
 .stopover-row.hidden { display: none; }
-.field-stay input { min-width: 120px; }
+/* the stay is a duration, not a text field, so it reads as bahn.de's stepper:
+   both segments stay typeable and the two buttons move a quarter hour at a time */
+.stay-stepper {
+  display: flex; align-items: center; gap: 4px;
+  border: 1px solid var(--gray-border); border-radius: 4px; background: #fff;
+  padding: 1px 4px; min-width: 170px;
+}
+.stay-stepper:focus-within { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.stay-step {
+  flex: none; width: 32px; height: 35px; padding: 0;
+  background: none; border: none; border-radius: 4px; cursor: pointer;
+  color: var(--brand-red); font-family: inherit; font-size: 18px; line-height: 1;
+}
+.stay-step:hover:not(:disabled) { background: color-mix(in srgb, var(--brand-red) 8%, #fff); }
+.stay-step:disabled { color: var(--gray-border); cursor: default; }
+.stay-value { flex: 1; display: flex; align-items: baseline; justify-content: center; }
+/* the digits are text in an input like any other on the form: same size and
+   weight, and the font family left to the browser as the other inputs leave it;
+   2ch plus a hair, so a caret at the end of "45" doesn't push the unit around */
+.stay-stepper input.stay-part {
+  width: 2.4ch; min-width: 0; padding: 0; border: none; background: none;
+  font-size: 15px; font-weight: 400; color: var(--text); text-align: center;
+}
+.stay-part:focus { outline: none; color: var(--brand-red); }
+/* the units read as the field labels do */
+.stay-unit { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.stay-sep { padding: 0 4px; font-size: 15px; color: var(--text-muted); }
+/* on a phone the stay is picked the way the search form's time field is picked -
+   the native time control - so the typeable segments give way to a type=time twin
+   there; it holds the same HH:MM the segments hold, and the buttons still step it */
+.stay-stepper input.stay-time {
+  display: none; flex: 1; min-width: 0; width: auto; padding: 0; border: none;
+  background: none; font-size: 15px; color: var(--text); text-align: center;
+  -webkit-appearance: none; appearance: none;
+}
+.stay-time::-webkit-date-and-time-value { text-align: center; }
+.stay-time::-webkit-calendar-picker-indicator { display: none; }
 .stopover-add { align-self: flex-start; }
 
 .autocomplete-wrap { position: relative; }
@@ -592,6 +622,7 @@ body.past-mode .field-window { display: none; }
 /* neither prices, the D-Ticket filter nor a minimum transfer time figure in
    the compensation check, so the whole advanced panel goes */
 body.past-mode .advanced-toggle,
+body.past-mode .dticket-toggles,
 body.past-mode .advanced-panel { display: none; }
 /* the compensation check looks back at one journey that already happened */
 body.past-mode .return-add,
@@ -919,17 +950,17 @@ body.nudge-on #donate-footer-item { display: none; }
 
 @media (max-width: 700px) {
   .header-inner { flex-wrap: wrap; row-gap: 8px; }
-  /* the Delay Stories wordmark is wide: logo + language on row 1, title + login on row 2 */
-  .stories-header .logo { height: 32px; }
-  .stories-header .header-title { font-size: 13px; }
-  .stories-header .header-lang { order: 1; margin-left: auto; }
-  .stories-header .header-title { order: 2; flex-basis: 60%; }
-  .stories-header .header-auth { order: 3; margin-left: auto; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
   /* stacked card: the toggle centers on its line, the button spans below it */
   .search-actions { flex-direction: column; align-items: stretch; gap: 4px; }
-  .advanced-toggle { justify-content: center; }
+  /* the switch row and the toggle each carry the padding that aligns them with
+     the inputs beside them on desktop; stacked they sit on top of the card's own
+     12px gap and open a hole, so the padding moves onto the labels, where it
+     still buys a finger-sized tap target */
+  .advanced-toggle { justify-content: center; padding: 2px 0 10px; }
+  .dticket-toggles { padding: 0; }
+  .dticket-toggle { padding: 6px 0; }
   .field input, .field select, .transport-btn { min-width: 0; width: 100%; }
   /* stacked card: split the line evenly so the pair keeps matching boxes even
      though their labels are different lengths */
@@ -938,6 +969,10 @@ body.nudge-on #donate-footer-item { display: none; }
   .return-add, .stopover-add { align-self: stretch; text-align: center; }
   .return-fields, .stopover-row { flex-direction: column; align-items: stretch; }
   .stopover-group { align-items: stretch; }
+  .stay-stepper { min-width: 0; }
+  .stay-step { width: 44px; }
+  .stay-stepper .stay-part, .stay-stepper .stay-unit, .stay-stepper .stay-sep { display: none; }
+  .stay-stepper input.stay-time { display: block; }
   .return-remove, .stopover-remove {
     align-self: flex-end; padding: 6px 4px;
     display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
@@ -1054,6 +1089,10 @@ body.nudge-on #donate-footer-item { display: none; }
 /* ---------- station stories (/stories) ---------- */
 
 .stories-main { max-width: 720px; }
+/* the Delay Stories wordmark, red on transparent, centred above the board */
+.stories-mark { display: block; width: fit-content; margin: 0 auto 20px; line-height: 0; }
+.stories-mark img { height: 56px; width: auto; max-width: 100%; }
+@media (max-width: 700px) { .stories-mark img { height: 40px; } }
 /* why voting is worth the tap; sits above the lists so readers see it too,
    not only the people already composing */
 .share-promise {

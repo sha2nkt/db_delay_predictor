@@ -81,7 +81,11 @@ const I18N = {
     stopover1: "Zwischenhalt 1",
     stopover2: "Zwischenhalt 2",
     stopoverPlaceholder: "z.B. Frankfurt(Main)Hbf",
-    stayLabel: "Aufenthalt (hh:mm)",
+    stayLabel: "Aufenthalt",
+    stayHours: "Stunden",
+    stayMins: "Minuten",
+    stayLess: "Aufenthalt verkürzen",
+    stayMore: "Aufenthalt verlängern",
     stopoverRemoveTitle: "Zwischenhalt entfernen",
     stopoverUnresolved: "Bitte wähle den Zwischenhalt aus der Vorschlagsliste.",
     stepOutbound: "Hinfahrt",
@@ -308,7 +312,11 @@ const I18N = {
     stopover1: "Stopover 1",
     stopover2: "Stopover 2",
     stopoverPlaceholder: "e.g. Frankfurt(Main)Hbf",
-    stayLabel: "Stay (hh:mm)",
+    stayLabel: "Stay",
+    stayHours: "Hours",
+    stayMins: "Minutes",
+    stayLess: "Shorten stay",
+    stayMore: "Extend stay",
     stopoverRemoveTitle: "Remove stopover",
     stopoverUnresolved: "Please pick the stopover from the suggestion list.",
     stepOutbound: "Outbound",
@@ -957,9 +965,10 @@ for (const [id, other] of [["dticket", "dticket-all"], ["dticket-all", "dticket"
   });
 }
 
-// D-Ticket modes, the age bracket and the minimum transfer time are occasional
-// settings: they fold away behind the "advanced options" toggle. Collapsing only
-// hides them — whatever is set keeps applying to searches.
+// the age bracket, the minimum transfer time, the transport filter and the
+// stopovers are occasional settings: they fold away behind the "advanced
+// options" toggle. Collapsing only hides them — whatever is set keeps applying
+// to searches. The D-Ticket switches stay out in the main row.
 const advancedToggle = document.getElementById("advanced-toggle");
 const advancedPanel = document.getElementById("advanced-panel");
 function setAdvancedOpen(open) {
@@ -1166,34 +1175,73 @@ const VIA_KEYS = { outbound: ["viaOut1", "viaOut2"], return: ["viaRet1", "viaRet
 const ALL_VIA_KEYS = [...VIA_KEYS.outbound, ...VIA_KEYS.return];
 
 const viaRow = (key) => document.getElementById(`${key}-row`);
-const viaStayEl = (key) => document.getElementById(`${key}Stay`);
+const viaStayEls = (key) => [
+  document.getElementById(`${key}StayH`),
+  document.getElementById(`${key}StayM`),
+];
+// the phone-only type=time twin of the two segments (see .stay-time in style.css)
+const viaStayTimeEl = (key) => document.getElementById(`${key}StayT`);
 
-// a stay is entered as hh:mm ("1:30", "1h30"), but bare digits stay minutes so
-// habit and older shared links keep working; unreadable input counts as no stay
+const STAY_MAX = 1439;
+const STAY_STEP = 15;
+const clampStay = (minutes) => Math.max(0, Math.min(STAY_MAX, Math.round(minutes)));
+
+// a shared or older link carries the stay as bare minutes ("90"); hh:mm is read
+// too, so a hand-edited "1:30" works; anything unreadable counts as no stay
 function parseStay(raw) {
   const text = String(raw ?? "").trim();
   if (!text) return 0;
   const hhmm = text.match(/^(\d{1,2})\s*[:hH]\s*(\d{1,2})?$/);
   const minutes = hhmm ? Number(hhmm[1]) * 60 + Number(hhmm[2] || 0) : Number(text);
-  if (!Number.isFinite(minutes)) return 0;
-  return Math.max(0, Math.min(1439, Math.round(minutes)));
+  return Number.isFinite(minutes) ? clampStay(minutes) : 0;
 }
 
-const formatStay = (minutes) => `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
+// the two segments are one duration, so minutes above 59 carry into the hours:
+// a typed 0h/90min settles as 1h/30min instead of being rejected
+function stayMinutes(key) {
+  const [h, m] = viaStayEls(key);
+  return clampStay((Number(h.value) || 0) * 60 + (Number(m.value) || 0));
+}
+
+function setStay(key, minutes) {
+  const total = clampStay(minutes);
+  const [h, m] = viaStayEls(key);
+  h.value = String(Math.floor(total / 60)).padStart(2, "0");
+  m.value = String(total % 60).padStart(2, "0");
+  viaStayTimeEl(key).value = `${h.value}:${m.value}`;
+  syncStayButtons(key);
+}
+
+// an exhausted direction shouldn't offer a button that does nothing
+function syncStayButtons(key) {
+  const total = stayMinutes(key);
+  document.querySelectorAll(`.stay-stepper[data-via="${key}"] .stay-step`).forEach((btn) => {
+    btn.disabled = Number(btn.dataset.step) > 0 ? total >= STAY_MAX : total <= 0;
+  });
+}
+
+// − and + move to the neighbouring quarter hour, so a typed 0:07 snaps onto the
+// grid rather than drifting along it
+function stepStay(key, direction) {
+  const total = stayMinutes(key);
+  setStay(key, direction > 0
+    ? (Math.floor(total / STAY_STEP) + 1) * STAY_STEP
+    : (Math.ceil(total / STAY_STEP) - 1) * STAY_STEP);
+}
 
 // the picked stopovers of one direction, in row order
 function viasFor(direction) {
   if (state.mode === "past") return [];
   return VIA_KEYS[direction].filter((k) => state[k]).map((k) => ({
     station: state[k],
-    stay: parseStay(viaStayEl(k).value),
+    stay: stayMinutes(k),
   }));
 }
 
 function clearVia(key) {
   state[key] = null;
   document.getElementById(key).value = "";
-  viaStayEl(key).value = "";
+  setStay(key, 0);
 }
 
 // keeps the stopover controls consistent with the state: which groups and rows
@@ -1230,13 +1278,33 @@ for (const direction of ["outbound", "return"]) {
   });
 }
 
-// what was typed only has to be readable, not well formed: it settles into hh:mm
-// on the way out, and an empty field keeps meaning no stay at all
-document.querySelectorAll(".stay-input").forEach((el) => {
-  el.addEventListener("change", () => {
-    const minutes = parseStay(el.value);
-    el.value = minutes ? formatStay(minutes) : "";
+document.querySelectorAll(".stay-stepper").forEach((stepper) => {
+  const key = stepper.dataset.via;
+  stepper.querySelectorAll(".stay-step").forEach((btn) => {
+    btn.addEventListener("click", () => stepStay(key, Number(btn.dataset.step)));
   });
+  // the native picker hands back HH:MM, or nothing when it was cleared
+  viaStayTimeEl(key).addEventListener("change", () =>
+    setStay(key, parseStay(viaStayTimeEl(key).value)));
+  stepper.querySelectorAll(".stay-part").forEach((el) => {
+    // focusing selects, so a segment is overwritten by typing rather than edited
+    // around, and two digits in the hours hand the caret to the minutes
+    el.addEventListener("focus", () => el.select());
+    el.addEventListener("input", () => {
+      el.value = el.value.replace(/\D/g, "");
+      if (el.classList.contains("stay-h") && el.value.length === 2) viaStayEls(key)[1].select();
+      syncStayButtons(key);
+    });
+    // what was typed only has to be readable, not well formed: it settles into
+    // padded h/min on the way out
+    el.addEventListener("change", () => setStay(key, stayMinutes(key)));
+    el.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      e.preventDefault();
+      stepStay(key, e.key === "ArrowUp" ? 1 : -1);
+    });
+  });
+  syncStayButtons(key);
 });
 
 document.querySelectorAll(".stopover-remove").forEach((btn) => {
@@ -3321,7 +3389,7 @@ const qp = new URLSearchParams(location.search);
     state.products.return = qp.get("tmr") === "all" ? new Set(PRODUCTS)
       : parseProducts(qp.get("tmr")) || new Set(state.products.outbound);
     updateTransportBtn();
-    if (dticketMode() !== "off" || ageMode() !== "adult" || transferMinutes() !== "0" || productsParam("outbound") || productsParam("return")) setAdvancedOpen(true);
+    if (ageMode() !== "adult" || transferMinutes() !== "0" || productsParam("outbound") || productsParam("return")) setAdvancedOpen(true);
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1
@@ -3334,8 +3402,7 @@ const qp = new URLSearchParams(location.search);
         if (!qp.get(`${param}Id`)) return;
         state[key] = { id: qp.get(`${param}Id`), name: qp.get(param) || "" };
         document.getElementById(key).value = state[key].name;
-        const stay = parseStay(qp.get(`${param}Stay`));
-        if (stay > 0) viaStayEl(key).value = formatStay(stay);
+        setStay(key, parseStay(qp.get(`${param}Stay`)));
         viaRow(key).classList.remove("hidden");
       };
       restoreVia("vo1", "viaOut1");
