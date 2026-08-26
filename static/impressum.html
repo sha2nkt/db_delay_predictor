@@ -98,8 +98,8 @@
     Kommentieren und Abstimmen ein Nutzerkonto erforderlich; das Lesen ist ohne Konto möglich.
     Die Anmeldung erfolgt über Firebase Authentication, einen Dienst der Google Ireland Limited
     (Gordon House, Barrow Street, Dublin 4, Irland), wahlweise mit einem Google-Konto, einem
-    Apple-Konto, einer Telefonnummer (Bestätigung per SMS) oder mit E-Mail-Adresse und Passwort
-    (Bestätigung per E-Mail). Bei Firebase werden dafür gespeichert: die Kennung des gewählten
+    Apple-Konto, einer Telefonnummer (Bestätigung per SMS) oder mit Ihrer E-Mail-Adresse – dort
+    per sechsstelligem Einmalcode oder, falls vorhanden, mit einem Passwort. Bei Firebase werden dafür gespeichert: die Kennung des gewählten
     Anmeldeverfahrens (z.&nbsp;B. die E-Mail-Adresse Ihres Google-Kontos oder Ihre
     Telefonnummer), ein ggf. gewähltes Passwort in gehashter Form, der selbst gewählte
     Benutzername, die Zeitpunkte von Registrierung und letzter Anmeldung sowie eine zufällige
@@ -116,6 +116,17 @@
     einmal zählen, sowie der Benutzername an veröffentlichten Beiträgen. Damit ein Benutzername
     nur einmal vergeben wird, wird die Zuordnung Benutzername&nbsp;→&nbsp;Konto-Kennung in Cloud
     Firestore (ebenfalls Google, Speicherort Frankfurt am Main) abgelegt.</p>
+    <p>Die Anmeldung per E-Mail-Adresse erfolgt über einen sechsstelligen Einmalcode: Firebase
+    bietet für E-Mail keinen solchen Code an, daher wird er von dieser Website erzeugt und
+    versendet. In Cloud Firestore werden dazu vorübergehend gespeichert: ein Hash Ihrer
+    E-Mail-Adresse als Schlüssel, ein Hash des Codes, der Ablaufzeitpunkt sowie Zähler für
+    Fehlversuche und die Zahl der an diesem Tag angeforderten Codes (Schutz vor Missbrauch und
+    vor dem Zumüllen fremder Postfächer). Der Eintrag wird beim Einlösen des Codes gelöscht und
+    verfällt andernfalls nach 15 Minuten; im Klartext wird weder die Adresse noch der Code
+    abgelegt. Für den Versand dieser E-Mails wird der Dienst Brevo (Sendinblue GmbH,
+    Köpenicker Straße 126, 10179 Berlin) als Auftragsverarbeiter nach Art. 28 DSGVO eingesetzt;
+    dabei wird Ihre E-Mail-Adresse an Brevo übermittelt. Weitere Informationen:
+    <a href="https://www.brevo.com/de/legal/privacypolicy/" target="_blank" rel="noopener">Datenschutzerklärung von Brevo</a>.</p>
     <p>Bei der Anmeldung per Telefonnummer setzt Google reCAPTCHA ein, um automatisierte
     Anfragen zu erkennen; dabei werden Nutzungsdaten (etwa IP-Adresse und Browserinformationen)
     an Google übermittelt. Bei der Anmeldung mit Google oder Apple gelten zusätzlich die

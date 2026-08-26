@@ -1,10 +1,11 @@
-/* The way into an account, on one card: Google, Apple, a phone number, or
-   an email address - the last of which leads to a password, and for a new
-   address to a verification mail. Firebase does all the proving; this page
-   only walks between the steps and, at the end, asks our own server for the
-   one thing Firebase cannot hand out: a unique public username. A visitor
-   who left half-way (mail not yet clicked, name not yet chosen) lands back
-   on exactly the step they are missing. */
+/* The way into an account: Google, Apple, a phone number, or an email
+   address. The address is the common path and leads to a six-digit code in
+   the inbox - Firebase has no email code of its own (its codes are SMS, its
+   email flows are links), so the server mints and mails it, and hands back a
+   Firebase custom token once it is typed back. A password is offered as the
+   alternative underneath. Whatever the route, it ends as an ordinary Firebase
+   session, and a visitor who left half-way - code unentered, mail unclicked,
+   name unchosen - lands back on exactly the step they are missing. */
 import * as fb from "/firebase.js?v=1";
 
 const I18N = {
@@ -20,12 +21,22 @@ const I18N = {
     email: "E-Mail-Adresse",
     continue: "Weiter",
     chooseNote: "Deine Anmeldedaten verwaltet Firebase (Google) – auf unserem Server landen sie nicht. Öffentlich erscheint nur dein selbst gewählter Benutzername; Werbung gibt es keine.",
+    inboxHeading: "Sieh in dein Postfach",
+    inboxLead: "Gib den Bestätigungscode ein, den wir gerade an {email} geschickt haben.",
+    codeLabel: "Code",
+    withPassword: "Weiter mit Passwort",
+    otherEmail: "Andere E-Mail-Adresse",
+    errCode: "Der Code ist falsch, abgelaufen oder wurde zu oft versucht. Fordere einen neuen an.",
+    resendBtn: "E-Mail erneut senden",
+    resendWait: "Erneut senden in {s} s",
+    resent: "Neue E-Mail ist unterwegs – sie enthält einen neuen Code.",
     passwordHeading: "Passwort",
     changeEmail: "Adresse ändern",
     password: "Passwort",
     loginBtn: "Anmelden",
     createBtn: "Neues Konto mit dieser Adresse erstellen",
     forgotBtn: "Passwort vergessen?",
+    backToCode: "Lieber einen Code per E-Mail",
     errPassword: "Falsches Passwort – oder noch kein Konto? Dann erstelle unten eins.",
     errExists: "Zu dieser Adresse gibt es schon ein Konto: Melde dich mit deinem Passwort an oder setze es zurück.",
     errOtherProvider: "Zu dieser Adresse gibt es schon ein Konto mit einer anderen Anmeldeart – probier es mit Google oder Apple.",
@@ -36,20 +47,16 @@ const I18N = {
     verifySent: "Wir haben eine E-Mail an {email} geschickt (auch im Spam-Ordner nachsehen). Klick auf den Link darin – danach geht es hier weiter.",
     verifiedBtn: "Ich habe bestätigt",
     errNotVerified: "Noch nicht bestätigt – klick zuerst auf den Link in der E-Mail.",
-    resendBtn: "E-Mail erneut senden",
-    resendWait: "Erneut senden in {s} s",
-    resent: "Neue E-Mail ist unterwegs.",
     otherAccount: "Mit einem anderen Konto anmelden",
     phoneHeading: "Telefonnummer",
     phoneLabel: "Mobilnummer mit Ländervorwahl",
     sendCode: "Code senden",
     phoneNote: "Du bekommst einen 6-stelligen Code per SMS. Google prüft die Anfrage im Hintergrund per reCAPTCHA.",
     errPhone: "Bitte eine gültige Mobilnummer mit Ländervorwahl angeben, z. B. +49 151 23456789.",
-    codeHeading: "Code eingeben",
-    codeLabel: "6-stelliger Code aus der SMS",
+    smsHeading: "Code aus der SMS",
+    smsLabel: "6-stelliger Code aus der SMS",
     codeBtn: "Anmelden",
-    codeSent: "Wir haben eine SMS an {phone} geschickt.",
-    errCode: "Der Code ist falsch oder abgelaufen.",
+    smsSent: "Wir haben eine SMS an {phone} geschickt.",
     back: "Zurück",
     nameHeading: "Benutzername wählen",
     username: "Benutzername",
@@ -65,6 +72,7 @@ const I18N = {
     errProvider: "Diese Anmeldeart ist noch nicht aktiviert.",
     errPopup: "Das Anmeldefenster wurde geschlossen, bevor die Anmeldung fertig war.",
     errRate: "Zu viele Versuche – bitte warte kurz und versuch es erneut.",
+    errMail: "Die E-Mail konnte gerade nicht verschickt werden – bitte später erneut versuchen.",
     errDown: "Die Anmeldung ist gerade nicht erreichbar – bitte später erneut versuchen.",
     errUnconfigured: "Die Anmeldung ist auf dieser Installation noch nicht eingerichtet.",
     errGeneric: "Hat nicht geklappt – bitte später erneut versuchen.",
@@ -84,12 +92,22 @@ const I18N = {
     email: "Email address",
     continue: "Continue",
     chooseNote: "Firebase (Google) keeps your login details – they never reach our server. Only the username you pick is ever shown publicly, and there is no marketing.",
+    inboxHeading: "Check your inbox",
+    inboxLead: "Enter the verification code we just sent to {email}.",
+    codeLabel: "Code",
+    withPassword: "Continue with password",
+    otherEmail: "Use a different email",
+    errCode: "That code is wrong, expired, or was tried too many times. Request a new one.",
+    resendBtn: "Resend email",
+    resendWait: "Resend in {s} s",
+    resent: "A new email is on its way – it carries a new code.",
     passwordHeading: "Password",
     changeEmail: "Change address",
     password: "Password",
     loginBtn: "Log in",
     createBtn: "Create a new account with this address",
     forgotBtn: "Forgot your password?",
+    backToCode: "Email me a code instead",
     errPassword: "Wrong password – or no account yet? Then create one below.",
     errExists: "This address already has an account: log in with your password, or reset it.",
     errOtherProvider: "This address already has an account with a different sign-in method – try Google or Apple.",
@@ -100,20 +118,16 @@ const I18N = {
     verifySent: "We sent an email to {email} (check the spam folder too). Click the link in it – then carry on here.",
     verifiedBtn: "I've confirmed",
     errNotVerified: "Not confirmed yet – click the link in the email first.",
-    resendBtn: "Resend email",
-    resendWait: "Resend in {s} s",
-    resent: "A new email is on its way.",
     otherAccount: "Log in with a different account",
     phoneHeading: "Phone number",
     phoneLabel: "Mobile number with country code",
     sendCode: "Send code",
     phoneNote: "You'll get a 6-digit code by SMS. Google checks the request in the background with reCAPTCHA.",
     errPhone: "Please enter a valid mobile number with country code, e.g. +49 151 23456789.",
-    codeHeading: "Enter your code",
-    codeLabel: "6-digit code from the SMS",
+    smsHeading: "Code from the SMS",
+    smsLabel: "6-digit code from the SMS",
     codeBtn: "Log in",
-    codeSent: "We sent an SMS to {phone}.",
-    errCode: "That code is wrong or has expired.",
+    smsSent: "We sent an SMS to {phone}.",
     back: "Back",
     nameHeading: "Pick a username",
     username: "Username",
@@ -129,6 +143,7 @@ const I18N = {
     errProvider: "This sign-in method isn't enabled yet.",
     errPopup: "The sign-in window was closed before the sign-in finished.",
     errRate: "Too many attempts – please wait a moment and try again.",
+    errMail: "The email couldn't be sent just now – please try again later.",
     errDown: "Sign-in is unavailable right now – please try again later.",
     errUnconfigured: "Sign-in hasn't been set up on this installation yet.",
     errGeneric: "That didn't work – please try again later.",
@@ -141,7 +156,7 @@ const I18N = {
 let lang = "de";
 try { if (localStorage.getItem("lang") === "en") lang = "en"; } catch (e) {}
 const t = (key) => (I18N[lang][key] != null ? I18N[lang][key] : I18N.de[key]);
-// no-op when the Umami script is blocked or unavailable; never an address
+// no-op when the Umami script is blocked or unavailable; never the address
 const track = (name, data) => window.umami?.track(name, data);
 // the stories page lives at one URL per language
 const storiesPath = () => (lang === "en" ? "/stories" : "/geschichten");
@@ -149,12 +164,13 @@ const $ = (id) => document.getElementById(id);
 
 // exactly one of these is visible; the header and the tab title follow it
 const VIEWS = {
-  choose:   { card: "choose-card",   title: "chooseHeading",   focus: null },
-  password: { card: "password-card", title: "passwordHeading", focus: "password-input" },
-  verify:   { card: "verify-card",   title: "verifyHeading",   focus: null },
-  phone:    { card: "phone-card",    title: "phoneHeading",    focus: "phone-input" },
-  code:     { card: "code-card",     title: "codeHeading",     focus: "code-input" },
-  name:     { card: "name-card",     title: "nameHeading",     focus: "register-name" },
+  choose:    { card: "choose-card",     title: "chooseHeading",   focus: null },
+  emailCode: { card: "email-code-card", title: "inboxHeading",    focus: "email-code-input" },
+  password:  { card: "password-card",   title: "passwordHeading", focus: "password-input" },
+  verify:    { card: "verify-card",     title: "verifyHeading",   focus: null },
+  phone:     { card: "phone-card",      title: "phoneHeading",    focus: "phone-input" },
+  sms:       { card: "sms-card",        title: "smsHeading",      focus: "sms-input" },
+  name:      { card: "name-card",       title: "nameHeading",     focus: "register-name" },
 };
 let view = "choose";
 
@@ -213,6 +229,11 @@ function errorKey(e) {
   }
 }
 
+// our own endpoints answer with status codes rather than Firebase codes
+const httpKey = (status) =>
+  status === 429 ? "errRate" : status === 503 ? "errMail"
+    : status === 401 ? "errCode" : status === 422 ? "errEmail" : "errGeneric";
+
 function applyStatic() {
   document.documentElement.lang = lang;
   document.title = t("docTitle");
@@ -238,13 +259,17 @@ function applyStatic() {
   shuffleBtn.setAttribute("aria-label", t("shuffleTitle"));
   renderName();
   // the lines built at runtime rather than from data-i18n
+  if (email) {
+    $("email-code-sent").textContent = t("inboxLead").replace("{email}", email);
+  }
   if (pendingUser) {
     $("verify-sent").textContent = t("verifySent").replace("{email}", pendingUser.email || "");
   }
   if (pendingPhone) {
-    $("code-sent").textContent = t("codeSent").replace("{phone}", pendingPhone);
+    $("sms-sent").textContent = t("smsSent").replace("{phone}", pendingPhone);
   }
-  renderResend();
+  renderResend(mailResend);
+  renderResend(verifyResend);
   if (fb.auth) fb.auth.languageCode = lang;  // Firebase's own mails and popups
 }
 
@@ -261,8 +286,9 @@ document.querySelectorAll(".lang-btn").forEach((btn) => {
 
 /* -- routing: which step this account still needs ------------------------- */
 
-let pendingUser = null;   // the account whose mail is not yet clicked
-let pendingPhone = null;  // the number the SMS went to
+let email = "";            // the address the code went to
+let pendingUser = null;    // a password account whose mail is not yet clicked
+let pendingPhone = null;   // the number the SMS went to
 
 /* Send the visitor to the step they are missing, or on to the board when
    nothing is. `refresh` re-reads the account and forces a fresh token, which
@@ -297,6 +323,25 @@ async function signOutHere() {
 
 document.querySelectorAll(".other-account").forEach((b) => b.addEventListener("click", signOutHere));
 document.querySelectorAll(".to-choose").forEach((b) => b.addEventListener("click", () => showView("choose")));
+
+/* -- a small helper the forms share --------------------------------------- */
+
+async function withForm(formId, statusId, action) {
+  const form = $(formId);
+  const send = form.querySelector('[type="submit"]');
+  send.disabled = true;
+  say(statusId, "sending");
+  try {
+    await action();
+    say(statusId, null);
+  } catch (e) {
+    if (e && e.code !== "shown") say(statusId, e && e.i18n ? e.i18n : errorKey(e));
+  } finally {
+    send.disabled = false;
+  }
+}
+
+const shown = () => ({ code: "shown" });   // the handler already wrote the line
 
 /* -- Google and Apple ------------------------------------------------------- */
 
@@ -336,13 +381,107 @@ $("sso-phone").addEventListener("click", () => {
   showView("phone");
 });
 
-/* -- email + password ------------------------------------------------------- */
+/* -- resend, for the mail that never arrived -------------------------------
+   The link doubles as its own countdown - one control, two states - because a
+   second always-live button next to the primary one would only invite
+   clicking it before the mail lands. Recomputed from a deadline rather than
+   counted down, so a backgrounded tab (where intervals are throttled to once
+   a minute) still comes back right. Two of them exist: the emailed code and
+   the password account's verification mail. */
+const RESEND_FALLBACK_SECONDS = 60;
 
-let email = "";
+function makeResend(btnId, onClick) {
+  const spec = { btn: $(btnId), until: 0, timer: null };
+  spec.btn.addEventListener("click", () => onClick(spec));
+  return spec;
+}
+
+function renderResend(spec) {
+  const left = Math.ceil((spec.until - Date.now()) / 1000);
+  spec.btn.disabled = left > 0;
+  spec.btn.textContent = left > 0
+    ? t("resendWait").replace("{s}", left) : t("resendBtn");
+  if (left <= 0 && spec.timer !== null) {
+    clearInterval(spec.timer);
+    spec.timer = null;
+  }
+}
+
+function startCooldown(spec, seconds) {
+  spec.until = Date.now() + seconds * 1000;
+  if (spec.timer === null) spec.timer = setInterval(() => renderResend(spec), 1000);
+  renderResend(spec);
+}
+
+/* -- the emailed six-digit code -------------------------------------------- */
+
+async function requestCode(resend) {
+  const resp = await fetch("/api/auth/email-code", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, lang }),
+  });
+  if (!resp.ok) {
+    const err = new Error("http " + resp.status);
+    err.i18n = httpKey(resp.status);
+    throw err;
+  }
+  let after = RESEND_FALLBACK_SECONDS;
+  try {
+    const n = Number((await resp.json()).resend_after);
+    if (Number.isFinite(n) && n >= 0) after = n;
+  } catch (e) { /* an older server, or no body at all */ }
+  startCooldown(mailResend, after);
+  track(resend ? "login-resend" : "login-code-request");
+}
 
 $("email-form").addEventListener("submit", (ev) => {
   ev.preventDefault();
   email = $("email-input").value.trim();
+  withForm("email-form", "choose-status", async () => {
+    await requestCode(false);
+    $("email-code-input").value = "";
+    say("email-code-status", null);
+    $("email-code-sent").textContent = t("inboxLead").replace("{email}", email);
+    showView("emailCode");
+  });
+});
+
+const mailResend = makeResend("resend-btn", async (spec) => {
+  spec.btn.disabled = true;
+  say("email-code-status", "sending");
+  try {
+    await requestCode(true);
+    say("email-code-status", "resent", true);
+    $("email-code-input").value = "";
+    $("email-code-input").focus();
+  } catch (e) {
+    say("email-code-status", e.i18n || "errGeneric");
+    renderResend(spec);  // nothing was spent; offer it again straight away
+  }
+});
+
+$("email-code-form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  withForm("email-code-form", "email-code-status", async () => {
+    const resp = await fetch("/api/auth/email-code/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code: $("email-code-input").value.trim() }),
+    });
+    if (!resp.ok) {
+      say("email-code-status", httpKey(resp.status));
+      $("email-code-input").select();
+      throw shown();
+    }
+    // the code bought a custom token; from here it is an ordinary session
+    const cred = await fb.signInWithCustomToken(fb.auth, (await resp.json()).token);
+    track("login-email-code");
+    await route(cred.user, true);
+  });
+});
+
+$("to-password").addEventListener("click", () => {
   $("password-email").textContent = email;
   $("password-username").value = email;
   $("password-input").value = "";
@@ -350,29 +489,17 @@ $("email-form").addEventListener("submit", (ev) => {
   showView("password");
 });
 
+/* -- the password alternative ---------------------------------------------- */
+
 $("change-email").addEventListener("click", () => {
   showView("choose");
   $("email-input").focus();
 });
+$("back-to-code").addEventListener("click", () => showView("emailCode"));
 
-// the "continue" URL every Firebase mail points back to: this page, which
+// the "continue" URL Firebase's own mails point back to: this page, which
 // then routes to whatever step is still missing
 const backHere = () => ({ url: location.origin + "/login" });
-
-async function withForm(formId, statusId, action) {
-  const form = $(formId);
-  const send = form.querySelector('[type="submit"]');
-  send.disabled = true;
-  say(statusId, "sending");
-  try {
-    await action();
-    say(statusId, null);
-  } catch (e) {
-    say(statusId, errorKey(e));
-  } finally {
-    send.disabled = false;
-  }
-}
 
 $("password-form").addEventListener("submit", (ev) => {
   ev.preventDefault();
@@ -402,36 +529,15 @@ $("forgot-btn").addEventListener("click", () => {
   withForm("password-form", "password-status", async () => {
     await fb.sendPasswordResetEmail(fb.auth, email, backHere());
     say("password-status", "resetSent", true);
-    throw { code: "shown" };  // keep the line; withForm would blank it
-  }).catch(() => {});
+    throw shown();
+  });
 });
 
-/* -- the verification mail --------------------------------------------------
-   Resend doubles as its own countdown - one control, two states - because a
-   second always-live button would only invite clicking it before the mail
-   lands. Recomputed from a deadline rather than counted down, so a
-   backgrounded tab (where intervals are throttled) still comes back right. */
-const RESEND_SECONDS = 60;
-const resendBtn = $("resend-btn");
-let resendUntil = 0;   // epoch ms; in the past means "offer it"
-let resendTimer = null;
-
-function renderResend() {
-  const left = Math.ceil((resendUntil - Date.now()) / 1000);
-  resendBtn.disabled = left > 0;
-  resendBtn.textContent = left > 0
-    ? t("resendWait").replace("{s}", left) : t("resendBtn");
-  if (left <= 0 && resendTimer !== null) {
-    clearInterval(resendTimer);
-    resendTimer = null;
-  }
-}
+/* -- the verification mail a password sign-up needs ------------------------ */
 
 async function sendVerification(user) {
   await fb.sendEmailVerification(user, backHere());
-  resendUntil = Date.now() + RESEND_SECONDS * 1000;
-  if (resendTimer === null) resendTimer = setInterval(renderResend, 1000);
-  renderResend();
+  startCooldown(verifyResend, RESEND_FALLBACK_SECONDS);
 }
 
 $("verify-form").addEventListener("submit", (ev) => {
@@ -440,23 +546,22 @@ $("verify-form").addEventListener("submit", (ev) => {
     await pendingUser.reload();
     if (!pendingUser.emailVerified) {
       say("verify-status", "errNotVerified");
-      throw { code: "shown" };
+      throw shown();
     }
     await route(pendingUser, true);
-  }).catch(() => {});
+  });
 });
 
-resendBtn.addEventListener("click", async () => {
+const verifyResend = makeResend("verify-resend-btn", async (spec) => {
   if (!pendingUser) return;
-  resendBtn.disabled = true;
+  spec.btn.disabled = true;
   say("verify-status", "sending");
   try {
     await sendVerification(pendingUser);
     say("verify-status", "resent", true);
-    track("login-resend");
   } catch (e) {
     say("verify-status", errorKey(e));
-    renderResend();
+    renderResend(spec);
   }
 });
 
@@ -499,19 +604,20 @@ $("phone-form").addEventListener("submit", (ev) => {
       throw e;
     }
     pendingPhone = number;
-    $("code-input").value = "";
-    say("code-status", null);
-    showView("code");
+    $("sms-input").value = "";
+    say("sms-status", null);
+    $("sms-sent").textContent = t("smsSent").replace("{phone}", number);
+    showView("sms");
   });
 });
 
-$("code-form").addEventListener("submit", (ev) => {
+$("sms-form").addEventListener("submit", (ev) => {
   ev.preventDefault();
-  withForm("code-form", "code-status", async () => {
-    const cred = await confirmation.confirm($("code-input").value.trim());
+  withForm("sms-form", "sms-status", async () => {
+    const cred = await confirmation.confirm($("sms-input").value.trim());
     track("login-phone");
     await route(cred.user, true);
-  }).then(() => { if (view === "code") $("code-input").select(); });
+  });
 });
 
 /* -- the username -----------------------------------------------------------
@@ -609,11 +715,10 @@ $("name-form").addEventListener("submit", (ev) => {
       await route(user, true);
       return;
     } else {
-      say("name-status", resp.status === 422 ? "errName" : resp.status === 429 ? "errRate"
-        : resp.status === 503 ? "errDown" : "errGeneric");
+      say("name-status", resp.status === 422 ? "errName" : httpKey(resp.status));
     }
-    throw { code: "shown" };
-  }).catch(() => {});
+    throw shown();
+  });
 });
 
 /* -- start ------------------------------------------------------------------ */

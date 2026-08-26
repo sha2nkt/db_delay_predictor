@@ -119,24 +119,9 @@ def test_an_unknown_language_falls_back_to_german(fb):
 
 # --- erasure -----------------------------------------------------------------
 
-class FakeAdmin:
-    class UserNotFoundError(Exception):
-        pass
-
-    def __init__(self, known):
-        self.known = set(known)
-        self.deleted = []
-
-    def delete_user(self, uid, app=None):
-        if uid not in self.known:
-            raise self.UserNotFoundError(uid)
-        self.known.discard(uid)
-        self.deleted.append(uid)
-
-
-def test_delete_account_spans_firebase_the_registry_and_the_local_tables(fb, monkeypatch):
-    admin = FakeAdmin(["u1"])
-    monkeypatch.setattr(auth, "_firebase", lambda: (admin, None))
+def test_delete_account_spans_firebase_the_registry_and_the_local_tables(fb):
+    admin = fb.admin
+    admin._record("u1", "jonas@example.org", True)
     auth.claim_handle("u1", "Jonas")
     story = stories.create_story("Berlin Hbf", "", "", "", [], "", "Title", "x" * 20, "Jonas")
     stories.set_vote(story["id"], "u1", 1)
@@ -145,7 +130,7 @@ def test_delete_account_spans_firebase_the_registry_and_the_local_tables(fb, mon
     stories.set_report("u1", "delay", True, from_station="Berlin Hbf")
 
     assert auth.delete_account("u1") is True
-    assert admin.deleted == ["u1"]
+    assert "u1" not in admin.users
     assert fb.registry.taken(["jonas"]) == set()          # the name is free again
     left = stories.get_story(story["id"])
     assert (left["author"], left["score"]) == ("", 1)      # anonymized, the other vote stays
@@ -153,14 +138,119 @@ def test_delete_account_spans_firebase_the_registry_and_the_local_tables(fb, mon
     assert stories.my_reports("u1") == []
 
 
-def test_delete_account_of_an_unknown_uid_is_false(fb, monkeypatch):
-    monkeypatch.setattr(auth, "_firebase", lambda: (FakeAdmin([]), None))
+def test_delete_account_of_an_unknown_uid_is_false(fb):
     assert auth.delete_account("nobody") is False
+
+
+# --- the emailed six-digit code ----------------------------------------------
+
+def test_a_code_round_trips_into_a_custom_token(fb):
+    code, kind = auth.issue_email_code("jonas@example.org")
+    assert len(code) == auth.CODE_DIGITS and code.isdigit()
+    assert kind == "welcome"                      # the address is new here
+    token = auth.verify_email_code("jonas@example.org", code)
+    assert token == "custom-token-for-uid-new-1"
+    # redeeming created the account, and the code proved the mailbox
+    rec = fb.admin.get_user_by_email("jonas@example.org")
+    assert rec.email_verified is True
+    # single use: the same code cannot be spent twice
+    assert auth.verify_email_code("jonas@example.org", code) is None
+
+
+def test_a_second_code_for_a_known_address_reads_as_a_login(fb):
+    fb.admin._record("u1", "jonas@example.org", True)
+    _code, kind = auth.issue_email_code("jonas@example.org")
+    assert kind == "login"
+
+
+def test_the_code_logs_into_the_existing_account_not_a_second_one(fb):
+    fb.admin._record("u1", "jonas@example.org", True)
+    code, _kind = auth.issue_email_code("jonas@example.org")
+    assert auth.verify_email_code("jonas@example.org", code) == "custom-token-for-u1"
+    assert len(fb.admin.users) == 1
+
+
+def test_redeeming_confirms_an_address_that_never_was(fb):
+    """A password sign-up that never clicked its mail: the code proves the
+    mailbox just as the link would have."""
+    fb.admin._record("u1", "jonas@example.org", False)
+    code, _kind = auth.issue_email_code("jonas@example.org")
+    auth.verify_email_code("jonas@example.org", code)
+    assert fb.admin.users["u1"].email_verified is True
+
+
+def test_addresses_are_normalized(fb):
+    code, _kind = auth.issue_email_code("  JONAS@Example.ORG ")
+    assert auth.verify_email_code("jonas@example.org", code) is not None
+
+
+def test_a_wrong_code_is_refused_and_the_budget_voids_the_login(fb):
+    code, _kind = auth.issue_email_code("jonas@example.org")
+    wrong = f"{(int(code) + 1) % 10 ** auth.CODE_DIGITS:06d}"
+    for _ in range(auth.MAX_TRIES):
+        assert auth.verify_email_code("jonas@example.org", wrong) is None
+    # the budget is spent: even the right code is dead now
+    assert auth.verify_email_code("jonas@example.org", code) is None
+    assert fb.admin.users == {}          # nothing was ever created
+
+
+def test_an_expired_code_is_refused(fb):
+    code, _kind = auth.issue_email_code("jonas@example.org")
+    fb.advance(minutes=auth.CODE_TTL_MINUTES + 1)
+    assert auth.verify_email_code("jonas@example.org", code) is None
+
+
+def test_an_empty_or_unknown_code_is_refused(fb):
+    assert auth.verify_email_code("jonas@example.org", "") is None
+    assert auth.verify_email_code("nobody@example.org", "123456") is None
+
+
+def test_the_resend_cooldown_suppresses_a_second_code(fb):
+    first, _kind = auth.issue_email_code("jonas@example.org")
+    assert auth.issue_email_code("jonas@example.org") is None
+    # crucially the first code still works - throttling must not lock anyone out
+    fb.advance(seconds=auth.RESEND_COOLDOWN_SECONDS + 1)
+    assert auth.verify_email_code("jonas@example.org", first) is not None
+
+
+def test_a_new_code_replaces_the_previous_one(fb):
+    first, _kind = auth.issue_email_code("jonas@example.org")
+    fb.advance(seconds=auth.RESEND_COOLDOWN_SECONDS + 1)
+    second, _kind = auth.issue_email_code("jonas@example.org")
+    assert auth.verify_email_code("jonas@example.org", first) is None
+    assert auth.verify_email_code("jonas@example.org", second) is not None
+
+
+def test_the_daily_cap_stops_further_mail(fb):
+    for _ in range(auth.MAX_CODES_PER_DAY):
+        assert auth.issue_email_code("jonas@example.org") is not None
+        fb.advance(seconds=auth.RESEND_COOLDOWN_SECONDS + 1)
+    assert auth.issue_email_code("jonas@example.org") is None
+    # the allowance is per address, not global
+    assert auth.issue_email_code("meike@example.org") is not None
+
+
+def test_the_daily_cap_resets_the_next_day(fb):
+    for _ in range(auth.MAX_CODES_PER_DAY):
+        auth.issue_email_code("jonas@example.org")
+        fb.advance(seconds=auth.RESEND_COOLDOWN_SECONDS + 1)
+    assert auth.issue_email_code("jonas@example.org") is None
+    fb.advance(days=1)
+    assert auth.issue_email_code("jonas@example.org") is not None
+
+
+def test_a_refund_hands_back_the_cooldown_and_the_slot(fb):
+    """The mail failed to send, so the retry we just told the user to make
+    must actually mint a new code rather than run into the cooldown."""
+    auth.issue_email_code("jonas@example.org")
+    auth.refund_code("jonas@example.org")
+    assert auth.issue_email_code("jonas@example.org") is not None
 
 
 # --- configuration -----------------------------------------------------------
 
-def test_unconfigured_firebase_is_reported_not_faked(monkeypatch):
+def test_unconfigured_firebase_is_reported_not_faked(fb, monkeypatch):
+    monkeypatch.setattr(auth, "_firebase", fb.real_firebase)
     monkeypatch.delenv("FIREBASE_SA_FILE", raising=False)
     monkeypatch.setattr(auth, "_app", None)
     assert auth.configured() is False
@@ -169,7 +259,8 @@ def test_unconfigured_firebase_is_reported_not_faked(monkeypatch):
         auth._firebase()
 
 
-def test_a_missing_service_account_file_is_unavailable(monkeypatch, tmp_path):
+def test_a_missing_service_account_file_is_unavailable(fb, monkeypatch, tmp_path):
+    monkeypatch.setattr(auth, "_firebase", fb.real_firebase)
     monkeypatch.setenv("FIREBASE_SA_FILE", str(tmp_path / "nope.json"))
     monkeypatch.setattr(auth, "_app", None)
     assert auth.configured() is True   # set, so /health says so ...
@@ -177,10 +268,11 @@ def test_a_missing_service_account_file_is_unavailable(monkeypatch, tmp_path):
         auth._firebase()               # ... but nothing can be done with it
 
 
-def test_an_uninstalled_sdk_is_unavailable_not_a_traceback(monkeypatch, tmp_path):
+def test_an_uninstalled_sdk_is_unavailable_not_a_traceback(fb, monkeypatch, tmp_path):
     """A deploy that pulled the new code without `uv sync`. The endpoints
     answer 503 off AuthUnavailable, so an ImportError escaping here would be
     a 500 with a traceback instead."""
+    monkeypatch.setattr(auth, "_firebase", fb.real_firebase)
     sa = tmp_path / "sa.json"
     sa.write_text("{}")
     monkeypatch.setenv("FIREBASE_SA_FILE", str(sa))

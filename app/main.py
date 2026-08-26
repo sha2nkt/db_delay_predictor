@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, StringConstraints
 
-from app import auth, bahn_api, delays, feedback, live_delays, ratelimit, stories
+from app import auth, bahn_api, delays, feedback, live_delays, mailer, ratelimit, stories
 from app.config import env_int
 
 log = logging.getLogger(__name__)
@@ -103,7 +103,9 @@ async def lifespan(app: FastAPI):
     delays.init()
     # counted once here: COUNT(*) over 19.7M rows must not run per /health call
     _rows = delays.row_count()
+    credits_watch = asyncio.create_task(mailer.watch_credits())
     yield
+    credits_watch.cancel()
     await bahn_api.close()
     await live_delays.close()
     await feedback.close()
@@ -809,6 +811,7 @@ async def health():
         },
         "upstream": bahn_api.status(),
         "auth": auth.status(),
+        "mail": mailer.status(),
     }
 
 
@@ -1447,6 +1450,28 @@ class HandleIn(BaseModel):
     name: str = Field(pattern=r"^[A-Za-z0-9_-]{2,25}$")
 
 
+# Addresses arrive pasted, so surrounding whitespace is trimmed before the
+# shape check rather than rejected by it. The check is only a shape check -
+# the emailed code is what actually proves the address exists.
+_EmailField = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, max_length=254,
+        pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+    ),
+]
+
+
+class EmailCodeIn(BaseModel):
+    email: _EmailField
+    lang: Literal["de", "en"] = "de"
+
+
+class VerifyCodeIn(BaseModel):
+    email: _EmailField
+    code: str = Field(pattern=r"^[0-9]{6}$")
+
+
 # Identity is a Firebase ID token in the Authorization header, never a cookie:
 # nothing about a login is kept on this server, and a bearer is not sent by a
 # cross-site form, which is the whole CSRF story.
@@ -1499,6 +1524,56 @@ def _stories_throttle(limiter: ratelimit.SlidingWindowLimiter, request: Request)
             429, "too many submissions; please slow down",
             headers={"Retry-After": str(wait)},
         )
+
+
+@app.post("/api/auth/email-code", status_code=202)
+async def auth_email_code(body: EmailCodeIn, request: Request) -> dict:
+    """Step one of the email path: mail a six-digit code. Always 202, whether
+    or not a mail actually went out - an address's spent cooldown is not
+    something to report, and the code already in the mailbox still works.
+    Whether the address has an account is likewise never said here: both
+    cases answer identically, and the wording of the mail is the only place
+    the difference shows."""
+    _stories_throttle(auth.email_limiter, request)
+    try:
+        issued = await anyio.to_thread.run_sync(auth.issue_email_code, body.email)
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
+    # a spent per-address budget yields no code: nothing is wrong, there is
+    # simply no new mail, and the answer stays the same 202 either way
+    if issued is not None:
+        code, kind = issued
+        # on the request's clock - a second or so of SMTP - so a relay refusal
+        # (out of Brevo credits, most likely) reaches the user as a 503
+        # instead of a "check your inbox" for a mail that will not come
+        sent = await anyio.to_thread.run_sync(
+            mailer.send_login_code, auth.normalize_email(body.email),
+            code, body.lang, kind,
+        )
+        if not sent:
+            # hand back the cooldown and the daily slot the failed send spent,
+            # so the retry we just asked for is not swallowed by it
+            await anyio.to_thread.run_sync(auth.refund_code, body.email)
+            raise HTTPException(503, "email could not be sent; please try again later")
+    return {"resend_after": auth.RESEND_COOLDOWN_SECONDS}
+
+
+@app.post("/api/auth/email-code/verify")
+async def auth_email_code_verify(body: VerifyCodeIn, request: Request):
+    """Step two: the code buys a Firebase custom token, which the browser
+    signs in with - so from here on this is an ordinary Firebase session and
+    nothing about the login stays on this server. One 401 for every failure:
+    which of wrong/expired/used-up applies is not something to spell out."""
+    _stories_throttle(auth.code_limiter, request)
+    try:
+        token = await anyio.to_thread.run_sync(
+            auth.verify_email_code, body.email, body.code
+        )
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
+    if token is None:
+        raise HTTPException(401, "code invalid or expired")
+    return {"token": token}
 
 
 @app.post("/api/auth/handle", status_code=201)

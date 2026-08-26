@@ -52,7 +52,26 @@
     <p class="auth-note" data-i18n="chooseNote">Deine Anmeldedaten verwaltet Firebase (Google) – auf unserem Server landen sie nicht. Öffentlich erscheint nur dein selbst gewählter Benutzername; Werbung gibt es keine.</p>
   </section>
 
-  <!-- 2. the address's password: log in, or turn it into a new account -->
+  <!-- 2. the emailed six-digit code: the default way in for an address -->
+  <section id="email-code-card" class="login-card auth-modal hidden">
+    <h2 data-i18n="inboxHeading">Sieh in dein Postfach</h2>
+    <p class="auth-lead" id="email-code-sent"></p>
+    <form id="email-code-form" class="auth-form">
+      <div class="field">
+        <label for="email-code-input" class="visually-hidden" data-i18n="codeLabel">Code</label>
+        <input id="email-code-input" class="code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" spellcheck="false" data-i18n-placeholder="codeLabel" placeholder="Code">
+      </div>
+      <button type="submit" class="search-btn auth-primary" data-i18n="continue">Weiter</button>
+      <p id="email-code-status" class="auth-status" role="status"></p>
+    </form>
+    <!-- label and disabled state are the countdown; login.js owns both -->
+    <button type="button" id="resend-btn" class="link-btn auth-resend" disabled></button>
+    <div class="auth-or"><span data-i18n="or">ODER</span></div>
+    <button type="button" id="to-password" class="sso-btn" data-i18n="withPassword">Weiter mit Passwort</button>
+    <p class="auth-switch"><button type="button" class="link-btn to-choose" data-i18n="otherEmail">Andere E-Mail-Adresse</button></p>
+  </section>
+
+  <!-- 3. the password alternative: log in, or turn the address into one -->
   <section id="password-card" class="login-card hidden">
     <h2 data-i18n="passwordHeading">Passwort</h2>
     <p class="auth-sent"><strong id="password-email"></strong> <button type="button" id="change-email" class="link-btn" data-i18n="changeEmail">Adresse ändern</button></p>
@@ -70,10 +89,11 @@
     <div class="auth-alt">
       <button type="button" id="create-btn" class="link-btn" data-i18n="createBtn">Neues Konto mit dieser Adresse erstellen</button>
       <button type="button" id="forgot-btn" class="link-btn" data-i18n="forgotBtn">Passwort vergessen?</button>
+      <button type="button" id="back-to-code" class="link-btn" data-i18n="backToCode">Lieber einen Code per E-Mail</button>
     </div>
   </section>
 
-  <!-- 3. a password account has to prove its address first -->
+  <!-- 4. a password account still has to prove its address -->
   <section id="verify-card" class="login-card hidden">
     <h2 data-i18n="verifyHeading">E-Mail-Adresse bestätigen</h2>
     <p class="auth-sent" id="verify-sent"></p>
@@ -81,12 +101,11 @@
       <button type="submit" class="search-btn auth-primary" data-i18n="verifiedBtn">Ich habe bestätigt</button>
       <p id="verify-status" class="auth-status" role="status"></p>
     </form>
-    <!-- label and disabled state are the countdown; login.js owns both -->
-    <button type="button" id="resend-btn" class="link-btn auth-resend" disabled></button>
+    <button type="button" id="verify-resend-btn" class="link-btn auth-resend" disabled></button>
     <p class="auth-switch"><button type="button" class="link-btn other-account" data-i18n="otherAccount">Mit einem anderen Konto anmelden</button></p>
   </section>
 
-  <!-- 4. phone number, then the SMS code -->
+  <!-- 5. phone number, then the SMS code -->
   <section id="phone-card" class="login-card hidden">
     <h2 data-i18n="phoneHeading">Telefonnummer</h2>
     <form id="phone-form" class="auth-form">
@@ -100,21 +119,21 @@
     <p class="auth-note" data-i18n="phoneNote">Du bekommst einen 6-stelligen Code per SMS. Google prüft die Anfrage im Hintergrund per reCAPTCHA.</p>
     <p class="auth-switch"><button type="button" class="link-btn to-choose" data-i18n="back">Zurück</button></p>
   </section>
-  <section id="code-card" class="login-card hidden">
-    <h2 data-i18n="codeHeading">Code eingeben</h2>
-    <p class="auth-sent" id="code-sent"></p>
-    <form id="code-form" class="auth-form">
+  <section id="sms-card" class="login-card hidden">
+    <h2 data-i18n="smsHeading">Code aus der SMS</h2>
+    <p class="auth-sent" id="sms-sent"></p>
+    <form id="sms-form" class="auth-form">
       <div class="field">
-        <label for="code-input" data-i18n="codeLabel">6-stelliger Code aus der SMS</label>
-        <input id="code-input" class="code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" spellcheck="false">
+        <label for="sms-input" data-i18n="smsLabel">6-stelliger Code aus der SMS</label>
+        <input id="sms-input" class="code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" spellcheck="false">
       </div>
       <button type="submit" class="search-btn auth-primary" data-i18n="codeBtn">Anmelden</button>
-      <p id="code-status" class="auth-status" role="status"></p>
+      <p id="sms-status" class="auth-status" role="status"></p>
     </form>
     <p class="auth-switch"><button type="button" class="link-btn to-choose" data-i18n="back">Zurück</button></p>
   </section>
 
-  <!-- 5. the one thing Firebase cannot hand out: a unique public name -->
+  <!-- 6. the one thing Firebase cannot hand out: a unique public name -->
   <section id="name-card" class="login-card hidden">
     <h2 data-i18n="nameHeading">Benutzername wählen</h2>
     <form id="name-form" class="auth-form">
@@ -139,6 +158,6 @@
   <a id="footer-stories" href="/geschichten" data-i18n="footerStories">← Zu den Delay Geschichten</a> ·
   <a href="/impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a>
 </footer>
-<script type="module" src="/login.js?v=10"></script>
+<script type="module" src="/login.js?v=11"></script>
 </body>
 </html>

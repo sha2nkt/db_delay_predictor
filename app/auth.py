@@ -18,10 +18,13 @@ every account operation reports itself unavailable (503) and the rest of the
 site is unaffected. Blocking throughout - run it off the event loop.
 """
 
+import hashlib
 import logging
 import os
 import random
+import secrets
 import threading
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app import stories
@@ -33,10 +36,36 @@ log = logging.getLogger(__name__)
 # clock trails Google's by a second; 10 s is well inside the SDK's 60 s cap
 CLOCK_SKEW_SECONDS = 10
 
-# Firestore collections. Both are keyed for the one lookup each answers:
-# "is this name free" and "does this account already have one".
+# Firestore collections. The first two are keyed for the one lookup each
+# answers: "is this name free" and "does this account already have one".
 _NAMES = "usernames"
 _USERS = "users"
+# Pending email logins. Firebase has no email one-time code of its own - its
+# codes are SMS only, its email flows are all clickable links - so the code is
+# minted here and kept here. It lives in Firestore rather than the app's
+# SQLite deliberately: no part of a login may touch this server's disk.
+_CODES = "email_codes"
+
+CODE_DIGITS = 6
+CODE_TTL_MINUTES = 15
+
+# A 6-digit code is only a million possibilities, so the attempt budget - not
+# the hash - is what protects it: MAX_TRIES wrong guesses kill the pending
+# login outright and a new mail has to be requested. (The stored SHA-256 is
+# therefore brute-forceable offline by anyone who can read Firestore, but only
+# against logins still pending inside the short window, and the rules there
+# deny every client.)
+MAX_TRIES = 5
+
+# Per-ADDRESS budgets, independent of the per-IP limiters below. The mail is
+# the login here, so a spray of requests for someone else's address is both a
+# way to bombard them and a way to burn the provider's daily quota - and once
+# that quota is gone, nobody can log in at all. A throttled request issues
+# nothing and sends nothing, but still reports success: "too many requests"
+# would say when this address last asked for a code, and the code already in
+# the mailbox still works, so a legitimate user is never locked out by this.
+RESEND_COOLDOWN_SECONDS = 60
+MAX_CODES_PER_DAY = 10
 
 # Claiming a name is the one write a fresh account makes; nobody legitimately
 # needs many a day, but a shared NAT (campus, office) must still let a
@@ -48,6 +77,17 @@ register_limiter = SlidingWindowLimiter(
 # this budget only exists to keep a bored visitor from rerolling in a loop.
 suggest_limiter = SlidingWindowLimiter(
     burst_limit=20, burst_window=60, sustained_limit=120, sustained_window=3600
+)
+# Asking for a code sends mail, so this is the tightest per-IP budget of the
+# lot; the per-address budget above is what protects one mailbox, this is what
+# stops one machine spraying many.
+email_limiter = SlidingWindowLimiter(
+    burst_limit=5, burst_window=60, sustained_limit=30, sustained_window=3600
+)
+# Complements the per-address MAX_TRIES budget: that one caps guessing against
+# a single address, this one caps spraying one guess across many.
+code_limiter = SlidingWindowLimiter(
+    burst_limit=10, burst_window=60, sustained_limit=50, sustained_window=3600
 )
 
 
@@ -174,10 +214,172 @@ class _Registry:
         user_ref.delete()
         return name
 
+    # --- pending email logins -------------------------------------------------
+    # Keyed by a hash of the address rather than the address itself: Firestore
+    # document ids are listable, and a collection of plaintext addresses of
+    # people mid-login is not something to keep even behind deny-all rules.
+
+    def issue_code(self, email: str, code_hash: str) -> bool:
+        """Record a freshly minted code against this address, spending one of
+        its daily allowance. False when the cooldown or the allowance says no
+        mail should go out - the caller then sends nothing and still reports
+        success. One transaction, so two simultaneous requests cannot both
+        pass the budget check."""
+        from google.cloud import firestore
+
+        ref = self._db.collection(_CODES).document(_email_key(email))
+        now = _now()
+        today = now.date().isoformat()
+
+        @firestore.transactional
+        def run(txn):
+            snap = ref.get(transaction=txn)
+            sent, last = 0, None
+            if snap.exists:
+                data = snap.to_dict()
+                # the daily counter resets on the UTC date turning over
+                sent = data.get("sent_today", 0) if data.get("day") == today else 0
+                last = data.get("sent_at")
+            if sent >= MAX_CODES_PER_DAY:
+                return False
+            if last is not None and (now - _parse(last)).total_seconds() < RESEND_COOLDOWN_SECONDS:
+                return False
+            txn.set(ref, {
+                "code_hash": code_hash,
+                "expires": _iso(now + timedelta(minutes=CODE_TTL_MINUTES)),
+                "tries": 0,
+                "sent_at": _iso(now),
+                "day": today,
+                "sent_today": sent + 1,
+            })
+            return True
+
+        return run(self._db.transaction())
+
+    def redeem_code(self, email: str, code_hash: str) -> bool:
+        """Spend the pending code for this address. True only for the right
+        code, unexpired, with guesses left - and then the pending login is
+        gone, so it cannot be spent twice. A wrong guess costs one try, and
+        the last one voids the login outright so brute force has to start
+        over from a new mail. All inside one transaction, so two racing
+        attempts cannot both win."""
+        from google.cloud import firestore
+
+        ref = self._db.collection(_CODES).document(_email_key(email))
+        now = _now()
+
+        @firestore.transactional
+        def run(txn):
+            snap = ref.get(transaction=txn)
+            if not snap.exists:
+                return False
+            data = snap.to_dict()
+            if _parse(data["expires"]) < now or data.get("tries", 0) >= MAX_TRIES:
+                txn.delete(ref)
+                return False
+            # compare_digest over two hex digests: not reachable through HTTP
+            # jitter, but free to do right
+            if not secrets.compare_digest(data.get("code_hash", ""), code_hash):
+                if data.get("tries", 0) + 1 >= MAX_TRIES:
+                    txn.delete(ref)
+                else:
+                    txn.update(ref, {"tries": data.get("tries", 0) + 1})
+                return False
+            txn.delete(ref)
+            return True
+
+        return run(self._db.transaction())
+
+    def refund_code(self, email: str) -> None:
+        """Undo issue_code for a code that never left the server, handing back
+        the cooldown and the daily slot it spent - otherwise the retry the
+        caller just asked for would report success and send nothing."""
+        self._db.collection(_CODES).document(_email_key(email)).delete()
+
 
 def _registry() -> _Registry:
     _, db = _firebase()
     return _Registry(db)
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _iso(when: datetime) -> str:
+    return when.isoformat(timespec="seconds")
+
+
+def _parse(raw: str) -> datetime:
+    return datetime.fromisoformat(raw)
+
+
+def normalize_email(email: str) -> str:
+    # emails are compared lowercased: "Max@Web.de" and "max@web.de" must be
+    # one account, not an enumeration side channel
+    return email.strip().lower()
+
+
+def _email_key(email: str) -> str:
+    return hashlib.sha256(normalize_email(email).encode()).hexdigest()
+
+
+def _code_hash(code: str) -> str:
+    return hashlib.sha256(code.encode()).hexdigest()
+
+
+# --- the email code -----------------------------------------------------------
+
+def issue_email_code(email: str) -> tuple[str, str] | None:
+    """(code, kind) for one pending login, replacing any outstanding one, or
+    None when this address's cooldown or daily allowance says no mail should
+    go out. kind is "welcome" the first time an address is seen and "login"
+    afterwards, so a first mail does not read like a login it never asked
+    for. Raises AuthUnavailable."""
+    email = normalize_email(email)
+    code = f"{secrets.randbelow(10 ** CODE_DIGITS):0{CODE_DIGITS}d}"
+    if not _registry().issue_code(email, _code_hash(code)):
+        return None
+    return code, "login" if _existing_user(email) else "welcome"
+
+
+def _existing_user(email: str) -> str | None:
+    """The uid already registered to this address, or None."""
+    fb_auth, _ = _firebase()
+    try:
+        return fb_auth.get_user_by_email(email, app=_app).uid
+    except fb_auth.UserNotFoundError:
+        return None
+
+
+def verify_email_code(email: str, code: str) -> str | None:
+    """Redeem the code and hand back a Firebase custom token the browser
+    signs in with; None on any failure (unknown address, no pending login,
+    expired, wrong code, or budget exhausted) - the caller must not spell out
+    which. Redeeming proves control of the mailbox, so the account is created
+    if new and marked verified either way; that is exactly the guarantee the
+    old emailed link gave. An address that already signed in through Google
+    lands in the same account, which is the point: the address is the
+    identity, and this is no weaker than the password reset Google itself
+    offers. Raises AuthUnavailable."""
+    email = normalize_email(email)
+    if not code or not _registry().redeem_code(email, _code_hash(code)):
+        return None
+    fb_auth, _ = _firebase()
+    uid = _existing_user(email)
+    if uid is None:
+        uid = fb_auth.create_user(email=email, email_verified=True, app=_app).uid
+    else:
+        # the code proved the mailbox; an account that had never confirmed it
+        # (signed up with a password and never clicked) is confirmed now
+        fb_auth.update_user(uid, email_verified=True, app=_app)
+    return fb_auth.create_custom_token(uid, app=_app).decode()
+
+
+def refund_code(email: str) -> None:
+    """Undo issue_email_code when the mail could not be sent. Raises
+    AuthUnavailable."""
+    _registry().refund_code(normalize_email(email))
 
 
 # --- the account behind a request ---------------------------------------------

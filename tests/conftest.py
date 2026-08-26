@@ -4,11 +4,61 @@ reaches the live bahn.de."""
 
 import asyncio
 import inspect
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
 
 from app import auth, bahn_api, stories
+
+
+class FakeAdmin:
+    """The slice of firebase_admin.auth this app uses, on a dict of users.
+    Custom tokens are just a readable marker: nothing here signs anything,
+    and the browser is the only side that would redeem one."""
+
+    class UserNotFoundError(Exception):
+        pass
+
+    def __init__(self):
+        self.users: dict[str, SimpleNamespace] = {}
+        self.minted: list[str] = []
+        self._next = 0
+
+    def _record(self, uid, email=None, verified=False):
+        rec = SimpleNamespace(uid=uid, email=email, email_verified=verified)
+        self.users[uid] = rec
+        return rec
+
+    def get_user_by_email(self, email, app=None):
+        for rec in self.users.values():
+            if rec.email == email:
+                return rec
+        raise self.UserNotFoundError(email)
+
+    def get_user(self, uid, app=None):
+        if uid not in self.users:
+            raise self.UserNotFoundError(uid)
+        return self.users[uid]
+
+    def create_user(self, email=None, email_verified=False, app=None):
+        self._next += 1
+        return self._record(f"uid-new-{self._next}", email, email_verified)
+
+    def update_user(self, uid, email_verified=None, display_name=None, app=None):
+        rec = self.users[uid]
+        if email_verified is not None:
+            rec.email_verified = email_verified
+        return rec
+
+    def create_custom_token(self, uid, app=None):
+        self.minted.append(uid)
+        return f"custom-token-for-{uid}".encode()
+
+    def delete_user(self, uid, app=None):
+        if uid not in self.users:
+            raise self.UserNotFoundError(uid)
+        del self.users[uid]
 
 
 @pytest.fixture
@@ -17,11 +67,50 @@ def anyio_backend():
 
 
 class FakeRegistry:
-    """auth._Registry on two dicts: the same contract, no Firestore."""
+    """auth._Registry on plain dicts: the same contract, no Firestore."""
 
-    def __init__(self):
+    def __init__(self, clock=None):
         self.names: dict[str, str] = {}   # lowercased name -> uid
         self.users: dict[str, str] = {}   # uid -> name as claimed
+        self.codes: dict[str, dict] = {}  # email key -> pending login
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
+
+    # --- pending email logins (mirrors the Firestore transactions) ---
+    def issue_code(self, email, code_hash):
+        now = self._clock()
+        today = now.date().isoformat()
+        doc = self.codes.get(auth._email_key(email), {})
+        sent = doc.get("sent_today", 0) if doc.get("day") == today else 0
+        last = doc.get("sent_at")
+        if sent >= auth.MAX_CODES_PER_DAY:
+            return False
+        if last is not None and (now - last).total_seconds() < auth.RESEND_COOLDOWN_SECONDS:
+            return False
+        self.codes[auth._email_key(email)] = {
+            "code_hash": code_hash,
+            "expires": now + timedelta(minutes=auth.CODE_TTL_MINUTES),
+            "tries": 0, "sent_at": now, "day": today, "sent_today": sent + 1,
+        }
+        return True
+
+    def redeem_code(self, email, code_hash):
+        key = auth._email_key(email)
+        doc = self.codes.get(key)
+        if doc is None:
+            return False
+        if doc["expires"] < self._clock() or doc["tries"] >= auth.MAX_TRIES:
+            self.codes.pop(key, None)
+            return False
+        if doc["code_hash"] != code_hash:
+            doc["tries"] += 1
+            if doc["tries"] >= auth.MAX_TRIES:
+                self.codes.pop(key, None)
+            return False
+        self.codes.pop(key, None)
+        return True
+
+    def refund_code(self, email):
+        self.codes.pop(auth._email_key(email), None)
 
     def taken(self, names):
         return {n.lower() for n in names if n.lower() in self.names}
@@ -63,19 +152,31 @@ def firebase(monkeypatch, tmp_path):
     only on refresh. The stories DB is a temp file."""
     monkeypatch.setattr(stories, "DB_PATH", tmp_path / "stories.db")
     tokens: dict[str, dict] = {}
-    registry = FakeRegistry()
+    now = SimpleNamespace(value=datetime(2026, 8, 26, 12, 0, tzinfo=timezone.utc))
+    registry = FakeRegistry(clock=lambda: now.value)
+    admin = FakeAdmin()
     stamped: dict[str, str] = {}
     monkeypatch.setattr(auth, "_verify", lambda token: tokens.get(token))
     monkeypatch.setattr(auth, "_registry", lambda: registry)
     monkeypatch.setattr(auth, "_stamp", lambda uid, name: stamped.__setitem__(uid, name))
+    # kept so the handful of tests that are ABOUT wiring up the real SDK can
+    # put it back; everything else wants the fake
+    real_firebase = auth._firebase
+    monkeypatch.setattr(auth, "_firebase", lambda: (admin, None))
+    monkeypatch.setattr(auth, "_now", lambda: now.value)
 
     def token(name, **kw):
         """Register a bearer string and return it."""
         tokens[name] = claims(**kw)
         return name
 
+    def advance(**kw):
+        now.value += timedelta(**kw)
+
     return SimpleNamespace(
-        tokens=tokens, registry=registry, stamped=stamped, token=token, claims=claims,
+        tokens=tokens, registry=registry, admin=admin, stamped=stamped,
+        token=token, claims=claims, advance=advance, now=now,
+        real_firebase=real_firebase,
     )
 
 

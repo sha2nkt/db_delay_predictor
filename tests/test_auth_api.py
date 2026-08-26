@@ -10,24 +10,44 @@ import re
 import pytest
 from fastapi.testclient import TestClient
 
-from app import auth, main, stories
+from app import auth, mailer, main, stories
 
 LIMITERS = (
-    auth.register_limiter, auth.suggest_limiter,
-    stories.write_limiter, stories.vote_limiter,
+    auth.register_limiter, auth.suggest_limiter, auth.email_limiter,
+    auth.code_limiter, stories.write_limiter, stories.vote_limiter,
 )
 
 
 @pytest.fixture(autouse=True)
 def wiring(firebase, monkeypatch):
-    """Fake Firebase, no background pushes, and a clean rate-limit budget
-    per test - the limiters are process-global singletons and would
-    otherwise leak state between tests."""
+    """Fake Firebase, no outbound mail, no background pushes, and a clean
+    rate-limit budget per test - the limiters are process-global singletons
+    and would otherwise leak state between tests."""
 
     def fake_spawn(coro):
         coro.close()  # nothing awaits background tasks under TestClient
 
     monkeypatch.setattr(main, "_spawn", fake_spawn)
+
+    # the code never leaves the server in a test, so it is read from the
+    # issuing function rather than from an inbox
+    issued, mails = [], []
+    real_issue = auth.issue_email_code
+
+    def spy_issue(email):
+        result = real_issue(email)
+        if result is not None:
+            issued.append({"email": auth.normalize_email(email), "code": result[0],
+                           "kind": result[1]})
+        return result
+
+    def fake_send(email, code, lang, kind):
+        mails.append({"email": email, "code": code, "lang": lang, "kind": kind})
+        return True
+
+    monkeypatch.setattr(auth, "issue_email_code", spy_issue)
+    monkeypatch.setattr(mailer, "send_login_code", fake_send)
+    firebase.issued, firebase.mails = issued, mails
     # every request in a test shares one client IP, so the real per-IP
     # budgets would fire early; the tests that are *about* rate limiting
     # restore them with realistic()
@@ -72,6 +92,115 @@ def _own_story(client, headers):
     resp = client.post("/api/stories", json=STORY, headers=headers)
     assert resp.status_code == 201
     return resp.json()
+
+
+def ask_code(client, email="jonas@example.org", **kw):
+    return client.post("/api/auth/email-code", json={"email": email, **kw})
+
+
+def submit_code(client, code, email="jonas@example.org"):
+    return client.post("/api/auth/email-code/verify", json={"email": email, "code": code})
+
+
+# --- the emailed code, over HTTP ----------------------------------------------
+
+def test_the_code_round_trips_into_a_custom_token(client, wiring):
+    assert ask_code(client).status_code == 202
+    assert len(wiring.mails) == 1
+    assert wiring.mails[0]["kind"] == "welcome"      # first time this address is seen
+    resp = submit_code(client, wiring.issued[-1]["code"])
+    assert resp.status_code == 200
+    assert resp.json()["token"].startswith("custom-token-for-")
+
+
+@pytest.mark.parametrize("email", [
+    "not-an-email", "@example.org", "jonas@", "jonas@example",
+    "two@@example.org", "spaced out@example.org", "", "x" * 250 + "@example.org",
+])
+def test_invalid_emails_are_rejected(client, email):
+    assert ask_code(client, email=email).status_code == 422
+
+
+def test_unknown_language_is_rejected(client):
+    assert ask_code(client, lang="fr").status_code == 422
+
+
+@pytest.mark.parametrize("code", ["12345", "1234567", "abcdef", "12 456", "", "0x1234"])
+def test_malformed_codes_are_validation_errors(client, code):
+    assert submit_code(client, code).status_code == 422
+
+
+def test_a_wrong_code_is_a_401(client, wiring):
+    ask_code(client)
+    wrong = f"{(int(wiring.issued[-1]['code']) + 1) % 1000000:06d}"
+    assert submit_code(client, wrong).status_code == 401
+
+
+def test_the_code_is_bound_to_its_own_address(client, wiring):
+    ask_code(client, "jonas@example.org")
+    code = wiring.issued[-1]["code"]
+    assert submit_code(client, code, "meike@example.org").status_code == 401
+    assert submit_code(client, code, "jonas@example.org").status_code == 200
+
+
+def test_the_address_is_normalized(client, wiring):
+    assert ask_code(client, "  JONAS@Example.ORG ").status_code == 202
+    assert wiring.mails[0]["email"] == "jonas@example.org"
+    assert submit_code(client, wiring.issued[-1]["code"], "jonas@example.org").status_code == 200
+
+
+def test_a_spent_cooldown_still_answers_202_but_sends_nothing(client, wiring):
+    ask_code(client)
+    assert len(wiring.mails) == 1
+    resp = ask_code(client)
+    assert resp.status_code == 202          # indistinguishable from a real send
+    assert len(wiring.mails) == 1           # ... but nothing went out
+    # crucially the first code still works - throttling must not lock anyone out
+    assert submit_code(client, wiring.issued[-1]["code"]).status_code == 200
+
+
+def test_both_endpoints_report_the_resend_cooldown(client):
+    assert ask_code(client).json() == {"resend_after": auth.RESEND_COOLDOWN_SECONDS}
+
+
+def test_a_refused_send_is_a_503_and_refunds_the_budget(client, wiring, monkeypatch):
+    """The relay refusing (out of Brevo credits) must not turn into "check
+    your inbox" - and the retry the user is told to make must actually mint a
+    new code rather than run into the cooldown the failed send started."""
+    monkeypatch.setattr(mailer, "send_login_code", lambda *a: False)
+    assert ask_code(client).status_code == 503
+    monkeypatch.setattr(mailer, "send_login_code",
+                        lambda email, code, lang, kind: wiring.mails.append({"code": code}) or True)
+    assert ask_code(client).status_code == 202      # the refund made room for this
+    assert submit_code(client, wiring.issued[-1]["code"]).status_code == 200
+
+
+def test_an_existing_account_gets_a_login_wording_not_a_welcome(client, wiring):
+    wiring.admin._record("u1", "jonas@example.org", True)
+    ask_code(client)
+    assert wiring.mails[0]["kind"] == "login"
+
+
+def test_asking_for_a_code_is_rate_limited_per_ip(client, wiring):
+    wiring.realistic(auth.email_limiter, burst=5, sustained=30)
+    codes = [ask_code(client, f"u{i}@example.org").status_code for i in range(7)]
+    assert codes == [202] * 5 + [429, 429]
+
+
+def test_code_submission_is_rate_limited_per_ip(client, wiring):
+    wiring.realistic(auth.code_limiter, burst=10, sustained=50)
+    codes = [submit_code(client, "000000").status_code for _ in range(11)]
+    assert codes[-1] == 429 and codes[0] == 401
+
+
+def test_a_firebase_outage_on_the_code_path_is_a_503(client, wiring, monkeypatch):
+    def down(*_a, **_k):
+        raise auth.AuthUnavailable("firestore unreachable")
+
+    monkeypatch.setattr(auth, "issue_email_code", down)
+    assert ask_code(client).status_code == 503
+    monkeypatch.setattr(auth, "verify_email_code", down)
+    assert submit_code(client, "123456").status_code == 503
 
 
 # --- claiming a username ------------------------------------------------------
