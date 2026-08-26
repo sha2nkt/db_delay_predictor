@@ -12,6 +12,10 @@ STASHED=
 git diff --quiet && git diff --cached --quiet || { git stash push -m deploy-$(date +%s) && STASHED=1; }
 git pull --no-rebase --no-edit https://github.com/sha2nkt/delay_bahn.git main
 if [ -n "$STASHED" ]; then git stash pop; fi
+# Dependencies before the restart, never after: a commit that adds one (and
+# `set -e` here) must abort the deploy rather than restart into an app whose
+# imports fail. A no-op when the lockfile hasn't moved.
+uv sync --frozen
 echo "deployed: $(git log --oneline -1)"
 EOF
 
