@@ -190,6 +190,16 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 /* the units read as the field labels do */
 .stay-unit { font-size: 12px; font-weight: 600; color: var(--text-muted); }
 .stay-sep { padding: 0 4px; font-size: 15px; color: var(--text-muted); }
+/* on a phone the stay is picked the way the search form's time field is picked -
+   the native time control - so the typeable segments give way to a type=time twin
+   there; it holds the same HH:MM the segments hold, and the buttons still step it */
+.stay-stepper input.stay-time {
+  display: none; flex: 1; min-width: 0; width: auto; padding: 0; border: none;
+  background: none; font-size: 15px; color: var(--text); text-align: center;
+  -webkit-appearance: none; appearance: none;
+}
+.stay-time::-webkit-date-and-time-value { text-align: center; }
+.stay-time::-webkit-calendar-picker-indicator { display: none; }
 .stopover-add { align-self: flex-start; }
 
 .autocomplete-wrap { position: relative; }
@@ -966,6 +976,8 @@ body.nudge-on #donate-footer-item { display: none; }
   .stopover-group { align-items: stretch; }
   .stay-stepper { min-width: 0; }
   .stay-step { width: 44px; }
+  .stay-stepper .stay-part, .stay-stepper .stay-unit, .stay-stepper .stay-sep { display: none; }
+  .stay-stepper input.stay-time { display: block; }
   .return-remove, .stopover-remove {
     align-self: flex-end; padding: 6px 4px;
     display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;

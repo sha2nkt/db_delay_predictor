@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=93">
+<link rel="stylesheet" href="/style.css?v=94">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -212,6 +212,7 @@ try {
                 <span class="stay-sep">:</span>
                 <input id="viaOut1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
                 <span class="stay-unit">min</span>
+                <input id="viaOut1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
               </span>
               <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
             </div>
@@ -235,6 +236,7 @@ try {
                 <span class="stay-sep">:</span>
                 <input id="viaOut2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
                 <span class="stay-unit">min</span>
+                <input id="viaOut2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
               </span>
               <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
             </div>
@@ -262,6 +264,7 @@ try {
                 <span class="stay-sep">:</span>
                 <input id="viaRet1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
                 <span class="stay-unit">min</span>
+                <input id="viaRet1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
               </span>
               <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
             </div>
@@ -285,6 +288,7 @@ try {
                 <span class="stay-sep">:</span>
                 <input id="viaRet2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
                 <span class="stay-unit">min</span>
+                <input id="viaRet2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
               </span>
               <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
             </div>
@@ -653,7 +657,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=109"></script>
+<script src="/app.js?v=110"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

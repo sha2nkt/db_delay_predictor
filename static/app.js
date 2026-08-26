@@ -1178,6 +1178,8 @@ const viaStayEls = (key) => [
   document.getElementById(`${key}StayH`),
   document.getElementById(`${key}StayM`),
 ];
+// the phone-only type=time twin of the two segments (see .stay-time in style.css)
+const viaStayTimeEl = (key) => document.getElementById(`${key}StayT`);
 
 const STAY_MAX = 1439;
 const STAY_STEP = 15;
@@ -1205,6 +1207,7 @@ function setStay(key, minutes) {
   const [h, m] = viaStayEls(key);
   h.value = String(Math.floor(total / 60)).padStart(2, "0");
   m.value = String(total % 60).padStart(2, "0");
+  viaStayTimeEl(key).value = `${h.value}:${m.value}`;
   syncStayButtons(key);
 }
 
@@ -1279,6 +1282,9 @@ document.querySelectorAll(".stay-stepper").forEach((stepper) => {
   stepper.querySelectorAll(".stay-step").forEach((btn) => {
     btn.addEventListener("click", () => stepStay(key, Number(btn.dataset.step)));
   });
+  // the native picker hands back HH:MM, or nothing when it was cleared
+  viaStayTimeEl(key).addEventListener("change", () =>
+    setStay(key, parseStay(viaStayTimeEl(key).value)));
   stepper.querySelectorAll(".stay-part").forEach((el) => {
     // focusing selects, so a segment is overwritten by typing rather than edited
     // around, and two digits in the hours hand the caret to the minutes
