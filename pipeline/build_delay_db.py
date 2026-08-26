@@ -156,39 +156,53 @@ def main():
     # merge/dedup SQL adapted from deutsche-bahn-data/scripts/create_monthly_data_release.py main()
     # (rolling window bounds instead of hardcoded month)
     tmp_output = output_file.with_suffix(".parquet.tmp")
+    # each dedup goes to its own file before the join: as one query DuckDB holds
+    # all three sorted intermediates plus the join spilled at once (~8 GB on the
+    # 4 GB box, more than its disk has free); staged, the peak is one sort (~4 GB)
+    stage = output_file.parent / ".stage"
+    shutil.rmtree(stage, ignore_errors=True)
+    stage.mkdir()
+    duckdb.sql("SET memory_limit='2GB'")
+    duckdb.sql("SET threads=2")  # the pipeline box's core count; more threads than that oversubscribe the cap
     duckdb.sql(f"""
         COPY (
-            WITH plan_deduped AS (
-                SELECT DISTINCT ON (id)
-                    id, station_name, xml_station_name, eva, train_number, line_number,
-                    final_destination_station, train_type, arrival_planned_time, departure_planned_time
-                FROM read_parquet({sql_file_list(plan_files)})
-                ORDER BY id, xml_timestamp DESC
-            ),
-            fchg_deduped AS (
-                SELECT DISTINCT ON (id)
-                    id, arrival_change_time, departure_change_time, is_canceled
-                FROM read_parquet({sql_file_list(fchg_files)})
-                ORDER BY id, xml_timestamp DESC
-            ),
-            -- latest delay-cause message per stop, independent of the newest
-            -- fchg response (which may no longer carry the message)
-            reasons AS (
-                SELECT id, arg_max(reason_code, reason_ts) AS reason_code
-                FROM read_parquet({sql_file_list(fchg_files)})
-                WHERE reason_code IS NOT NULL
-                GROUP BY id
-            ),
-            merged AS (
+            SELECT DISTINCT ON (id)
+                id, station_name, xml_station_name, eva, train_number, line_number,
+                final_destination_station, train_type, arrival_planned_time, departure_planned_time
+            FROM read_parquet({sql_file_list(plan_files)})
+            ORDER BY id, xml_timestamp DESC
+        ) TO '{stage / "plan.parquet"}' (FORMAT PARQUET)
+    """)
+    duckdb.sql(f"""
+        COPY (
+            SELECT DISTINCT ON (id)
+                id, arrival_change_time, departure_change_time, is_canceled
+            FROM read_parquet({sql_file_list(fchg_files)})
+            ORDER BY id, xml_timestamp DESC
+        ) TO '{stage / "fchg.parquet"}' (FORMAT PARQUET)
+    """)
+    # latest delay-cause message per stop, independent of the newest fchg
+    # response (which may no longer carry the message)
+    duckdb.sql(f"""
+        COPY (
+            SELECT id, arg_max(reason_code, reason_ts) AS reason_code
+            FROM read_parquet({sql_file_list(fchg_files)})
+            WHERE reason_code IS NOT NULL
+            GROUP BY id
+        ) TO '{stage / "reasons.parquet"}' (FORMAT PARQUET)
+    """)
+    duckdb.sql(f"""
+        COPY (
+            WITH merged AS (
                 SELECT
                     p.*,
                     COALESCE(f.arrival_change_time, p.arrival_planned_time) AS arrival_change_time,
                     COALESCE(f.departure_change_time, p.departure_planned_time) AS departure_change_time,
                     COALESCE(f.is_canceled, false) AS is_canceled,
                     r.reason_code
-                FROM plan_deduped p
-                LEFT JOIN fchg_deduped f ON p.id = f.id
-                LEFT JOIN reasons r ON p.id = r.id
+                FROM '{stage / "plan.parquet"}' p
+                LEFT JOIN '{stage / "fchg.parquet"}' f ON p.id = f.id
+                LEFT JOIN '{stage / "reasons.parquet"}' r ON p.id = r.id
             ),
             transformed AS (
                 SELECT
@@ -213,6 +227,7 @@ def main():
                 AND time < TIMESTAMP '{window_end} 00:00:00'
         ) TO '{tmp_output}' (FORMAT PARQUET)
     """)
+    shutil.rmtree(stage)
     os.replace(tmp_output, output_file)
     prune_old_raw_days(args.data_dir / "raw_data", set(dates))
     prune_old_parsed_days(parsed_root, set(dates))
