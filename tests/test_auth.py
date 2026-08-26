@@ -27,7 +27,8 @@ def test_no_token_is_nobody(fb):
 def test_a_token_names_its_account(fb):
     tok = fb.token("t1", uid="u1", handle="Jonas")
     assert auth.account(tok) == {
-        "uid": "u1", "name": "Jonas", "verified": True, "provider": "google.com",
+        "uid": "u1", "name": "Jonas", "email": "u1@example.org", "verified": True,
+        "provider": "google.com",
     }
 
 

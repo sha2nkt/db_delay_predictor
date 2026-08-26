@@ -24,6 +24,7 @@ const I18N = {
     tagline: "Ein Name für alle deine Geschichten",
     chooseHeading: "Anmelden oder registrieren",
     chooseLead: "Mit einem Konto kannst du Geschichten schreiben, kommentieren und abstimmen.",
+    reportLead: "Mit einem Konto bekommst du deinen Verspätungs-Report per E-Mail.",
     withGoogle: "Weiter mit Google",
     withApple: "Weiter mit Apple",
     withPhone: "Weiter mit Telefonnummer",
@@ -92,6 +93,7 @@ const I18N = {
     tagline: "One name for all your stories",
     chooseHeading: "Log in or sign up",
     chooseLead: "With an account you can write stories, comment and vote.",
+    reportLead: "With an account you get your delay report by email.",
     withGoogle: "Continue with Google",
     withApple: "Continue with Apple",
     withPhone: "Continue with phone",
@@ -165,6 +167,14 @@ const track = (name, data) => window.umami?.track(name, data);
 // the stories page lives at one URL per language
 const storiesPath = () => (lang === "en" ? "/stories" : "/geschichten");
 const $ = (id) => document.getElementById(id);
+
+// Where a finished account goes: the stories board, or the page that sent
+// the visitor here (`next`, a path on this site only - anything else would
+// make the login page an open redirect). `reason` picks the lead line:
+// "report" is the bell on a journey card.
+const params = new URLSearchParams(location.search);
+const NEXT = /^\/(?!\/)/.test(params.get("next") || "") ? params.get("next") : null;
+const REASON = params.get("reason") || "";
 
 // exactly one of these is visible; the header and the tab title follow it
 const VIEWS = {
@@ -249,6 +259,7 @@ function applyStatic() {
     const text = I18N[lang][node.dataset.i18nTitle];
     if (text != null) node.title = text;
   });
+  if (REASON === "report") $("choose-lead").textContent = t("reportLead");
   document.querySelectorAll(".lang-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.lang === lang);
   });
@@ -310,7 +321,7 @@ async function route(user, refresh) {
     return;
   }
   fb.remember(true);
-  location.replace(storiesPath());
+  location.replace(NEXT || storiesPath());
 }
 
 async function signOutHere() {
@@ -519,7 +530,7 @@ $("back-to-code").addEventListener("click", () => showView("emailCode"));
 
 // the "continue" URL Firebase's own mails point back to: this page, which
 // then routes to whatever step is still missing
-const backHere = () => ({ url: location.origin + "/login" });
+const backHere = () => ({ url: location.origin + "/login" + location.search });
 
 $("password-form").addEventListener("submit", (ev) => {
   ev.preventDefault();

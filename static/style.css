@@ -721,6 +721,47 @@ body.past-mode .trip-steps { display: none; }
 .claim-modal-alt { margin-top: 10px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
 .claim-modal-alt a { color: var(--brand-red); }
 
+/* journey report: bell next to the booking button + modal (reuses the .claim-modal shell) */
+.book-row { display: flex; gap: 8px; }
+.book-row .book-btn { flex: 1; text-align: center; }
+.bell-btn {
+  flex: none; background: #fff; color: var(--text-muted);
+  border: 2px solid var(--gray-border); border-radius: 4px;
+  padding: 6px 9px; cursor: pointer; line-height: 0;
+}
+.bell-btn:hover { color: var(--brand-red); border-color: var(--brand-red); }
+/* an ordered report: the bell fills in */
+.bell-btn.on { color: var(--brand-red); border-color: var(--brand-red); background: #fff3f2; }
+.bell-btn.on svg { fill: currentColor; }
+.bell-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.report-teaser { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.report-teaser-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.report-teaser-row > span:first-child { flex: none; width: 165px; color: var(--text-muted); font-weight: 600; }
+.report-teaser-note { font-size: 12px; color: var(--text-muted); font-style: italic; }
+.report-blur { filter: blur(3px); }
+
+.report-login, .report-done { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.report-login.hidden, .report-done.hidden { display: none; }
+.report-login p { margin: 0; font-size: 13.5px; line-height: 1.45; }
+.report-submit {
+  background: var(--brand-red); color: #fff; border: none; border-radius: 4px;
+  padding: 11px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.report-submit:hover { background: var(--brand-red-dark); }
+.report-submit:disabled { opacity: .6; cursor: wait; }
+.report-done-msg { margin: 0; font-size: 14px; font-weight: 600; color: var(--green); }
+.report-note { margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.45; }
+.report-note a { color: var(--brand-red); }
+.report-cancel {
+  align-self: flex-start; background: none; border: none; padding: 0;
+  font: inherit; font-size: 13px; color: var(--text-muted); text-decoration: underline; cursor: pointer;
+}
+.report-cancel:hover { color: var(--red); }
+.report-cancel:disabled { opacity: .6; cursor: wait; }
+.report-status { margin: 12px 0 0; font-size: 13px; color: var(--red); min-height: 1em; }
+.report-status.ok { color: var(--green); }
+
 .past-disclaimer { margin: 4px 0 16px; font-size: 12px; color: var(--text-muted); }
 .past-disclaimer.hidden { display: none; }
 
@@ -1036,6 +1077,8 @@ body.nudge-on #donate-footer-item { display: none; }
     text-align: center;
     padding: 11px 12px;
   }
+  /* inside the flex row the button's grid-column is inert; the row spans instead */
+  .book-row { grid-column: 1 / -1; }
   .journey-head .claim-none { grid-column: 1 / -1; }
 }
 

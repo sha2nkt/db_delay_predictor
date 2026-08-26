@@ -32,6 +32,7 @@ const state = {
   coverage: null,  // {minDay, maxDay, liveMaxDay} for the date picker, fetched on demand
   liveDay: false,  // searched day is past the local data and answered live from IRIS
   claimJourney: null,  // journey shown in the claim-steps modal
+  reportJourney: null,  // journey shown in the report-subscription modal
   returnTrip: false,  // a return journey was added in the search card
   leg: "outbound",  // step of the round trip: "outbound" | "return" | "summary"
   returnDeparture: null,  // departure ISO of the return search
@@ -300,6 +301,26 @@ const I18N = {
     iosSheetDone: "Verstanden",
     iosSheetClose: "Schließen",
     installDismiss: "Schließen",
+    reportBellTitle: "Verspätungs-Report nach der Fahrt erhalten",
+    reportBellOnTitle: "Report bestellt – zum Abbestellen klicken",
+    reportModalTitle: "Statistik vs. Realität – dein Verspätungs-Report",
+    reportModalLead: "Nach deiner Fahrt vergleichen wir die typische Verspätung (Median der letzten Tage) mit dem tatsächlichen Verlauf – der Report kommt etwa zwei Tage später per E-Mail.",
+    reportTeaserSeen: "Typische Verspätung bisher",
+    reportTeaserUpTo: (station) => `bis ${station}`,
+    reportTeaserActual: "Tatsächliche Verspätung",
+    reportTeaserAfter: "wird nach deiner Fahrt ermittelt",
+    reportLoginLead: "Der Report geht an die E-Mail-Adresse deines DelayBahn-Kontos.",
+    reportLoginBtn: "Anmelden & Report bestellen",
+    reportBusy: "Einen Moment …",
+    reportDoneMsg: (email) => `Bestellt! Der Report geht an ${email}.`,
+    reportStoredNote: "Gespeichert: diese Verbindung und deine Konto-E-Mail. Abbestellen jederzeit hier oder per Link in der E-Mail.",
+    reportPrivacyLink: "Datenschutzhinweise",
+    reportCancelBtn: "Report abbestellen",
+    reportCancelledMsg: "Abbestellt – für diese Fahrt kommt kein Report.",
+    reportErrInvalid: "Für diese Fahrt ist kein Report möglich.",
+    reportErrThrottle: "Zu viele Anfragen – bitte versuch es später noch einmal.",
+    reportErrGeneric: "Das hat gerade nicht geklappt – bitte versuch es später noch einmal.",
+    reportModalClose: "Schließen",
   },
   en: {
     pageTitle: "DelayBahn – DB Connection Search with Delay Statistics",
@@ -543,6 +564,26 @@ const I18N = {
     iosSheetDone: "Got it",
     iosSheetClose: "Close",
     installDismiss: "Dismiss",
+    reportBellTitle: "Get a delay report after your journey",
+    reportBellOnTitle: "Report ordered – click to cancel",
+    reportModalTitle: "History vs. reality – your delay report",
+    reportModalLead: "After your journey we compare the typical delay (median of recent days) with what actually happened – the report arrives by email about two days later.",
+    reportTeaserSeen: "Typical delay so far",
+    reportTeaserUpTo: (station) => `up to ${station}`,
+    reportTeaserActual: "Actual delay",
+    reportTeaserAfter: "revealed after your journey",
+    reportLoginLead: "The report goes to your DelayBahn account's email address.",
+    reportLoginBtn: "Log in & order the report",
+    reportBusy: "One moment …",
+    reportDoneMsg: (email) => `Ordered! The report goes to ${email}.`,
+    reportStoredNote: "Stored: this connection and your account email. Cancel any time here or via the link in the email.",
+    reportPrivacyLink: "Privacy notice",
+    reportCancelBtn: "Cancel report",
+    reportCancelledMsg: "Cancelled – no report will be sent for this journey.",
+    reportErrInvalid: "No report is possible for this journey.",
+    reportErrThrottle: "Too many requests – please try again later.",
+    reportErrGeneric: "That didn't work right now – please try again later.",
+    reportModalClose: "Close",
   },
 };
 
@@ -751,6 +792,7 @@ function applyLang(lang) {
   if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
   if (state.staleSeconds) setStaleNotice(state.staleSeconds);
   if (claimModal.open) populateClaimModal();
+  if (reportModal.open) populateReportModal();
   renderTripSteps();
   render();
 }
@@ -2954,6 +2996,274 @@ document.getElementById("claim-modal-go").addEventListener("click", () => {
   });
 });
 
+// --- journey report: the bell orders a forecast-vs-actual email after the trip ---
+// The order belongs to the Delay Stories account, whose Firebase session is
+// shared by every page of the site: a bell pressed by a signed-in visitor is
+// the whole order, a signed-out one is sent to /login and the order completes
+// on return. The SDK is only downloaded when a bell is pressed or the login
+// page left its "account" hint behind, so anonymous visitors never pay for it.
+
+const reportModal = document.getElementById("report-modal");
+const reportLoginEl = document.getElementById("report-login");
+const reportDoneEl = document.getElementById("report-done");
+const reportDoneMsgEl = document.getElementById("report-done-msg");
+const reportStatusEl = document.getElementById("report-status");
+const reportCancelBtn = document.getElementById("report-cancel");
+// sessionStorage: the order that waits for the login page to hand the visitor back
+const REPORT_PENDING_KEY = "reportPending";
+const REPORT_PENDING_MAX_AGE = 60 * 60 * 1000;
+
+let fb = null;               // firebase.js module, imported on demand
+let reportSubs = new Map();  // journey key -> order id, for the signed-in account
+let reportEmail = "";        // where the account's reports go
+let reportView = "busy";     // "busy" | "login" | "done" | "cancelled" | "error"
+let reportError = "reportErrGeneric";
+
+// a leg is resolvable after the trip iff normalize_leg attached a delayStats key
+// (even a null one); walks and untracked products never carry it
+function lastTrackedArrival(journey) {
+  const tracked = (journey.legs || []).filter((l) => "delayStats" in l);
+  return tracked.length ? tracked[tracked.length - 1].plannedArrival : null;
+}
+
+function reportEligible(journey) {
+  const arrival = lastTrackedArrival(journey);
+  return !!arrival && new Date(arrival) > new Date();
+}
+
+// the historic median for the teaser: the destination's, or - when the last
+// legs have no history of their own - the last stop on the way that does have
+// one, named so the number is not read as the destination's
+function teaserStats(journey) {
+  const tracked = (journey.legs || []).filter((l) => "delayStats" in l);
+  for (let i = tracked.length - 1; i >= 0; i--) {
+    const median = tracked[i].delayStats?.medianDelay;
+    if (median != null) {
+      return { median, upTo: i < tracked.length - 1 ? tracked[i].destination?.name || "" : "" };
+    }
+  }
+  return null;
+}
+
+// the same string reports.journey_key builds server-side, from the same fields
+function reportKey(journey) {
+  return (journey.legs || [])
+    .filter((l) => "delayStats" in l)
+    .map((l) => `${l.line?.fahrtNr ?? ""}|${l.destination?.id ?? ""}|${l.plannedArrival ?? ""}`)
+    .sort()
+    .join("\n");
+}
+
+const BELL_SVG =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"'
+  + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>'
+  + '<path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+
+function paintBell(bell, on) {
+  bell.classList.toggle("on", on);
+  bell.setAttribute("aria-pressed", String(on));
+  const label = t(on ? "reportBellOnTitle" : "reportBellTitle");
+  bell.title = label;
+  bell.setAttribute("aria-label", label);
+}
+
+function refreshBells() {
+  document.querySelectorAll(".bell-btn[data-report-key]").forEach((bell) => {
+    paintBell(bell, reportSubs.has(bell.dataset.reportKey));
+  });
+}
+
+/* The account this browser holds, or null. `verified` is whether the sign-in
+   proved the address - the server insists on that before it mails anything. */
+async function currentAccount() {
+  if (!fb) fb = await import("/firebase.js?v=1");
+  if (!fb.auth) return null;
+  await fb.auth.authStateReady();
+  const user = fb.auth.currentUser;
+  if (!user) return null;
+  const who = await fb.identity(user);
+  return { user, email: user.email || "", verified: who.verified && !!user.email };
+}
+
+async function reportApi(user, path, opts = {}) {
+  const token = await user.getIdToken();
+  const resp = await fetch(path, {
+    ...opts,
+    headers: { ...(opts.headers || {}), "Authorization": "Bearer " + token },
+  });
+  if (!resp.ok) {
+    const err = new Error("http " + resp.status);
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.status === 204 ? null : resp.json();
+}
+
+function populateReportModal() {
+  const j = state.reportJourney;
+  if (!j) return;
+  const teaser = document.getElementById("report-teaser");
+  teaser.innerHTML = "";
+
+  const seen = document.createElement("div");
+  seen.className = "report-teaser-row";
+  const seenLabel = document.createElement("span");
+  seenLabel.textContent = t("reportTeaserSeen");
+  const seenStats = teaserStats(j);
+  let seenChip;
+  if (seenStats) {
+    seenChip = delayValueBadge(seenStats.median);
+  } else {
+    seenChip = document.createElement("span");
+    seenChip.className = "badge gray";
+    seenChip.textContent = t("noData");
+  }
+  seen.append(seenLabel, seenChip);
+  if (seenStats?.upTo) {
+    const upTo = document.createElement("span");
+    upTo.className = "report-teaser-note";
+    upTo.textContent = t("reportTeaserUpTo", seenStats.upTo);
+    seen.append(upTo);
+  }
+
+  const actual = document.createElement("div");
+  actual.className = "report-teaser-row";
+  const actualLabel = document.createElement("span");
+  actualLabel.textContent = t("reportTeaserActual");
+  const actualChip = document.createElement("span");
+  actualChip.className = "badge gray report-blur";
+  actualChip.textContent = "+? min";
+  const note = document.createElement("span");
+  note.className = "report-teaser-note";
+  note.textContent = t("reportTeaserAfter");
+  actual.append(actualLabel, actualChip, note);
+
+  teaser.append(seen, actual);
+
+  reportLoginEl.classList.toggle("hidden", reportView !== "login");
+  reportDoneEl.classList.toggle("hidden", reportView !== "done");
+  if (reportView === "done") reportDoneMsgEl.textContent = t("reportDoneMsg", reportEmail);
+  reportStatusEl.classList.toggle("ok", reportView === "cancelled");
+  reportStatusEl.textContent = reportView === "busy" ? t("reportBusy")
+    : reportView === "cancelled" ? t("reportCancelledMsg")
+    : reportView === "error" ? t(reportError)
+    : "";
+}
+
+function setReportView(view, errorKey) {
+  reportView = view;
+  if (errorKey) reportError = errorKey;
+  populateReportModal();
+}
+
+function openReportModal(journey) {
+  state.reportJourney = journey;
+  setReportView("busy");
+  if (!reportModal.open) reportModal.showModal();
+}
+
+document.getElementById("report-modal-close").addEventListener("click", () => reportModal.close());
+// a click on the backdrop lands on the dialog element itself (the inner wrapper covers the rest)
+reportModal.addEventListener("click", (e) => { if (e.target === reportModal) reportModal.close(); });
+// the close event is queued, so a bell pressed right after closing may already
+// have reopened the modal for its journey - which must not be forgotten then
+reportModal.addEventListener("close", () => { if (!reportModal.open) state.reportJourney = null; });
+
+const reportSearchMeta = () =>
+  ({ fromName: state.from?.name, toName: state.to?.name, window: state.windowUsed });
+
+async function orderReport(account, journey, search) {
+  setReportView("busy");
+  try {
+    const res = await reportApi(account.user, "/api/reports/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lang: state.lang, journey, search }),
+    });
+    reportSubs.set(res.key, res.id);
+    reportEmail = res.email;
+    refreshBells();
+    track("report-subscribe", { created: res.created });
+    setReportView("done");
+  } catch (e) {
+    // no account after all, or one short of a proven address: the login page knows which
+    if (e.status === 401 || e.status === 403) { setReportView("login"); return; }
+    setReportView("error", e.status === 422 ? "reportErrInvalid"
+      : e.status === 429 ? "reportErrThrottle" : "reportErrGeneric");
+  }
+}
+
+async function onBellClick(journey) {
+  openReportModal(journey);
+  track("report-modal", { from: state.from?.name, to: state.to?.name });
+  if (reportSubs.has(reportKey(journey))) { setReportView("done"); return; }
+  let account = null;
+  try { account = await currentAccount(); } catch (e) { /* SDK unreachable: same as signed out */ }
+  if (!account || !account.verified) { setReportView("login"); return; }
+  await orderReport(account, journey, reportSearchMeta());
+}
+
+document.getElementById("report-login-btn").addEventListener("click", () => {
+  try {
+    sessionStorage.setItem(REPORT_PENDING_KEY, JSON.stringify({
+      journey: state.reportJourney, search: reportSearchMeta(), ts: Date.now(),
+    }));
+  } catch (e) { /* no storage: the bell has to be pressed again after the login */ }
+  track("report-login");
+  const next = location.pathname + location.search;
+  location.assign("/login?next=" + encodeURIComponent(next) + "&reason=report");
+});
+
+reportCancelBtn.addEventListener("click", async () => {
+  const journey = state.reportJourney;
+  const id = journey ? reportSubs.get(reportKey(journey)) : undefined;
+  if (id === undefined) return;
+  reportCancelBtn.disabled = true;
+  try {
+    const account = await currentAccount();
+    if (!account) throw new Error("signed out");
+    await reportApi(account.user, "/api/reports/" + id, { method: "DELETE" });
+    reportSubs.delete(reportKey(journey));
+    refreshBells();
+    track("report-cancel");
+    setReportView("cancelled");
+  } catch (e) {
+    setReportView("error", "reportErrGeneric");
+  } finally {
+    reportCancelBtn.disabled = false;
+  }
+});
+
+/* On load: complete an order that waited for the login, and light the bells of
+   journeys this account already ordered a report for. Both need the account,
+   which is only looked up when there is a reason to - a parked order, or the
+   hint the login page leaves behind. */
+async function initReports() {
+  let pending = null;
+  try {
+    pending = JSON.parse(sessionStorage.getItem(REPORT_PENDING_KEY));
+    sessionStorage.removeItem(REPORT_PENDING_KEY);
+  } catch (e) { /* no storage */ }
+  if (pending && !(pending.journey && Date.now() - pending.ts < REPORT_PENDING_MAX_AGE)) pending = null;
+  let hinted = false;
+  try { hinted = localStorage.getItem("account") === "1"; } catch (e) {}
+  if (!pending && !hinted) return;
+  let account = null;
+  try { account = await currentAccount(); } catch (e) { return; }
+  if (!account || !account.verified) return;  // the login was abandoned: nothing is ordered
+  if (pending) {
+    openReportModal(pending.journey);
+    await orderReport(account, pending.journey, pending.search || reportSearchMeta());
+  }
+  try {
+    const res = await reportApi(account.user, "/api/reports/mine");
+    reportSubs = new Map(res.subscriptions.map((sub) => [sub.key, sub.id]));
+    reportEmail = res.email;
+    refreshBells();
+  } catch (e) { /* the bells simply start unlit */ }
+}
+
 // price slot: the D-Ticket label when the connection is covered by the ticket,
 // an offer price, or a pointer to bahn.de when the search turned up no price.
 // `journey` is the row the price belongs to; the trip total passes the combined
@@ -3148,12 +3458,28 @@ function render() {
         );
       }
 
+      // the bell orders a post-journey forecast-vs-actual report email; only
+      // where a tracked leg can still be resolved after the trip
+      let bookSlot = action;
+      if (!state.returnTrip && reportEligible(journey)) {
+        const bell = document.createElement("button");
+        bell.type = "button";
+        bell.className = "bell-btn";
+        bell.dataset.reportKey = reportKey(journey);
+        bell.innerHTML = BELL_SVG;
+        paintBell(bell, reportSubs.has(bell.dataset.reportKey));
+        bell.addEventListener("click", () => onBellClick(journey));
+        bookSlot = document.createElement("div");
+        bookSlot.className = "book-row";
+        bookSlot.append(action, bell);
+      }
+
       // badges, price and booking button wrap together as one right-aligned block
       const cta = document.createElement("div");
       cta.className = "journey-cta";
       // next to a tight-transfer warning the delay badge is only worth the space when red
       const showDelayBadge = !tightBadge || badge.classList.contains("red");
-      cta.append(...(tightBadge ? [tightBadge] : []), ...(showDelayBadge ? [badge] : []), price, action);
+      cta.append(...(tightBadge ? [tightBadge] : []), ...(showDelayBadge ? [badge] : []), price, bookSlot);
       head.append(times, meta, spacer, cta);
     }
     card.appendChild(head);
@@ -3582,3 +3908,5 @@ const qp = new URLSearchParams(location.search);
     search();
   }
 })();
+
+initReports();

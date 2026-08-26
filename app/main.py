@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, StringConstraints
 
-from app import auth, bahn_api, delays, feedback, live_delays, mailer, ratelimit, stories
+from app import auth, bahn_api, delays, feedback, live_delays, mailer, ratelimit, reports, stories
 from app.config import env_int
 
 log = logging.getLogger(__name__)
@@ -1869,6 +1869,140 @@ async def service_worker() -> FileResponse:
         media_type="text/javascript",
         headers={"Cache-Control": "no-cache"},
     )
+
+
+# --- journey reports: the bell orders a post-journey forecast-vs-actual email ---
+# The order is tied to the Delay Stories account (app/auth.py): the account
+# already proved its address, so the bell needs no email form and no double
+# opt-in of its own - one signed-in press is the order, a second one withdraws
+# it. The unsubscribe link in the mail itself keeps working without a login.
+
+
+class ReportOrder(BaseModel):
+    lang: Literal["de", "en"] = "de"
+    journey: dict
+    search: dict = Field(default_factory=dict)
+
+
+async def _report_user(request: Request) -> dict:
+    """An account a report can be mailed to: signed in, address proven. No
+    username is needed - the report goes to the inbox, not the board - so
+    this is deliberately looser than _require_user."""
+    user = await _optional_user(request)
+    if user is None:
+        raise HTTPException(401, "login required")
+    if not user["verified"] or not user["email"]:
+        raise HTTPException(403, "unverified")
+    return user
+
+
+@app.post("/api/reports/subscribe")
+async def report_subscribe(order: ReportOrder, request: Request) -> dict:
+    user = await _report_user(request)
+    _stories_throttle(reports.subscribe_limiter, request)
+    try:
+        return await anyio.to_thread.run_sync(
+            reports.subscribe, user, order.lang, order.journey, order.search
+        )
+    except reports.SnapshotError as exc:
+        raise HTTPException(422, str(exc))
+
+
+@app.get("/api/reports/mine")
+async def report_mine(request: Request) -> dict:
+    """The account's open orders, so the page can light the bells of the
+    journeys it already ordered a report for."""
+    user = await _report_user(request)
+    subs = await anyio.to_thread.run_sync(reports.mine, user["uid"])
+    return {"email": user["email"], "subscriptions": subs}
+
+
+@app.delete("/api/reports/{sub_id}", status_code=204)
+async def report_cancel(sub_id: int, request: Request) -> Response:
+    user = await _report_user(request)
+    if not await anyio.to_thread.run_sync(reports.cancel, user["uid"], sub_id):
+        raise HTTPException(404, "no such open report")
+    return Response(status_code=204)
+
+
+_R_STRINGS = {
+    "de": {
+        "unsubTitle": "Abmelden & Daten löschen",
+        "unsubLead": "Damit werden alle offenen Verspätungs-Reports dieses Kontos storniert und"
+        " E-Mail-Adresse, Benutzername und Konto-Kennung aus den Report-Einträgen gelöscht.",
+        "unsubBtn": "Jetzt abmelden & Daten löschen",
+        "unsubbedTitle": "Abgemeldet",
+        "unsubbedLead": "Alle offenen Reports wurden storniert und deine personenbezogenen"
+        " Daten aus den Report-Einträgen gelöscht.",
+        "deadTitle": "Link ungültig",
+        "deadLead": "Dieser Link ist nicht (mehr) gültig.",
+        "back": "← Zur Verbindungssuche",
+    },
+    "en": {
+        "unsubTitle": "Unsubscribe & delete data",
+        "unsubLead": "This cancels every open delay report of this account and removes the"
+        " email address, username and account id from the report entries.",
+        "unsubBtn": "Unsubscribe & delete my data now",
+        "unsubbedTitle": "Unsubscribed",
+        "unsubbedLead": "All open reports were cancelled and your personal data was removed"
+        " from the report entries.",
+        "deadTitle": "Invalid link",
+        "deadLead": "This link is not (or no longer) valid.",
+        "back": "← Back to connection search",
+    },
+}
+
+
+def _r_page(lang: str, title: str, lead: str, form_html: str = "", status: int = 200) -> HTMLResponse:
+    s = _R_STRINGS[lang]
+    return HTMLResponse(
+        "<!DOCTYPE html>"
+        f'<html lang="{lang}"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        '<meta name="robots" content="noindex">'
+        f"<title>{escape(title)} – DelayBahn</title>"
+        '<link rel="icon" type="image/png" href="/favicon.png">'
+        '<link rel="stylesheet" href="/style.css">'
+        '</head><body><header><div class="header-inner">'
+        '<a class="logo-link" href="/"><img class="logo" src="/logo.png" alt="DelayBahn"></a>'
+        f'<span class="header-title">{escape(title)}</span></div></header>'
+        f'<main><div class="legal-card"><p>{escape(lead)}</p>{form_html}'
+        f'<p style="margin-top:18px;"><a href="/">{escape(s["back"])}</a></p>'
+        "</div></main></body></html>",
+        status_code=status,
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+def _r_dead_page() -> HTMLResponse:
+    s = _R_STRINGS["de"]
+    return _r_page("de", s["deadTitle"], s["deadLead"], status=404)
+
+
+@app.get("/r/unsubscribe")
+async def report_unsubscribe_page(token: str = Query("")) -> HTMLResponse:
+    lang = await anyio.to_thread.run_sync(reports.token_lang, token)
+    if lang is None:
+        return _r_dead_page()
+    s = _R_STRINGS[lang]
+    # a deliberate click, never auto-submitted: this deletes data
+    form = (
+        f'<form method="post" action="/r/unsubscribe?token={escape(token)}">'
+        f'<button class="search-btn" type="submit">{escape(s["unsubBtn"])}</button></form>'
+    )
+    return _r_page(lang, s["unsubTitle"], s["unsubLead"], form)
+
+
+@app.post("/r/unsubscribe")
+async def report_unsubscribe_submit(token: str = Query("")) -> HTMLResponse:
+    """Form target and RFC 8058 one-click target (List-Unsubscribe-Post) in one;
+    the one-click POST body is ignored."""
+    lang = (await anyio.to_thread.run_sync(reports.token_lang, token)) or "de"
+    ok = await anyio.to_thread.run_sync(reports.unsubscribe, token)
+    if not ok:
+        return _r_dead_page()
+    s = _R_STRINGS[lang]
+    return _r_page(lang, s["unsubbedTitle"], s["unsubbedLead"])
 
 
 class HtmlNoCacheStatic(StaticFiles):

@@ -90,3 +90,76 @@ def test_sending_without_credentials_is_a_logged_no_op():
     caller should report to the user."""
     assert mailer.send_login_code("jonas@example.org", "048512", "de", "login") is True
     assert mailer.status()["sendFailures"] == 0
+
+
+# --- the report mail ----------------------------------------------------------
+
+class FakeSMTP:
+    """smtplib.SMTP with the four calls _deliver makes, recording the message."""
+    sent: list = []
+    fail: Exception | None = None
+
+    def __init__(self, host, port, timeout=None):
+        self.host, self.port = host, port
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def starttls(self):
+        pass
+
+    def login(self, user, password):
+        pass
+
+    def send_message(self, msg):
+        if FakeSMTP.fail is not None:
+            raise FakeSMTP.fail
+        FakeSMTP.sent.append(msg)
+
+
+@pytest.fixture
+def relay(monkeypatch):
+    monkeypatch.setenv("SMTP_USER", "u")
+    monkeypatch.setenv("SMTP_PASS", "p")
+    monkeypatch.delenv("NTFY_TOPIC", raising=False)
+    monkeypatch.setattr(mailer.smtplib, "SMTP", FakeSMTP)
+    FakeSMTP.sent, FakeSMTP.fail = [], None
+    return FakeSMTP
+
+
+HEADERS = {
+    "List-Unsubscribe": "<https://delaybahn.com/r/unsubscribe?token=T>",
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+}
+
+
+def test_a_report_without_credentials_is_a_logged_no_op():
+    assert mailer.send_report("jonas@example.org", "Jonas", "Report", "t", "<p>h</p>", HEADERS) is True
+
+
+def test_a_report_carries_both_parts_and_the_list_headers(relay):
+    assert mailer.send_report("jonas@example.org", "Jonas", "Dein Report", "plain", "<p>rich</p>",
+                              HEADERS) is True
+    (msg,) = relay.sent
+    assert msg["To"] == "Jonas <jonas@example.org>"
+    assert msg["From"] == "DelayBahn <kontakt@delaybahn.com>"
+    assert msg["Subject"] == "Dein Report"
+    assert msg["List-Unsubscribe-Post"] == "List-Unsubscribe=One-Click"
+    assert [p.get_content_type() for p in msg.iter_parts()] == ["text/plain", "text/html"]
+
+
+def test_a_nameless_account_is_addressed_by_address_alone(relay):
+    mailer.send_report("jonas@example.org", "", "Report", "t", "<p>h</p>")
+    assert relay.sent[0]["To"] == "jonas@example.org"
+
+
+def test_a_refused_report_is_counted_and_remembered(relay):
+    relay.fail = mailer.smtplib.SMTPException("451 daily quota exceeded")
+    before = mailer.status()["sendFailures"]
+    assert mailer.send_report("jonas@example.org", "", "Report", "t", "<p>h</p>") is False
+    assert mailer.status()["sendFailures"] == before + 1
+    assert "quota" in mailer.status()["lastError"]
+    assert relay.sent == []

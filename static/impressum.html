@@ -6,7 +6,7 @@
 <title>Impressum & Datenschutz – DelayBahn</title>
 <meta name="robots" content="noindex, follow">
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=100">
+<link rel="stylesheet" href="style.css?v=103">
 </head>
 <body>
 <header>
@@ -139,14 +139,34 @@
     Dabei werden das Firebase-Konto samt Anmeldedaten und abgegebene Stimmen gelöscht; bereits
     veröffentlichte Beiträge werden anonymisiert (der Benutzername wird entfernt) oder auf Wunsch
     ebenfalls gelöscht.</p>
+    <h2 id="datenschutz-report">Verspätungs-Report per E-Mail</h2>
+    <p>Über das Glocken-Symbol an einer Verbindung können Sie mit Ihrem Nutzerkonto (siehe oben)
+    einen Verspätungs-Report bestellen: Nach der Fahrt vergleichen wir einmalig die angezeigte
+    typische Verspätung (Median vergangener Tage) mit dem tatsächlichen Verlauf und senden Ihnen
+    das Ergebnis per E-Mail. Dafür speichern wir auf unserem Server die Konto-Kennung, die
+    E-Mail-Adresse und den Benutzernamen Ihres Kontos, die gewählte Sprache sowie die betreffende
+    Verbindung einschließlich der angezeigten Verspätungsstatistik und später der ermittelten
+    tatsächlichen Verspätungen. Bestellen können nur Konten mit bestätigter E-Mail-Adresse; eine
+    gesonderte Bestätigungs-E-Mail gibt es daher nicht. Rechtsgrundlage ist Ihre Einwilligung
+    (Art. 6 Abs. 1 lit. a DSGVO), die Sie mit der Bestellung erteilen und jederzeit widerrufen
+    können – über das Glocken-Symbol, den Abmeldelink in der E-Mail oder per E-Mail an
+    <a href="mailto:kontakt@delaybahn.com">kontakt@delaybahn.com</a>. Beim Abbestellen sowie
+    30 Tage nach dem Versand werden Konto-Kennung, E-Mail-Adresse und Benutzername aus dem
+    Eintrag gelöscht und offene Reports storniert; die Verbindungsdaten bleiben anonymisiert für
+    Statistiken erhalten. Für den Versand nutzen wir Brevo (Sendinblue GmbH, Köpenicker Str. 126,
+    10179 Berlin) als Auftragsverarbeiter nach Art. 28 DSGVO; die Verarbeitung erfolgt in der
+    Europäischen Union.</p>
 
     <h2>Lokale Speicherung im Browser</h2>
-    <p>Im localStorage Ihres Browsers werden gespeichert: die gewählte Sprache (Deutsch/Englisch)
-    sowie die zuletzt von Ihnen gesuchten Bahnhöfe zur schnelleren Eingabe. Diese
+    <p>Im localStorage Ihres Browsers werden gespeichert: die gewählte Sprache (Deutsch/Englisch),
+    die zuletzt von Ihnen gesuchten Bahnhöfe zur schnelleren Eingabe sowie nach einer Anmeldung
+    ein Hinweis, dass ein Konto vorhanden ist; bestellen Sie einen Verspätungs-Report vor der
+    Anmeldung, wird die gewählte Verbindung bis zur Rückkehr von der Anmeldeseite im
+    sessionStorage zwischengespeichert. Diese
     Speicherung ist für die jeweils gewünschte Funktion erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG) und
     bedarf keiner Einwilligung. Die Daten verbleiben in Ihrem Browser und werden nicht an den Server
     übertragen; Sie können sie jederzeit über die Einstellungen Ihres Browsers löschen. Wenn
-    Sie sich bei Delay Geschichten anmelden, legt das Firebase-SDK Ihren Anmeldestatus (ein
+    Sie sich anmelden (Delay Geschichten, Verspätungs-Report), legt das Firebase-SDK Ihren Anmeldestatus (ein
     Token) im Browserspeicher (IndexedDB) ab, damit Sie angemeldet bleiben – technisch
     notwendig für die gewünschte Funktion (§ 25 Abs. 2 Nr. 2 TDDDG). Cookies setzt diese Website
     nicht.</p>

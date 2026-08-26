@@ -27,7 +27,7 @@ import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from app import stories
+from app import reports, stories
 from app.ratelimit import SlidingWindowLimiter
 
 log = logging.getLogger(__name__)
@@ -429,7 +429,9 @@ def account(token: str | None) -> dict | None:
     claimed one; `verified` says whether the sign-in method proved contact
     with the person - Google and Apple vouch for the address, a phone number
     was just confirmed by SMS, and email + password only counts once the
-    verification mail was clicked. Raises AuthUnavailable."""
+    verification mail was clicked. `email` is the address on the account,
+    lowercased, or None (a phone sign-in has none) - where a report goes.
+    Raises AuthUnavailable."""
     if not token:
         return None
     claims = _verify(token)
@@ -440,6 +442,7 @@ def account(token: str | None) -> dict | None:
     return {
         "uid": claims["sub"],
         "name": claims.get("handle") or None,
+        "email": normalize_email(claims["email"]) if claims.get("email") else None,
         "verified": verified,
         "provider": provider,
     }
@@ -459,8 +462,9 @@ def claim_handle(uid: str, name: str) -> str:
 def delete_account(uid: str) -> bool:
     """GDPR erasure helper (manual, on request via kontakt@): removes the
     Firebase account and its registry entries, drops its votes and taps,
-    and anonymizes authored posts in place - the stories stay, the name
-    goes. False when Firebase has no such account.
+    anonymizes authored posts in place - the stories stay, the name goes -
+    and scrubs the account from its journey-report orders. False when
+    Firebase has no such account.
 
     One caveat, verified end-to-end rather than assumed: an ID token issued
     before the deletion keeps verifying until it expires (Firebase tokens
@@ -481,6 +485,7 @@ def delete_account(uid: str) -> bool:
         return False
     name = _registry().release(uid)
     stories.forget_account(uid, name)
+    reports.forget_account(uid)
     return True
 
 

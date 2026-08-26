@@ -1,5 +1,6 @@
-"""Transactional email over SMTP - currently only the six-digit login codes
-for the stories board. Configured via SMTP_HOST/PORT/USER/PASS and SMTP_FROM;
+"""Transactional email over SMTP: the six-digit login codes for the stories
+board, and the post-journey delay reports pipeline/send_reports.py sends.
+Configured via SMTP_HOST/PORT/USER/PASS and SMTP_FROM;
 the defaults fit Brevo, so a deploy only needs the credentials. Without
 SMTP_USER/SMTP_PASS sending is a logged no-op, same contract as the ntfy
 pushes, so dev setups run without an email account.
@@ -30,6 +31,7 @@ import smtplib
 import time
 from datetime import datetime, timezone
 from email.message import EmailMessage
+from email.utils import formataddr
 from html import escape
 
 import httpx
@@ -191,6 +193,7 @@ MAIL_ALERT_COOLDOWN = env_int("MAIL_ALERT_COOLDOWN", 3600)
 _failures = 0
 _failures_at_alert = 0
 _last_fail_alert: float | None = None
+_last_error: str | None = None  # the relay's last reply, for /health and the report job
 
 
 def _alert(text: str, priority: str = "default") -> None:
@@ -212,11 +215,12 @@ def _alert(text: str, priority: str = "default") -> None:
         log.warning("ntfy alert failed: %s", exc)
 
 
-def _note_failure(exc: Exception) -> None:
-    global _failures, _failures_at_alert, _last_fail_alert
+def _note_failure(what: str, exc: Exception) -> None:
+    global _failures, _failures_at_alert, _last_fail_alert, _last_error
     _failures += 1
+    _last_error = str(exc)[:300]
     # the recipient is personal data and stays out of both the log and the push
-    log.warning("login-code email failed: %s", exc)
+    log.warning("%s email failed: %s", what, exc)
     now = time.monotonic()
     if _last_fail_alert is not None and now - _last_fail_alert < MAIL_ALERT_COOLDOWN:
         return
@@ -224,8 +228,8 @@ def _note_failure(exc: Exception) -> None:
     _last_fail_alert, _failures_at_alert = now, _failures
     # the relay's reply names the cause (out of credits, bad login, ...)
     _alert(
-        f"Login-code email failed ({since} failure(s) since the last alert). "
-        f"Users see 'try again later' until this clears. Relay said: {exc}",
+        f"{what} email failed ({since} failure(s) since the last alert). "
+        f"Relay said: {exc}",
         priority="high",
     )
 
@@ -233,27 +237,52 @@ def _note_failure(exc: Exception) -> None:
 def send_login_code(email: str, code: str, lang: str, kind: str) -> bool:
     """kind is "welcome" or "login". Never raises; False when the relay
     refused or was unreachable, so the caller can tell the user instead of
-    letting them wait for a mail that will not come. An unconfigured dev setup
-    counts as sent - there is nothing to retry."""
+    letting them wait for a mail that will not come."""
+    if lang not in ("de", "en"):
+        lang = "de"
+    parts = _parts(code, lang, kind)
+    msg = EmailMessage()
+    msg["To"] = email
+    msg["Subject"] = _SUBJECT[(kind, lang)].format(code=code)
+    msg.set_content(_text_body(parts))
+    msg.add_alternative(_html_body(parts, lang), subtype="html")
+    return _deliver(msg, "login-code")
+
+
+def send_report(
+    email: str, name: str, subject: str, text: str, html: str,
+    headers: dict[str, str] | None = None,
+) -> bool:
+    """A post-journey report (rendered by app/report_email.py), addressed by
+    name when the account has one; `headers` are extra fields such as
+    List-Unsubscribe. Same contract as send_login_code."""
+    msg = EmailMessage()
+    msg["To"] = formataddr((name, email)) if name else email
+    msg["Subject"] = subject
+    for field, value in (headers or {}).items():
+        msg[field] = value
+    msg.set_content(text)
+    msg.add_alternative(html, subtype="html")
+    return _deliver(msg, "report")
+
+
+def configured() -> bool:
+    return bool(os.environ.get("SMTP_USER") and os.environ.get("SMTP_PASS"))
+
+
+def _deliver(msg: EmailMessage, what: str) -> bool:
+    """Hand one message to the relay. Never raises; False when the relay
+    refused or was unreachable (counted for /health, paged once per cooldown).
+    An unconfigured dev setup counts as sent - there is nothing to retry."""
     global _warned_unconfigured
     user = os.environ.get("SMTP_USER")
     password = os.environ.get("SMTP_PASS")
     if not user or not password:
         if not _warned_unconfigured:
             _warned_unconfigured = True
-            log.warning("SMTP_USER/SMTP_PASS unset: login-code emails are not sent")
+            log.warning("SMTP_USER/SMTP_PASS unset: emails are not sent")
         return True
-
-    if lang not in ("de", "en"):
-        lang = "de"
-    parts = _parts(code, lang, kind)
-
-    msg = EmailMessage()
     msg["From"] = os.environ.get("SMTP_FROM", "DelayBahn <kontakt@delaybahn.com>")
-    msg["To"] = email
-    msg["Subject"] = _SUBJECT[(kind, lang)].format(code=code)
-    msg.set_content(_text_body(parts))
-    msg.add_alternative(_html_body(parts, lang), subtype="html")
     try:
         host = os.environ.get("SMTP_HOST", "smtp-relay.brevo.com")
         with smtplib.SMTP(host, env_int("SMTP_PORT", 587), timeout=15) as smtp:
@@ -261,7 +290,7 @@ def send_login_code(email: str, code: str, lang: str, kind: str) -> bool:
             smtp.login(user, password)
             smtp.send_message(msg)
     except (OSError, smtplib.SMTPException) as exc:
-        _note_failure(exc)
+        _note_failure(what, exc)
         return False
     return True
 
@@ -280,7 +309,8 @@ _credits_level = 0
 
 def status() -> dict:
     """In-memory only - /health calls this."""
-    return {"credits": _credits, "creditsAt": _credits_at, "sendFailures": _failures}
+    return {"credits": _credits, "creditsAt": _credits_at, "sendFailures": _failures,
+            "lastError": _last_error}
 
 
 async def _fetch_credits(client: httpx.AsyncClient, key: str) -> int | None:
