@@ -73,12 +73,20 @@ class FakeRegistry:
         self.names: dict[str, str] = {}   # lowercased name -> uid
         self.users: dict[str, str] = {}   # uid -> name as claimed
         self.codes: dict[str, dict] = {}  # email key -> pending login
+        self.swept = 0                    # abandoned logins cleared
         self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     # --- pending email logins (mirrors the Firestore transactions) ---
+    def _sweep_expired(self, now):
+        stale = [k for k, d in self.codes.items() if d["expires"] < now]
+        for key in stale[:auth.SWEEP_LIMIT]:
+            del self.codes[key]
+        self.swept += len(stale[:auth.SWEEP_LIMIT])
+
     def issue_code(self, email, code_hash):
         now = self._clock()
         today = now.date().isoformat()
+        self._sweep_expired(now)
         doc = self.codes.get(auth._email_key(email), {})
         sent = doc.get("sent_today", 0) if doc.get("day") == today else 0
         last = doc.get("sent_at")

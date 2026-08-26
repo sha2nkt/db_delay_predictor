@@ -239,6 +239,50 @@ def test_the_daily_cap_resets_the_next_day(fb):
     assert auth.issue_email_code("jonas@example.org") is not None
 
 
+def test_an_abandoned_code_is_swept_when_the_next_one_is_issued(fb):
+    """Nobody came back for this one. Redeeming deletes the document and so
+    does a later attempt, but an abandoned code has neither - so issuing
+    clears them, and the privacy notice's "the entry is deleted" holds."""
+    auth.issue_email_code("gone@example.org")
+    assert len(fb.registry.codes) == 1
+    fb.advance(minutes=auth.CODE_TTL_MINUTES + 1)
+    auth.issue_email_code("someone-else@example.org")
+    assert fb.registry.swept == 1
+    assert len(fb.registry.codes) == 1                    # only the live one
+    assert auth._email_key("gone@example.org") not in fb.registry.codes
+
+
+def test_the_sweep_spares_pending_logins_that_are_still_good(fb):
+    auth.issue_email_code("waiting@example.org")
+    code, _kind = auth.issue_email_code("other@example.org")
+    assert fb.registry.swept == 0
+    # the one still inside its window is untouched and still redeemable
+    assert auth.verify_email_code("other@example.org", code) is not None
+
+
+def test_the_sweep_is_bounded_per_issue(fb):
+    for i in range(auth.SWEEP_LIMIT + 5):
+        auth.issue_email_code(f"u{i}@example.org")
+    fb.advance(minutes=auth.CODE_TTL_MINUTES + 1)
+    auth.issue_email_code("fresh@example.org")
+    # one pass clears at most SWEEP_LIMIT, so the rest wait for the next
+    assert fb.registry.swept == auth.SWEEP_LIMIT
+
+
+def test_a_failing_sweep_never_costs_anyone_their_login(fb, monkeypatch):
+    """A Firestore hiccup while tidying must not turn into "no code for you"."""
+    def boom(_now):
+        raise RuntimeError("firestore unavailable")
+
+    monkeypatch.setattr(fb.registry, "_sweep_expired", boom)
+    with pytest.raises(RuntimeError):
+        fb.registry._sweep_expired(None)          # the fake really does raise
+    # the real registry swallows it; prove the contract on the real method
+    real = auth._Registry.__new__(auth._Registry)
+    real._db = None                                # any use of it will raise
+    real._sweep_expired(fb.now.value)              # must return quietly
+
+
 def test_a_refund_hands_back_the_cooldown_and_the_slot(fb):
     """The mail failed to send, so the retry we just told the user to make
     must actually mint a new code rather than run into the cooldown."""

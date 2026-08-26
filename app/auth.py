@@ -67,6 +67,11 @@ MAX_TRIES = 5
 RESEND_COOLDOWN_SECONDS = 60
 MAX_CODES_PER_DAY = 10
 
+# How many abandoned pending logins to clear per issued code (see
+# _Registry._sweep_expired). Well above the one document an issue can add, so
+# a backlog drains; low enough that the read cost of a sign-in stays trivial.
+SWEEP_LIMIT = 20
+
 # Claiming a name is the one write a fresh account makes; nobody legitimately
 # needs many a day, but a shared NAT (campus, office) must still let a
 # handful of people sign up.
@@ -219,6 +224,32 @@ class _Registry:
     # document ids are listable, and a collection of plaintext addresses of
     # people mid-login is not something to keep even behind deny-all rules.
 
+    def _sweep_expired(self, now: datetime) -> None:
+        """Delete pending logins nobody ever came back for. Redeeming a code
+        removes its document and so does a later attempt on an expired one,
+        but a code that is simply abandoned would otherwise sit here forever
+        - and "the entry is deleted" is what the privacy notice promises.
+
+        Runs on the back of issuing a code, which is the only moment this
+        collection grows: one issue adds at most one document, so clearing
+        SWEEP_LIMIT of them per issue drains a backlog rather than falling
+        behind, while the cap keeps a sign-in request's read cost bounded.
+        Never raises - a Firestore hiccup here must not cost somebody their
+        login, and the next issue will sweep again anyway."""
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        try:
+            stale = (
+                self._db.collection(_CODES)
+                .where(filter=FieldFilter("expire_at", "<", now))
+                .limit(SWEEP_LIMIT)
+                .stream()
+            )
+            for doc in stale:
+                doc.reference.delete()
+        except Exception as exc:  # noqa: BLE001 - see the contract above
+            log.warning("sweeping expired login codes failed: %s", exc)
+
     def issue_code(self, email: str, code_hash: str) -> bool:
         """Record a freshly minted code against this address, spending one of
         its daily allowance. False when the cooldown or the allowance says no
@@ -230,6 +261,7 @@ class _Registry:
         ref = self._db.collection(_CODES).document(_email_key(email))
         now = _now()
         today = now.date().isoformat()
+        self._sweep_expired(now)
 
         @firestore.transactional
         def run(txn):
