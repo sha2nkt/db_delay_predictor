@@ -3012,6 +3012,7 @@ const reportModal = document.getElementById("report-modal");
 const reportLoginEl = document.getElementById("report-login");
 const reportDoneEl = document.getElementById("report-done");
 const reportDoneMsgEl = document.getElementById("report-done-msg");
+const reportBookEl = document.getElementById("report-book");
 const reportStatusEl = document.getElementById("report-status");
 const reportCancelBtn = document.getElementById("report-cancel");
 // sessionStorage: the order that waits for the login page to hand the visitor back
@@ -3148,7 +3149,12 @@ function populateReportModal() {
 
   reportLoginEl.classList.toggle("hidden", reportView !== "login");
   reportDoneEl.classList.toggle("hidden", reportView !== "done");
-  if (reportView === "done") reportDoneMsgEl.textContent = t("reportDoneMsg", reportEmail);
+  if (reportView === "done") {
+    reportDoneMsgEl.textContent = t("reportDoneMsg", reportEmail);
+    // the bell only rides on one-way, future journeys, so the mask never needs
+    // an outbound leg here - the same link the card's book button carries
+    reportBookEl.href = bahnDeUrl(j, null);
+  }
   reportStatusEl.classList.toggle("ok", reportView === "cancelled");
   reportStatusEl.textContent = reportView === "busy" ? t("reportBusy")
     : reportView === "cancelled" ? t("reportCancelledMsg")
@@ -3218,6 +3224,17 @@ document.getElementById("report-login-btn").addEventListener("click", () => {
   track("report-login");
   const next = location.pathname + location.search;
   location.assign("/login?next=" + encodeURIComponent(next) + "&reason=report");
+});
+
+reportBookEl.addEventListener("click", () => {
+  const j = state.reportJourney;
+  track("book-bahn", {
+    from: state.from?.name,
+    to: state.to?.name,
+    price: j?.dticketCovered ? 0 : j?.price ?? "na",
+    trip: "oneway",
+    via: "report-modal",
+  });
 });
 
 reportCancelBtn.addEventListener("click", async () => {
