@@ -30,13 +30,6 @@ header { background: var(--brand-red); }
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .header-title { color: #fff; font-size: 18px; font-weight: 600; flex: 1; min-width: 0; }
-/* the Delay Stories wordmark is flat red on transparent: recolour it white and
-   let it sit straight on the red header instead of in the DB logo's white tile */
-.stories-header .logo {
-  background: none; padding: 0; box-shadow: none; border-radius: 0;
-  height: 48px; filter: brightness(0) invert(1);
-}
-.stories-header .header-title { font-size: 15px; }
 .header-title small { font-weight: 400; opacity: .85; }
 .tagline { display: block; font-size: 12px; font-weight: 400; font-style: italic; opacity: .8; }
 
@@ -94,8 +87,8 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
    of width and wraps them to a line of their own, the button still sits right
    beside the switches instead of being orphaned under the fields. */
 .search-actions { display: flex; align-items: center; gap: 12px; }
-/* occasional settings (D-Ticket modes, age bracket) fold away behind a plain
-   text toggle so the card's main row keeps its shape */
+/* occasional settings (age bracket, transfer time, transport modes, stopovers)
+   fold away behind a plain text toggle so the card's main row keeps its shape */
 .advanced-toggle {
   background: none; border: none; cursor: pointer; padding: 10px 0;
   font-size: 13px; font-weight: 600; color: var(--text-muted);
@@ -111,8 +104,9 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .advanced-panel.hidden { display: none; }
 
-/* the two switches read as one choice, so they sit on a line together; the
-   padding matches the inputs' so they align with the search button beside them */
+/* the two switches read as one choice, so they sit on a line together in the
+   card's main row; the padding matches the inputs' so they align with the
+   fields and the search button beside them */
 .dticket-toggles {
   display: flex; align-items: center; flex-wrap: wrap;
   gap: 8px 18px; padding: 10px 0;
@@ -628,6 +622,7 @@ body.past-mode .field-window { display: none; }
 /* neither prices, the D-Ticket filter nor a minimum transfer time figure in
    the compensation check, so the whole advanced panel goes */
 body.past-mode .advanced-toggle,
+body.past-mode .dticket-toggles,
 body.past-mode .advanced-panel { display: none; }
 /* the compensation check looks back at one journey that already happened */
 body.past-mode .return-add,
@@ -955,12 +950,6 @@ body.nudge-on #donate-footer-item { display: none; }
 
 @media (max-width: 700px) {
   .header-inner { flex-wrap: wrap; row-gap: 8px; }
-  /* the Delay Stories wordmark is wide: logo + language on row 1, title + login on row 2 */
-  .stories-header .logo { height: 32px; }
-  .stories-header .header-title { font-size: 13px; }
-  .stories-header .header-lang { order: 1; margin-left: auto; }
-  .stories-header .header-title { order: 2; flex-basis: 60%; }
-  .stories-header .header-auth { order: 3; margin-left: auto; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
   /* stacked card: the toggle centers on its line, the button spans below it */
@@ -1094,6 +1083,10 @@ body.nudge-on #donate-footer-item { display: none; }
 /* ---------- station stories (/stories) ---------- */
 
 .stories-main { max-width: 720px; }
+/* the Delay Stories wordmark, red on transparent, centred above the board */
+.stories-mark { display: block; width: fit-content; margin: 0 auto 20px; line-height: 0; }
+.stories-mark img { height: 56px; width: auto; max-width: 100%; }
+@media (max-width: 700px) { .stories-mark img { height: 40px; } }
 /* why voting is worth the tap; sits above the lists so readers see it too,
    not only the people already composing */
 .share-promise {

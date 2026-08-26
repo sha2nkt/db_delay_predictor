@@ -754,8 +754,11 @@ def test_stories_page_has_one_url_per_language(client):
     for page in (de, en):
         assert 'hreflang="de" href="https://delaybahn.com/geschichten"' in page.text
         assert 'hreflang="en" href="https://delaybahn.com/stories"' in page.text
-    assert '<a class="logo-link" href="/geschichten">' in de.text
-    assert '<a class="logo-link" href="/stories">' in en.text
+    assert '<a class="logo-link" href="/">' in de.text
+    assert '<a class="logo-link" href="/en/">' in en.text
+    assert '<a class="stories-mark" href="/geschichten">' in de.text
+    assert '<a class="stories-mark" href="/stories">' in en.text
+    assert 'src="/logo_delay_stories_wide_transparent.png" alt="Delay Stories">' in en.text
     assert '<a href="/en/" data-i18n="footerBack">' in en.text
     # English text is in the markup, not only after the script runs
     assert "<title>Delay Stories – DelayBahn</title>" in en.text
@@ -789,7 +792,7 @@ def test_a_story_has_a_permalink_page_in_each_language(client, wiring):
         assert f'<a href="/stories/{sid}" hreflang="en"' in page.text
     # the rest of the page is the board in that language, as before
     assert '<html lang="en">' in en.text
-    assert '<a class="logo-link" href="/stories">' in en.text
+    assert '<a class="stories-mark" href="/stories">' in en.text
     assert 'data-i18n="permalinkHead">Shared story<' in en.text
     # a dead link is a 404 that still carries the page, not a JSON error
     gone = client.get("/stories/999")

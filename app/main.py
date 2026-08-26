@@ -846,6 +846,8 @@ PAGE_PATHS = {
 STORIES_PATHS = {"de": "/geschichten", "en": "/stories"}
 STORIES_LOGO = {"de": "/logo_delay_stories_square_german.png",
                 "en": "/logo_delay_stories_square.png"}
+STORIES_WORDMARK = {"de": "/logo_delay_stories_wide_german_transparent.png",
+                    "en": "/logo_delay_stories_wide_transparent.png"}
 STORIES_ALT = {"de": "Delay Geschichten", "en": "Delay Stories"}
 
 OG_LOCALE = {"de": "de_DE", "en": "en_US"}
@@ -1119,7 +1121,10 @@ def _stories_html(lang: str, story: dict | None = None) -> str:
         (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{paths['de']}\g<2>"),
         (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{paths['en']}\g<2>"),
         # in-page navigation stays inside the current language
-        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
+        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{PAGE_PATHS[('future', lang)]}"),
+        (r'(<a class="stories-mark" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
+        (r'(<img id="site-logo" src=")[^"]*(" alt=")[^"]*',
+         rf"\g<1>{STORIES_WORDMARK[lang]}\g<2>{STORIES_ALT[lang]}"),
         (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{PAGE_PATHS[('future', lang)]}\g<2>"),
     ]
     if story:
