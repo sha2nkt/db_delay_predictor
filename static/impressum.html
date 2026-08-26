@@ -113,21 +113,28 @@
     <p>Auf dem Server dieser Website selbst werden keine Anmeldedaten gespeichert: Er prüft bei
     jeder Anfrage nur die Signatur des von Firebase ausgestellten Anmelde-Tokens. Gespeichert
     werden hier lediglich die zufällige Konto-Kennung, damit Stimmen und Meldungen pro Konto
-    einmal zählen, sowie der Benutzername an veröffentlichten Beiträgen. Damit ein Benutzername
-    nur einmal vergeben wird, wird die Zuordnung Benutzername&nbsp;→&nbsp;Konto-Kennung in Cloud
-    Firestore (ebenfalls Google, Speicherort Frankfurt am Main) abgelegt.</p>
+    einmal zählen, sowie der Benutzername an veröffentlichten Beiträgen. Eine Ausnahme ist der
+    Verspätungs-Report (siehe unten): Bestellen Sie einen, wird dafür auch Ihre E-Mail-Adresse
+    auf unserem Server gespeichert, bis der Report versandt oder die Bestellung storniert ist.
+    Damit ein Benutzername nur einmal vergeben wird, wird die Zuordnung
+    Benutzername&nbsp;→&nbsp;Konto-Kennung samt dem Zeitpunkt der Vergabe in Cloud Firestore
+    (ebenfalls Google, Speicherort Frankfurt am Main) abgelegt.</p>
     <p>Die Anmeldung per E-Mail-Adresse erfolgt über einen sechsstelligen Einmalcode: Firebase
     bietet für E-Mail keinen solchen Code an, daher wird er von dieser Website erzeugt und
     versendet. In Cloud Firestore werden dazu vorübergehend gespeichert: ein Hash Ihrer
-    E-Mail-Adresse als Schlüssel, ein Hash des Codes, der Ablaufzeitpunkt sowie Zähler für
-    Fehlversuche und die Zahl der an diesem Tag angeforderten Codes (Schutz vor Missbrauch und
-    vor dem Zumüllen fremder Postfächer). Der Code verfällt nach 15 Minuten; der Eintrag wird
+    E-Mail-Adresse als Schlüssel, ein Hash des Codes, der Ablaufzeitpunkt, der Zeitpunkt der
+    letzten Zusendung sowie Zähler für Fehlversuche und für die Zahl der an dem jeweiligen Tag
+    angeforderten Codes (Schutz vor Missbrauch und vor dem Zumüllen fremder Postfächer). Der Code verfällt nach 15 Minuten; der Eintrag wird
     beim Einlösen sofort gelöscht und andernfalls, sobald er abgelaufen ist, beim nächsten
     Anmeldevorgang automatisch entfernt. Im Klartext wird weder die Adresse noch der Code
     abgelegt. Für den Versand dieser E-Mails wird der Dienst Brevo (Sendinblue GmbH,
     Köpenicker Straße 126, 10179 Berlin) als Auftragsverarbeiter nach Art. 28 DSGVO eingesetzt;
     dabei wird Ihre E-Mail-Adresse an Brevo übermittelt. Weitere Informationen:
     <a href="https://www.brevo.com/de/legal/privacypolicy/" target="_blank" rel="noopener">Datenschutzerklärung von Brevo</a>.</p>
+    <p>Melden Sie sich statt mit dem Einmalcode mit einem Passwort an, versendet Firebase
+    selbst E-Mails an Ihre Adresse: eine Nachricht zur Bestätigung der Adresse und, wenn Sie es
+    anfordern, eine Nachricht zum Zurücksetzen des Passworts. Diese E-Mails verschickt Google,
+    nicht Brevo.</p>
     <p>Bei der Anmeldung per Telefonnummer setzt Google reCAPTCHA ein, um automatisierte
     Anfragen zu erkennen; dabei werden Nutzungsdaten (etwa IP-Adresse und Browserinformationen)
     an Google übermittelt. Bei der Anmeldung mit Google oder Apple gelten zusätzlich die
@@ -136,9 +143,10 @@
     gespeichert. Zum Schutz vor Missbrauch wird die Zahl der Anfragen pro IP-Adresse kurzzeitig
     nur im Arbeitsspeicher mitgezählt. Sie können Ihr Konto jederzeit löschen lassen: eine
     formlose E-Mail an <a href="mailto:kontakt@delaybahn.com">kontakt@delaybahn.com</a> genügt.
-    Dabei werden das Firebase-Konto samt Anmeldedaten und abgegebene Stimmen gelöscht; bereits
-    veröffentlichte Beiträge werden anonymisiert (der Benutzername wird entfernt) oder auf Wunsch
-    ebenfalls gelöscht.</p>
+    Dabei werden das Firebase-Konto samt Anmeldedaten, der vergebene Benutzername sowie
+    abgegebene Stimmen und Meldungen gelöscht, offene Verspätungs-Reports storniert und Ihre
+    Daten aus deren Einträgen entfernt; bereits veröffentlichte Beiträge werden anonymisiert
+    (der Benutzername wird entfernt) oder auf Wunsch ebenfalls gelöscht.</p>
     <h2 id="datenschutz-report">Verspätungs-Report per E-Mail</h2>
     <p>Über das Glocken-Symbol an einer Verbindung können Sie mit Ihrem Nutzerkonto (siehe oben)
     einen Verspätungs-Report bestellen: Nach der Fahrt vergleichen wir einmalig die angezeigte
@@ -159,10 +167,11 @@
 
     <h2>Lokale Speicherung im Browser</h2>
     <p>Im localStorage Ihres Browsers werden gespeichert: die gewählte Sprache (Deutsch/Englisch),
-    die zuletzt von Ihnen gesuchten Bahnhöfe zur schnelleren Eingabe sowie nach einer Anmeldung
-    ein Hinweis, dass ein Konto vorhanden ist; bestellen Sie einen Verspätungs-Report vor der
-    Anmeldung, wird die gewählte Verbindung bis zur Rückkehr von der Anmeldeseite im
-    sessionStorage zwischengespeichert. Diese
+    die zuletzt von Ihnen gesuchten sowie die von Ihnen mit einem Stern markierten Bahnhöfe zur
+    schnelleren Eingabe, der Hinweis, dass Sie die Einblendung zum Installieren der App
+    weggeklickt haben, sowie nach einer Anmeldung ein Hinweis, dass ein Konto vorhanden ist;
+    bestellen Sie einen Verspätungs-Report vor der Anmeldung, wird die gewählte Verbindung bis
+    zur Rückkehr von der Anmeldeseite im sessionStorage zwischengespeichert. Diese
     Speicherung ist für die jeweils gewünschte Funktion erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG) und
     bedarf keiner Einwilligung. Die Daten verbleiben in Ihrem Browser und werden nicht an den Server
     übertragen; Sie können sie jederzeit über die Einstellungen Ihres Browsers löschen. Wenn

@@ -1908,6 +1908,10 @@ async def report_subscribe(order: ReportOrder, request: Request) -> dict:
         return await anyio.to_thread.run_sync(
             reports.subscribe, user, order.lang, order.journey, order.search
         )
+    except reports.TooManyOpenReports as exc:
+        # its own status so the page can name the limit instead of refusing the
+        # journey; the count travels with it, the copy lives in the page
+        raise HTTPException(409, {"error": "too_many_open_reports", "limit": exc.limit})
     except reports.SnapshotError as exc:
         raise HTTPException(422, str(exc))
 

@@ -78,14 +78,27 @@ def test_two_accounts_may_order_the_same_journey(db):
     assert rows(db, "uid, name") == [("u-jonas", "Jonas"), ("u-mia", "")]
 
 
-def test_open_orders_per_account_are_capped(db, monkeypatch):
-    monkeypatch.setattr(reports, "MAX_OPEN_PER_ACCOUNT", 2)
-    reports.subscribe(JONAS, "de", journey(leg()), SEARCH)
-    reports.subscribe(JONAS, "de", journey(leg(fahrt_nr="599", arr_h=7)), SEARCH)
-    with pytest.raises(reports.SnapshotError):
-        reports.subscribe(JONAS, "de", journey(leg(fahrt_nr="77", arr_h=9)), SEARCH)
+def test_open_orders_per_account_are_capped(db):
+    assert reports.MAX_OPEN_PER_ACCOUNT == 3
+    for nr, hour in [("101", 6), ("599", 7), ("77", 9)]:
+        reports.subscribe(JONAS, "de", journey(leg(fahrt_nr=nr, arr_h=hour)), SEARCH)
+    with pytest.raises(reports.TooManyOpenReports) as exc:
+        reports.subscribe(JONAS, "de", journey(leg(fahrt_nr="42", arr_h=11)), SEARCH)
+    assert exc.value.limit == 3
     # the cap is per account
     assert reports.subscribe(MIA, "de", journey(leg()), SEARCH)["created"] is True
+
+
+def test_a_cancelled_order_frees_a_slot(db, monkeypatch):
+    monkeypatch.setattr(reports, "MAX_OPEN_PER_ACCOUNT", 1)
+    first = reports.subscribe(JONAS, "de", journey(leg()), SEARCH)
+    over = journey(leg(fahrt_nr="77", arr_h=9))
+    with pytest.raises(reports.TooManyOpenReports):
+        reports.subscribe(JONAS, "de", over, SEARCH)
+    # a repress on an order that is already open is never the one over the cap
+    assert reports.subscribe(JONAS, "de", journey(leg()), SEARCH)["created"] is False
+    reports.cancel("u-jonas", first["id"])
+    assert reports.subscribe(JONAS, "de", over, SEARCH)["created"] is True
 
 
 def test_mine_lists_open_orders_with_their_keys(db):

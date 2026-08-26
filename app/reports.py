@@ -30,7 +30,9 @@ DB_PATH = Path(__file__).resolve().parent.parent / "data" / "reports" / "reports
 
 MAX_LEGS = 12
 MAX_SNAPSHOT_BYTES = 50_000
-MAX_OPEN_PER_ACCOUNT = 20
+# how many journeys one account may follow at the same time; a fourth bell is
+# refused until one of the three open orders is withdrawn or sent
+MAX_OPEN_PER_ACCOUNT = 3
 # after this many days past the travel date the report is sent with whatever
 # resolved, so a pipeline outage cannot hold orders forever
 RESOLVE_TIMEOUT_DAYS = 10
@@ -77,6 +79,16 @@ _SCRUB = "uid = NULL, email = NULL, name = ''"
 
 class SnapshotError(ValueError):
     """Invalid order payload; the message is safe to show as a 422 detail."""
+
+
+class TooManyOpenReports(SnapshotError):
+    """The account already follows MAX_OPEN_PER_ACCOUNT journeys. Its own type
+    (and its own status code) because the page says "cancel one first" here,
+    which is something else than "this journey cannot be reported on"."""
+
+    def __init__(self, limit: int):
+        super().__init__(f"at most {limit} open reports per account")
+        self.limit = limit
 
 
 def _open() -> sqlite3.Connection:
@@ -181,7 +193,9 @@ def subscribe(user: dict, lang: str, journey: dict, search: dict) -> dict:
     Order a report for this account and itinerary. `user` is the dict
     auth.account() returns (uid, email, name). Validates and stores the
     snapshot; a second press on the same journey hands back the existing
-    order (`created` False) rather than a second row. Raises SnapshotError.
+    order (`created` False) rather than a second row. Raises SnapshotError,
+    or TooManyOpenReports once the account follows MAX_OPEN_PER_ACCOUNT
+    journeys at once.
     """
     tracked, travel_date = _validate(journey)
     sig = _journey_sig(user["uid"], tracked)
@@ -210,7 +224,7 @@ def subscribe(user: dict, lang: str, journey: dict, search: dict) -> dict:
             (user["uid"],),
         ).fetchone()[0]
         if open_count >= MAX_OPEN_PER_ACCOUNT:
-            raise SnapshotError("too many open reports for this account")
+            raise TooManyOpenReports(MAX_OPEN_PER_ACCOUNT)
         cur = conn.execute(
             "INSERT INTO subscriptions (uid, unsub_token, email, name, lang, journey_sig,"
             " journey_key, snapshot, travel_date, created_ts)"

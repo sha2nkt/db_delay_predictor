@@ -322,6 +322,9 @@ const I18N = {
     reportCancelBtn: "Report abbestellen",
     reportCancelledMsg: "Abbestellt – für diese Fahrt kommt kein Report.",
     reportErrInvalid: "Für diese Fahrt ist kein Report möglich.",
+    reportErrTooMany: (max) =>
+      `Mehr als ${max} Reports gleichzeitig gehen nicht. Bestell einen laufenden ab `
+      + `– dazu die Glocke der Fahrt noch einmal drücken – und versuch es hier erneut.`,
     reportErrThrottle: "Zu viele Anfragen – bitte versuch es später noch einmal.",
     reportErrGeneric: "Das hat gerade nicht geklappt – bitte versuch es später noch einmal.",
     reportModalClose: "Schließen",
@@ -589,6 +592,9 @@ const I18N = {
     reportCancelBtn: "Cancel report",
     reportCancelledMsg: "Cancelled – no report will be sent for this journey.",
     reportErrInvalid: "No report is possible for this journey.",
+    reportErrTooMany: (max) =>
+      `You can follow at most ${max} journeys at a time. Cancel one of them `
+      + `– press that journey's bell again – and then order this one.`,
     reportErrThrottle: "Too many requests – please try again later.",
     reportErrGeneric: "That didn't work right now – please try again later.",
     reportModalClose: "Close",
@@ -3028,6 +3034,10 @@ let reportSubs = new Map();  // journey key -> order id, for the signed-in accou
 let reportEmail = "";        // where the account's reports go
 let reportView = "busy";     // "busy" | "login" | "done" | "cancelled" | "error"
 let reportError = "reportErrGeneric";
+let reportErrorArgs = [];   // what that message interpolates, e.g. the open-order cap
+// mirrors MAX_OPEN_PER_ACCOUNT in app/reports.py; only a fallback, the refusal
+// itself carries the server's live number
+const REPORT_MAX_OPEN = 3;
 
 // a leg is resolvable after the trip iff normalize_leg attached a delayStats key
 // (even a null one); walks and untracked products never carry it
@@ -3112,6 +3122,8 @@ async function reportApi(user, path, opts = {}) {
   if (!resp.ok) {
     const err = new Error("http " + resp.status);
     err.status = resp.status;
+    // refusals that the page has something to say about send a detail object
+    err.detail = await resp.json().then((b) => b.detail).catch(() => null);
     throw err;
   }
   return resp.status === 204 ? null : resp.json();
@@ -3169,13 +3181,13 @@ function populateReportModal() {
   reportStatusEl.classList.toggle("ok", reportView === "cancelled");
   reportStatusEl.textContent = reportView === "busy" ? t("reportBusy")
     : reportView === "cancelled" ? t("reportCancelledMsg")
-    : reportView === "error" ? t(reportError)
+    : reportView === "error" ? t(reportError, ...reportErrorArgs)
     : "";
 }
 
-function setReportView(view, errorKey) {
+function setReportView(view, errorKey, ...args) {
   reportView = view;
-  if (errorKey) reportError = errorKey;
+  if (errorKey) { reportError = errorKey; reportErrorArgs = args; }
   populateReportModal();
 }
 
@@ -3211,6 +3223,11 @@ async function orderReport(account, journey, search) {
   } catch (e) {
     // no account after all, or one short of a proven address: the login page knows which
     if (e.status === 401 || e.status === 403) { setReportView("login"); return; }
+    // the account already follows as many journeys as it may at once
+    if (e.status === 409) {
+      setReportView("error", "reportErrTooMany", e.detail?.limit ?? REPORT_MAX_OPEN);
+      return;
+    }
     setReportView("error", e.status === 422 ? "reportErrInvalid"
       : e.status === 429 ? "reportErrThrottle" : "reportErrGeneric");
   }

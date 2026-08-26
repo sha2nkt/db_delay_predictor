@@ -93,6 +93,21 @@ def test_an_unusable_journey_is_422(client, wiring):
     assert resp.status_code == 422
 
 
+def test_a_fourth_open_order_is_409_naming_the_cap(client, wiring):
+    headers = bearer(wiring.token("t1", uid="u1"))
+    for nr, hour in [("101", 6), ("599", 7), ("77", 9)]:
+        payload = {"lang": "en", "journey": journey(leg(fahrt_nr=nr, arr_h=hour)), "search": SEARCH}
+        assert client.post("/api/reports/subscribe", json=payload, headers=headers).status_code == 200
+    over = {"lang": "en", "journey": journey(leg(fahrt_nr="42", arr_h=11)), "search": SEARCH}
+    resp = client.post("/api/reports/subscribe", json=over, headers=headers)
+    assert resp.status_code == 409
+    # the page names the number it refuses on, so the copy needs it back
+    assert resp.json()["detail"] == {"error": "too_many_open_reports", "limit": 3}
+    # another account is untouched by it
+    other = bearer(wiring.token("t2", uid="u2"))
+    assert client.post("/api/reports/subscribe", json=over, headers=other).status_code == 200
+
+
 def test_the_unsubscribe_link_needs_no_login(client, wiring):
     headers = bearer(wiring.token("t1", uid="u1"))
     client.post("/api/reports/subscribe", json=order("en"), headers=headers)
