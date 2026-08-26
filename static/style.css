@@ -954,7 +954,13 @@ body.nudge-on #donate-footer-item { display: none; }
   .search-card { flex-direction: column; align-items: stretch; }
   /* stacked card: the toggle centers on its line, the button spans below it */
   .search-actions { flex-direction: column; align-items: stretch; gap: 4px; }
-  .advanced-toggle { justify-content: center; }
+  /* the switch row and the toggle each carry the padding that aligns them with
+     the inputs beside them on desktop; stacked they sit on top of the card's own
+     12px gap and open a hole, so the padding moves onto the labels, where it
+     still buys a finger-sized tap target */
+  .advanced-toggle { justify-content: center; padding: 2px 0 10px; }
+  .dticket-toggles { padding: 0; }
+  .dticket-toggle { padding: 6px 0; }
   .field input, .field select, .transport-btn { min-width: 0; width: 100%; }
   /* stacked card: split the line evenly so the pair keeps matching boxes even
      though their labels are different lengths */
