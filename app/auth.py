@@ -244,9 +244,16 @@ class _Registry:
                 return False
             if last is not None and (now - _parse(last)).total_seconds() < RESEND_COOLDOWN_SECONDS:
                 return False
+            expires = now + timedelta(minutes=CODE_TTL_MINUTES)
             txn.set(ref, {
                 "code_hash": code_hash,
-                "expires": _iso(now + timedelta(minutes=CODE_TTL_MINUTES)),
+                "expires": _iso(expires),
+                # the same instant as a real Timestamp, for the Firestore TTL
+                # policy on this collection: redeeming deletes the document
+                # and so does a later attempt, but a code that is simply
+                # abandoned would otherwise sit here forever, and "the entry
+                # is deleted" is what the privacy notice promises
+                "expire_at": expires,
                 "tries": 0,
                 "sent_at": _iso(now),
                 "day": today,
