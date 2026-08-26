@@ -49,6 +49,7 @@
       <button type="submit" class="search-btn auth-primary" data-i18n="continue">Weiter</button>
     </form>
     <p id="choose-status" class="auth-status" role="status"></p>
+    <p class="auth-note" data-i18n="chooseNote">Deine Anmeldedaten verwaltet Firebase (Google) – auf unserem Server landen sie nicht. Öffentlich erscheint nur dein selbst gewählter Benutzername; Werbung gibt es keine.</p>
   </section>
 
   <!-- 2. the emailed six-digit code: the default way in for an address -->
@@ -158,5 +159,20 @@
   <a href="/impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a>
 </footer>
 <script type="module" src="/login.js?v=11"></script>
+
+<pre id="probe" style="position:fixed;top:0;left:0;z-index:9999;background:#fff;font:11px monospace"></pre>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  const de = document.documentElement, vw = de.clientWidth;
+  const out = ["viewport=" + vw + " scrollWidth=" + de.scrollWidth];
+  document.querySelectorAll("*").forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.right > vw + 0.5 || r.width > vw + 0.5) {
+      out.push(`${el.tagName}${el.id ? "#" + el.id : ""}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/).join(".") : ""} w=${r.width.toFixed(0)} right=${r.right.toFixed(0)}`);
+    }
+  });
+  document.getElementById("probe").textContent = out.slice(0, 14).join("\n");
+}, 600));
+</script>
 </body>
 </html>

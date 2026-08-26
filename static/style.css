@@ -1602,6 +1602,20 @@ body.nudge-on #donate-footer-item { display: none; }
   align-self: stretch; width: 100%; min-height: 48px; border-radius: 999px; font-size: 15px;
 }
 .auth-modal .field input { min-height: 48px; border-radius: 999px; padding: 0 18px; font-size: 15px; }
+/* The emailed code, on the modal card: full width like the button beneath it,
+   rather than the narrow pill .code-input sizes for the SMS card. The wide
+   letter-spacing is for six digits and would spell the placeholder out as
+   "C o d e", so the placeholder resets it - and the matching text-indent
+   offsets the trailing space so the digits sit optically centred. */
+.auth-modal .code-input {
+  max-width: none; width: 100%;
+  font-size: 24px; font-weight: 600; letter-spacing: 10px; text-indent: 10px;
+}
+.auth-modal .code-input::placeholder {
+  font-size: 15px; font-weight: 400; letter-spacing: normal;
+}
+/* everything else on this card is centred, so the resend line is too */
+.auth-modal .auth-resend { display: block; width: 100%; text-align: center; margin-top: 14px; }
 .auth-modal .auth-note { margin-top: 12px; }
 /* the two ways on from a password that did not fit: create, or reset */
 .auth-alt { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; align-items: flex-start; }
