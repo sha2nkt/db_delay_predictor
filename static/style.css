@@ -1061,6 +1061,13 @@ body.nudge-on #donate-footer-item { display: none; }
   .header-inner:not(.header-home) .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
   .header-title { font-size: 15px; }
   .header-title small { display: none; }
+  /* the stories header carries the account corner as well: four items on one
+     line squeeze the title down to a word per line, so the title keeps the row
+     beside the logo and the account corner drops to a second, right-aligned row
+     with the language switch; a long name is clipped so the row still fits */
+  .header-stories { justify-content: flex-end; }
+  .header-stories .header-title { flex-basis: calc(100% - 100px); }
+  .header-stories .auth-user strong { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .controls { flex-wrap: wrap; }
 
