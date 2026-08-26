@@ -29,17 +29,16 @@ const I18N = {
     resendBtn: "E-Mail erneut senden",
     resendWait: "Erneut senden in {s} s",
     resent: "Neue E-Mail ist unterwegs – sie enthält einen neuen Code.",
-    passwordHeading: "Passwort",
-    changeEmail: "Adresse ändern",
+    passwordHeading: "Passwort eingeben",
+    editEmail: "Ändern",
     password: "Passwort",
     loginBtn: "Anmelden",
-    createBtn: "Neues Konto mit dieser Adresse erstellen",
     forgotBtn: "Passwort vergessen?",
-    backToCode: "Lieber einen Code per E-Mail",
+    withCode: "Mit Einmalcode anmelden",
+    showPassword: "Passwort anzeigen",
+    hidePassword: "Passwort verbergen",
     errPassword: "Falsches Passwort – oder noch kein Konto? Dann erstelle unten eins.",
-    errExists: "Zu dieser Adresse gibt es schon ein Konto: Melde dich mit deinem Passwort an oder setze es zurück.",
     errOtherProvider: "Zu dieser Adresse gibt es schon ein Konto mit einer anderen Anmeldeart – probier es mit Google oder Apple.",
-    errWeak: "Das Passwort braucht mindestens 8 Zeichen.",
     errEmail: "Das sieht nicht nach einer E-Mail-Adresse aus.",
     resetSent: "Wir haben dir eine E-Mail zum Zurücksetzen des Passworts geschickt (auch im Spam-Ordner nachsehen).",
     verifyHeading: "E-Mail-Adresse bestätigen",
@@ -99,17 +98,16 @@ const I18N = {
     resendBtn: "Resend email",
     resendWait: "Resend in {s} s",
     resent: "A new email is on its way – it carries a new code.",
-    passwordHeading: "Password",
-    changeEmail: "Change address",
+    passwordHeading: "Enter your password",
+    editEmail: "Edit",
     password: "Password",
     loginBtn: "Log in",
-    createBtn: "Create a new account with this address",
     forgotBtn: "Forgot your password?",
-    backToCode: "Email me a code instead",
+    withCode: "Log in with a one-time code",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
     errPassword: "Wrong password – or no account yet? Then create one below.",
-    errExists: "This address already has an account: log in with your password, or reset it.",
     errOtherProvider: "This address already has an account with a different sign-in method – try Google or Apple.",
-    errWeak: "The password needs at least 8 characters.",
     errEmail: "That doesn't look like an email address.",
     resetSent: "We've sent you an email to reset your password (check the spam folder too).",
     verifyHeading: "Confirm your email address",
@@ -196,13 +194,8 @@ function errorKey(e) {
     case "auth/wrong-password":
     case "auth/user-not-found":
       return "errPassword";
-    case "auth/email-already-in-use":
-      return "errExists";
     case "auth/account-exists-with-different-credential":
       return "errOtherProvider";
-    case "auth/weak-password":
-    case "auth/password-does-not-meet-requirements":
-      return "errWeak";
     case "auth/invalid-email":
     case "auth/missing-email":
       return "errEmail";
@@ -255,6 +248,7 @@ function applyStatic() {
   // glyph-only button: its accessible name has nowhere to live but here
   shuffleBtn.title = t("shuffleTitle");
   shuffleBtn.setAttribute("aria-label", t("shuffleTitle"));
+  setReveal($("password-input").type === "text");
   renderName();
   // the lines built at runtime rather than from data-i18n
   if (email) {
@@ -480,7 +474,6 @@ $("email-code-form").addEventListener("submit", (ev) => {
 });
 
 $("to-password").addEventListener("click", () => {
-  $("password-email").textContent = email;
   $("password-username").value = email;
   $("password-input").value = "";
   say("password-status", null);
@@ -492,6 +485,24 @@ $("to-password").addEventListener("click", () => {
 $("change-email").addEventListener("click", () => {
   showView("choose");
   $("email-input").focus();
+});
+
+/* Reveal the password. The eye is the only control here without a visible
+   label, so its accessible name carries the state and follows the language. */
+const pwToggle = $("pw-toggle");
+
+function setReveal(on) {
+  $("password-input").type = on ? "text" : "password";
+  pwToggle.setAttribute("aria-pressed", String(on));
+  $("pw-slash").classList.toggle("hidden", on);
+  const label = t(on ? "hidePassword" : "showPassword");
+  pwToggle.title = label;
+  pwToggle.setAttribute("aria-label", label);
+}
+
+pwToggle.addEventListener("click", () => {
+  setReveal($("password-input").type === "password");
+  $("password-input").focus();
 });
 $("back-to-code").addEventListener("click", () => showView("emailCode"));
 
@@ -505,21 +516,6 @@ $("password-form").addEventListener("submit", (ev) => {
     const cred = await fb.signInWithEmailAndPassword(fb.auth, email, $("password-input").value);
     track("login-password");
     await route(cred.user, true);
-  });
-});
-
-$("create-btn").addEventListener("click", () => {
-  const password = $("password-input").value;
-  if (password.length < 8) {
-    say("password-status", "errWeak");
-    $("password-input").focus();
-    return;
-  }
-  withForm("password-form", "password-status", async () => {
-    const cred = await fb.createUserWithEmailAndPassword(fb.auth, email, password);
-    track("register");
-    await sendVerification(cred.user);
-    await route(cred.user, false);
   });
 });
 

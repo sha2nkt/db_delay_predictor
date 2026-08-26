@@ -1616,6 +1616,40 @@ body.nudge-on #donate-footer-item { display: none; }
 }
 /* everything else on this card is centred, so the resend line is too */
 .auth-modal .auth-resend { display: block; width: 100%; text-align: center; margin-top: 14px; }
+
+/* A control sharing one pill with its input: the border moves to the row, so
+   the "Edit" link and the reveal eye sit inside it rather than beside it -
+   the same trick .name-row uses on the username field. */
+.auth-modal .input-row {
+  display: flex; align-items: center; gap: 4px; min-height: 48px;
+  border: 1px solid var(--gray-border); border-radius: 999px;
+  background: #fff; padding-right: 14px;
+}
+.auth-modal .input-row:focus-within { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.auth-modal .input-row input {
+  flex: 1 1 auto; min-width: 0; border: none; background: none;
+  min-height: 46px; padding: 0 18px; font-size: 15px; border-radius: 999px;
+}
+.auth-modal .input-row input:focus { outline: none; }
+/* the address is settled by the time this card opens: it reads as a
+   statement of which account is being signed into, not a field to fill */
+.auth-modal .input-row input[readonly] { color: var(--text-muted); }
+.auth-modal .input-row .link-btn { flex: none; font-weight: 600; text-decoration: none; }
+.auth-modal .input-row .link-btn:hover { text-decoration: underline; }
+.pw-toggle {
+  flex: none; background: none; border: none; cursor: pointer;
+  color: var(--text-muted); padding: 6px; line-height: 0;
+}
+.pw-toggle:hover { color: var(--text); }
+.pw-toggle svg { width: 20px; height: 20px; display: block; }
+.pw-toggle .hidden { display: none; }
+/* sits under the field it belongs to, rather than among the card's footer
+   actions where it would compete with the way back to the code */
+.pw-forgot {
+  align-self: flex-start; margin: -4px 0 2px;
+  font-weight: 600; text-decoration: none;
+}
+.pw-forgot:hover { text-decoration: underline; }
 .auth-modal .auth-note { margin-top: 12px; }
 /* the two ways on from a password that did not fit: create, or reset */
 .auth-alt { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; align-items: flex-start; }
