@@ -6,7 +6,17 @@
    alternative underneath. Whatever the route, it ends as an ordinary Firebase
    session, and a visitor who left half-way - code unentered, mail unclicked,
    name unchosen - lands back on exactly the step they are missing. */
-import * as fb from "/firebase.js?v=1";
+import { providers } from "/firebase-config.js?v=1";
+
+/* The SDK comes from gstatic, and a static import of it would gate this whole
+   module on that download - which is exactly what made the card paint in the
+   wrong language, with buttons for providers that are switched off, for as
+   long as the network took. Only the local config is imported statically, so
+   the page renders itself immediately; the SDK is fetched alongside and every
+   entry point that needs it awaits `ready` first. Nothing here runs before a
+   click except init(), so the wait is never visible. */
+let fb = null;
+const ready = import("/firebase.js?v=1").then((mod) => (fb = mod));
 
 const I18N = {
   de: {
@@ -260,7 +270,7 @@ function applyStatic() {
   }
   renderResend(mailResend);
   renderResend(verifyResend);
-  if (fb.auth) fb.auth.languageCode = lang;  // Firebase's own mails and popups
+  if (fb?.auth) fb.auth.languageCode = lang;  // Firebase's own mails and popups
 }
 
 document.querySelectorAll(".lang-btn").forEach((btn) => {
@@ -304,6 +314,7 @@ async function route(user, refresh) {
 }
 
 async function signOutHere() {
+  await ready;
   try { await fb.signOut(fb.auth); } catch (e) { /* the state reload sorts it out */ }
   fb.remember(false);
   pendingUser = null;
@@ -336,6 +347,7 @@ const shown = () => ({ code: "shown" });   // the handler already wrote the line
 /* -- Google and Apple ------------------------------------------------------- */
 
 async function withProvider(kind, btn) {
+  await ready;
   let provider;
   if (kind === "google") {
     provider = new fb.GoogleAuthProvider();
@@ -465,6 +477,7 @@ $("email-code-form").addEventListener("submit", (ev) => {
       throw shown();
     }
     // the code bought a custom token; from here it is an ordinary session
+    await ready;
     const cred = await fb.signInWithCustomToken(fb.auth, (await resp.json()).token);
     track("login-email-code");
     await route(cred.user, true);
@@ -511,6 +524,7 @@ const backHere = () => ({ url: location.origin + "/login" });
 $("password-form").addEventListener("submit", (ev) => {
   ev.preventDefault();
   withForm("password-form", "password-status", async () => {
+    await ready;
     const cred = await fb.signInWithEmailAndPassword(fb.auth, email, $("password-input").value);
     track("login-password");
     await route(cred.user, true);
@@ -519,6 +533,7 @@ $("password-form").addEventListener("submit", (ev) => {
 
 $("forgot-btn").addEventListener("click", () => {
   withForm("password-form", "password-status", async () => {
+    await ready;
     await fb.sendPasswordResetEmail(fb.auth, email, backHere());
     say("password-status", "resetSent", true);
     throw shown();
@@ -528,6 +543,7 @@ $("forgot-btn").addEventListener("click", () => {
 /* -- the verification mail a password sign-up needs ------------------------ */
 
 async function sendVerification(user) {
+  await ready;
   await fb.sendEmailVerification(user, backHere());
   startCooldown(verifyResend, RESEND_FALLBACK_SECONDS);
 }
@@ -590,7 +606,8 @@ $("phone-form").addEventListener("submit", (ev) => {
   withForm("phone-form", "phone-status", async () => {
     const number = normalizePhone($("phone-input").value);
     try {
-      confirmation = await fb.signInWithPhoneNumber(fb.auth, number, verifier());
+      await ready;
+    confirmation = await fb.signInWithPhoneNumber(fb.auth, number, verifier());
     } catch (e) {
       dropVerifier();
       throw e;
@@ -683,6 +700,7 @@ nameInput.addEventListener("input", renderName);
 $("name-form").addEventListener("submit", (ev) => {
   ev.preventDefault();
   withForm("name-form", "name-status", async () => {
+    await ready;
     const user = fb.auth.currentUser;
     const resp = await fetch("/api/auth/handle", {
       method: "POST",
@@ -715,18 +733,22 @@ $("name-form").addEventListener("submit", (ev) => {
 
 /* -- start ------------------------------------------------------------------ */
 
+// Which ways in exist is local knowledge, so the card is right on the first
+// paint rather than after a round trip to gstatic.
+["google", "apple", "phone"].forEach((kind) => {
+  $("sso-" + kind).classList.toggle("hidden", !providers[kind]);
+});
+$("auth-or").classList.toggle("hidden", !Object.values(providers).some(Boolean));
+showView("choose");
+
 async function init() {
+  await ready;
   if (!fb.auth) {
     document.querySelectorAll(".sso-btn, #email-form button").forEach((b) => { b.disabled = true; });
-    showView("choose");
     say("choose-status", "errUnconfigured");
     return;
   }
-  ["google", "apple", "phone"].forEach((kind) => {
-    $("sso-" + kind).classList.toggle("hidden", !fb.providers[kind]);
-  });
-  $("auth-or").classList.toggle("hidden", !Object.values(fb.providers).some(Boolean));
-  showView("choose");
+  fb.auth.languageCode = lang;
   try {
     await fb.getRedirectResult(fb.auth);  // the popup-blocked fallback landing
   } catch (e) {
