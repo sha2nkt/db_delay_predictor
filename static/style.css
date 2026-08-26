@@ -147,7 +147,9 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
   align-self: flex-end;
   background: #fff; border: 1px dashed var(--gray-border); border-radius: 4px;
   color: var(--brand-red); font-family: inherit; font-size: 13px; font-weight: 600;
-  padding: 11px 14px; cursor: pointer; white-space: nowrap;
+  /* 13px text sits in a shorter line box than the 15px selects these buttons
+     stand beside, so the line-height is pinned to leave every box 41px tall */
+  padding: 11px 14px; line-height: 17px; cursor: pointer; white-space: nowrap;
 }
 .return-add:hover, .stopover-add:hover, .traveller-add:hover { border-color: var(--brand-red); background: color-mix(in srgb, var(--brand-red) 4%, #fff); }
 .return-add.hidden, .stopover-add.hidden { display: none; }
@@ -1738,8 +1740,8 @@ body.nudge-on #donate-footer-item { display: none; }
   background: #fff; border: 1px solid var(--gray-border); border-radius: 4px;
   color: var(--text); font-family: inherit; font-size: 15px;
   /* a select's inner line box is taller than a button's at the same font size;
-     1.25 buys back the 2px so the two boxes end up the same height */
-  padding: 10px 12px; line-height: 1.25; text-align: left;
+     pinning the line-height buys back the 2px so the two boxes end up the same height */
+  padding: 10px 12px; line-height: 19px; text-align: left;
   cursor: pointer; white-space: nowrap;
 }
 .transport-btn:hover { border-color: var(--text-muted); }
