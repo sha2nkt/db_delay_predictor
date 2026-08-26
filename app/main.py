@@ -598,6 +598,33 @@ def compensation_pct(arrival_delay: int | None) -> int | None:
     return 50 if arrival_delay >= 120 else 25 if arrival_delay >= 60 else 0
 
 
+def _parse_travellers(raw: str | None, age: str) -> tuple[tuple[str, int, str], ...]:
+    """The search mask's traveler list: "<age>:<count>:<discount>" per entry,
+    comma-separated, e.g. "adult:2:bc25-2,child:1:none". Links and cached
+    frontends from before the list existed carry a single `age` instead.
+
+    Entries sharing an age and a discount are merged so that equivalent parties
+    share one cache entry, the way the product filter is normalized."""
+    if not raw:
+        return ((age, 1, "none"),)
+    merged: dict[tuple[str, str], int] = {}
+    for entry in raw.split(","):
+        parts = entry.split(":")
+        if len(parts) != 3:
+            raise HTTPException(422, "travellers entries must be <age>:<count>:<discount>")
+        t_age, count, discount = parts
+        if t_age not in bahn_api.TRAVELLER_TYPES:
+            raise HTTPException(422, f"unknown traveller age: {t_age}")
+        if discount not in bahn_api.DISCOUNTS:
+            raise HTTPException(422, f"unknown discount: {discount}")
+        if not count.isdigit() or not 1 <= int(count) <= bahn_api.MAX_TRAVELLERS:
+            raise HTTPException(422, f"traveller count must be 1-{bahn_api.MAX_TRAVELLERS}")
+        merged[(t_age, discount)] = merged.get((t_age, discount), 0) + int(count)
+    if sum(merged.values()) > bahn_api.MAX_TRAVELLERS:
+        raise HTTPException(422, f"at most {bahn_api.MAX_TRAVELLERS} travellers")
+    return tuple((t_age, count, discount) for (t_age, discount), count in merged.items())
+
+
 @app.get("/api/journeys")
 async def journeys(
     request: Request,
@@ -610,6 +637,7 @@ async def journeys(
     mode: str = Query("future"),
     dticket: str = Query("0"),
     age: str = Query("adult"),
+    travellers_raw: str | None = Query(None, alias="travellers"),
     transfer: int = Query(0),
     via1: str | None = Query(None),
     via1_stay: int = Query(0, alias="via1Stay", ge=0, le=1439),
@@ -625,6 +653,7 @@ async def journeys(
         raise HTTPException(422, "mode must be future or past")
     if age not in bahn_api.TRAVELLER_TYPES:
         raise HTTPException(422, "age must be adult, senior, young, child or toddler")
+    travellers = _parse_travellers(travellers_raw, age)
     # bahn.de's "Verkehrsmittel" filter: a comma-separated subset of the product
     # list. Normalized to canonical order so equivalent selections share a cache
     # entry; the full set (or none) means unfiltered.
@@ -654,9 +683,9 @@ async def journeys(
     # time would hide the tight connection someone actually took
     if past:
         dticket = "off"
-        # prices play no part in the compensation check, so the traveler's age
-        # bracket doesn't either; pinning it keeps past searches on one cache entry
-        age = "adult"
+        # prices play no part in the compensation check, so who is travelling
+        # doesn't either; pinning it keeps past searches on one cache entry
+        travellers = bahn_api.DEFAULT_TRAVELLERS
         transfer = 0
     # stopovers are a planning tool; the past check inspects one journey that
     # already happened, so the frontend hides them there like the return trip
@@ -664,7 +693,7 @@ async def journeys(
         (via, stay) for via, stay in ((via1, via1_stay), (via2, via2_stay)) if via)
     try:
         data, stale_age = await bahn_api.journeys(
-            from_id, to_id, departure, paging_ref, dticket, age, transfer, vias, product_filter)
+            from_id, to_id, departure, paging_ref, dticket, travellers, transfer, vias, product_filter)
     except bahn_api.UpstreamError as e:
         raise _upstream_http_error(e)
     if stale_age:

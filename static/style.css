@@ -59,17 +59,30 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 /* the Umstiegszeit select and the Verkehrsmittel picker read as one pair, so they
    share a width — and it is the age select's, so the two rows line up */
 .field-transfer select, .transport-btn { min-width: 150px; }
-/* Umstiegszeit and the Verkehrsmittel picker share a line of their own under the
-   age select and the D-Ticket switches; flex-start keeps each control at its
+/* Umstiegszeit, the Verkehrsmittel picker and the stopover block share a line of
+   their own under the traveller rows; flex-start keeps each control at its
    natural width instead of stretching across the row */
 .advanced-row {
   flex-basis: 100%;
   display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px;
 }
 .field-transfer, .field-transport { align-items: flex-start; }
-/* sized by its longest option label, not the 200px input default */
+/* each sized by its longest option label, not the 200px input default */
+.field-count select { min-width: 72px; }
 .field-age select { min-width: 150px; }
+.field-discount select { min-width: 190px; }
 .field input:focus, .field select:focus { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+
+/* the bahn.de mask's traveller line: count, age bracket and discount. The default
+   party is a single row, so the add button trails it on the same line; a second
+   traveller makes the rows a list and pushes the button underneath. */
+.traveller-fields {
+  flex-basis: 100%;
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;
+}
+.traveller-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.traveller-fields.multi .traveller-row { flex-basis: 100%; }
+.traveller-remove.hidden, .traveller-add.hidden { display: none; }
 
 #swap {
   background: #fff; border: 1px solid var(--gray-border); border-radius: 4px;
@@ -130,27 +143,32 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .dticket-toggle input:checked + .dticket-switch::after { left: 18px; }
 .dticket-toggle input:focus-visible + .dticket-switch { outline: 2px solid var(--brand-red); outline-offset: 2px; }
 
-.return-add, .stopover-add {
+.return-add, .stopover-add, .traveller-add {
   align-self: flex-end;
   background: #fff; border: 1px dashed var(--gray-border); border-radius: 4px;
   color: var(--brand-red); font-family: inherit; font-size: 13px; font-weight: 600;
   padding: 11px 14px; cursor: pointer; white-space: nowrap;
 }
-.return-add:hover, .stopover-add:hover { border-color: var(--brand-red); background: color-mix(in srgb, var(--brand-red) 4%, #fff); }
+.return-add:hover, .stopover-add:hover, .traveller-add:hover { border-color: var(--brand-red); background: color-mix(in srgb, var(--brand-red) 4%, #fff); }
 .return-add.hidden, .stopover-add.hidden { display: none; }
 
 .return-fields { display: flex; gap: 12px; align-items: flex-end; }
 .return-fields.hidden { display: none; }
-.return-remove, .stopover-remove {
+.return-remove, .stopover-remove, .traveller-remove {
   background: none; border: none; color: var(--text-muted); font-family: inherit;
   font-size: 15px; line-height: 1; cursor: pointer; padding: 11px 6px; border-radius: 4px;
 }
-.return-remove:hover, .stopover-remove:hover { background: var(--gray-bg); color: var(--text); }
+.return-remove:hover, .stopover-remove:hover, .traveller-remove:hover { background: var(--gray-bg); color: var(--text); }
 /* stacked on mobile the bare glyph loses its context, so it gets a label there */
-.return-remove-label, .stopover-remove-label { display: none; }
+.return-remove-label, .stopover-remove-label, .traveller-remove-label { display: none; }
 
-/* stopovers take the last full row of the advanced-options panel */
-.stopover-fields { flex-basis: 100%; display: flex; flex-direction: column; gap: 10px; }
+/* Stopovers close the advanced-options panel's last row, beside Umstiegszeit and
+   the Verkehrsmittel picker: while the block is just its add button it is narrow
+   enough to sit there, and a revealed row — or a round trip's second group — takes
+   the width it needs by claiming a line of its own again. */
+.stopover-fields { display: flex; flex-direction: column; gap: 10px; }
+.advanced-row > .stopover-fields:has(.stopover-row:not(.hidden)),
+.advanced-row > .stopover-fields:has(#stopover-group-return:not(.hidden)) { flex-basis: 100%; }
 .stopover-group { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .stopover-group.hidden { display: none; }
 .stopover-group-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
@@ -965,19 +983,28 @@ body.nudge-on #donate-footer-item { display: none; }
   /* stacked card: split the line evenly so the pair keeps matching boxes even
      though their labels are different lengths */
   .advanced-row .field { flex: 1 1 0; }
+  /* stacked card: the count keeps only the width its single digit needs, the age
+     bracket takes the rest of the line and the discount wraps under the pair */
+  .traveller-row { flex-basis: 100%; }
+  .field-count { flex: 0 0 76px; }
+  .field-age { flex: 1 1 0; }
+  .field-discount { flex: 1 1 100%; }
   #swap { align-self: center; }
-  .return-add, .stopover-add { align-self: stretch; text-align: center; }
+  /* stacked, the transfer/transport pair already fills the line, so the stopover
+     block goes back under them whatever it currently holds */
+  .advanced-row > .stopover-fields { flex-basis: 100%; }
+  .return-add, .stopover-add, .traveller-add { align-self: stretch; text-align: center; }
   .return-fields, .stopover-row { flex-direction: column; align-items: stretch; }
   .stopover-group { align-items: stretch; }
   .stay-stepper { min-width: 0; }
   .stay-step { width: 44px; }
   .stay-stepper .stay-part, .stay-stepper .stay-unit, .stay-stepper .stay-sep { display: none; }
   .stay-stepper input.stay-time { display: block; }
-  .return-remove, .stopover-remove {
+  .return-remove, .stopover-remove, .traveller-remove {
     align-self: flex-end; padding: 6px 4px;
     display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
   }
-  .return-remove-label, .stopover-remove-label { display: inline; }
+  .return-remove-label, .stopover-remove-label, .traveller-remove-label { display: inline; }
   .trip-stepper { flex-direction: column; }
   .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
   .header-title { font-size: 15px; }

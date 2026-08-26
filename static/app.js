@@ -21,7 +21,7 @@ const state = {
   sort: "departure",
   windowUsed: 7,  // stats window that produced the current results
   dticketUsed: "off",  // D-Ticket mode of the current results: "off" | "all" | "only"
-  ageUsed: "adult",  // age bracket the current results' prices were fetched for
+  travellersUsed: [{ count: 1, age: "adult", discount: "none" }],  // party the current results' prices were fetched for
   departure: null,  // departure ISO of the current search (reused for paging)
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
@@ -170,6 +170,19 @@ const I18N = {
     ageYoung: "Person (15-26 Jahre)",
     ageChild: "Kind (6-14 Jahre)",
     ageToddler: "Kind (0-5 Jahre)",
+    travellerCount: "Anzahl Reisende",
+    travellerAdd: "+ Reisende hinzufügen",
+    travellerRemoveTitle: "Reisende entfernen",
+    travellerMaxTooltip: (max) => `Für mehr als ${max} Reisende bietet bahn.de eine eigene Gruppenbuchung an`,
+    discount: "Ermäßigung",
+    discountNone: "keine Ermäßigung",
+    discountBc25Second: "BahnCard 25, 2. Klasse",
+    discountBc25First: "BahnCard 25, 1. Klasse",
+    discountBc50Second: "BahnCard 50, 2. Klasse",
+    discountBc50First: "BahnCard 50, 1. Klasse",
+    discountBc100Second: "BahnCard 100, 2. Klasse",
+    discountBc100First: "BahnCard 100, 1. Klasse",
+    discountNoneToddlerTooltip: "Kinder von 0-5 Jahren reisen kostenfrei – eine Ermäßigung gibt es dafür nicht",
     transportTitle: "Verkehrsmittel",
     transportTooltip: "Nach Verkehrsmitteln filtern",
     transportSection: "Streckenabschnitt",
@@ -401,6 +414,19 @@ const I18N = {
     ageYoung: "Person (aged 15-26)",
     ageChild: "Child (aged 6-14)",
     ageToddler: "Child (aged 0-5)",
+    travellerCount: "Number of travellers",
+    travellerAdd: "+ Add travellers",
+    travellerRemoveTitle: "Remove travellers",
+    travellerMaxTooltip: (max) => `For parties of more than ${max}, bahn.de has a group booking of its own`,
+    discount: "Discount",
+    discountNone: "no discount",
+    discountBc25Second: "BahnCard 25, 2nd class",
+    discountBc25First: "BahnCard 25, 1st class",
+    discountBc50Second: "BahnCard 50, 2nd class",
+    discountBc50First: "BahnCard 50, 1st class",
+    discountBc100Second: "BahnCard 100, 2nd class",
+    discountBc100First: "BahnCard 100, 1st class",
+    discountNoneToddlerTooltip: "Children aged 0-5 travel free of charge, so there is no discount to pick",
     transportTitle: "Mode of transport",
     transportTooltip: "Filter by mode of transport",
     transportSection: "Route section",
@@ -698,6 +724,15 @@ function setStatus(key, ...params) {
   statusEl.textContent = key ? t(key, ...params) : "";
 }
 
+// markup cloned from a <template> after load misses the page-wide pass in
+// applyLang, so translating takes a root: the document there, the fresh row here
+function translateSubtree(root) {
+  root.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  root.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  root.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+  root.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.ariaLabel = t(el.dataset.i18nAria); });
+}
+
 function applyLang(lang) {
   state.lang = lang;
   localStorage.setItem("lang", lang);
@@ -707,13 +742,11 @@ function applyLang(lang) {
   document.querySelectorAll(".lang-btn").forEach((b) =>
     b.classList.toggle("active", b.dataset.lang === lang));
 
-  document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
-  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
-  document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); });
-  document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.ariaLabel = t(el.dataset.i18nAria); });
+  translateSubtree(document);
 
   updateChartImg();
   updateTransportBtn();  // its value is set from JS, so data-i18n cannot retranslate it
+  syncTravellerUI();     // same for the tooltips the traveller rows set themselves
 
   if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
   if (state.staleSeconds) setStaleNotice(state.staleSeconds);
@@ -979,16 +1012,124 @@ advancedToggle.addEventListener("click", () => {
   setAdvancedOpen(advancedPanel.classList.contains("hidden"));
 });
 
-// the age bracket bahn.de prices the single traveler as, mirroring the
-// bahn.de search mask's own dropdown. Hidden in past mode, where no prices
-// are shown and a leftover selection must not fragment the lookup.
-function ageMode() {
-  if (state.mode === "past") return "adult";
-  return document.getElementById("age").value;
+// --- travellers (the bahn.de search mask's count / age / discount row) ---
+
+// bahn.de's own cap: from six travellers on, its mask hands over to a group
+// booking that prices differently, so the search mask stops there and so do we
+const MAX_TRAVELLERS = 5;
+// 0-5-year-olds ride free, so bahn.de leaves them no discount to pick
+const NO_DISCOUNT_AGES = new Set(["toddler"]);
+
+const travellerFields = document.getElementById("traveller-fields");
+const travellerAddBtn = document.getElementById("traveller-add");
+const travellerTemplate = document.getElementById("traveller-row-template");
+
+// the option lists live in the template, so the markup stays their one source
+const TRAVELLER_AGES = [...travellerTemplate.content.querySelectorAll(".traveller-age option")].map((o) => o.value);
+const TRAVELLER_DISCOUNTS = [...travellerTemplate.content.querySelectorAll(".traveller-discount option")].map((o) => o.value);
+
+function travellerRows() {
+  return [...travellerFields.querySelectorAll(".traveller-row")];
 }
 
-// pricing is server-side: refetch, but only if results are showing
-document.getElementById("age").addEventListener("change", refetchCurrentLeg);
+// a "travellers" param off a shared link; null when it carries nothing usable,
+// which leaves the default party in place rather than half-restoring one
+function parseTravellers(raw) {
+  if (!raw) return null;
+  const list = raw.split(",").map((entry) => {
+    const [age, count, discount] = entry.split(":");
+    const n = Number(count);
+    return TRAVELLER_AGES.includes(age) && TRAVELLER_DISCOUNTS.includes(discount)
+      && Number.isInteger(n) && n >= 1 && n <= MAX_TRAVELLERS ? { count: n, age, discount } : null;
+  });
+  const total = list.reduce((sum, tr) => sum + (tr?.count || 0), 0);
+  return list.every(Boolean) && total <= MAX_TRAVELLERS ? list : null;
+}
+
+// the picked party, read off the rows the way the selects beside them are read.
+// Pinned to one adult in past mode, where no prices are shown and a leftover
+// selection must not fragment the lookup.
+function travellersUsed() {
+  if (state.mode === "past") return [{ count: 1, age: "adult", discount: "none" }];
+  return travellerRows().map((row) => ({
+    count: Number(row.querySelector(".traveller-count").value),
+    age: row.querySelector(".traveller-age").value,
+    discount: row.querySelector(".traveller-discount").value,
+  }));
+}
+
+// the compact form the API and share links carry: one "<age>:<count>:<discount>"
+// per row. Null for the lone adult without a discount, which both ends default to.
+function travellersParam() {
+  const list = travellersUsed();
+  const [first] = list;
+  if (list.length === 1 && first.count === 1 && first.age === "adult" && first.discount === "none") return null;
+  return list.map((tr) => `${tr.age}:${tr.count}:${tr.discount}`).join(",");
+}
+
+// keeps the rows consistent with each other: what is left of the cap bounds every
+// count, a lone row cannot be removed, and a 0-5-year-old carries no discount
+function syncTravellerUI() {
+  const rows = travellerRows();
+  const total = travellersUsed().reduce((sum, tr) => sum + tr.count, 0);
+  for (const row of rows) {
+    const countSel = row.querySelector(".traveller-count");
+    const own = Number(countSel.value);
+    for (const opt of countSel.options) {
+      opt.disabled = total - own + Number(opt.value) > MAX_TRAVELLERS;
+    }
+    const discountSel = row.querySelector(".traveller-discount");
+    const free = NO_DISCOUNT_AGES.has(row.querySelector(".traveller-age").value);
+    if (free) discountSel.value = "none";
+    discountSel.disabled = free;
+    // the tooltip goes on the wrapper: a disabled control shows none of its own
+    discountSel.closest(".field").title = free ? t("discountNoneToddlerTooltip") : "";
+    row.querySelector(".traveller-remove").classList.toggle("hidden", rows.length === 1);
+  }
+  // a second traveller turns the line into a list, and the add button drops below it
+  travellerFields.classList.toggle("multi", rows.length > 1);
+  travellerAddBtn.classList.toggle("hidden", total >= MAX_TRAVELLERS);
+  travellerAddBtn.title = total >= MAX_TRAVELLERS ? t("travellerMaxTooltip", MAX_TRAVELLERS) : "";
+}
+
+function addTravellerRow(traveller = { count: 1, age: "adult", discount: "none" }) {
+  const row = travellerTemplate.content.firstElementChild.cloneNode(true);
+  const countSel = row.querySelector(".traveller-count");
+  for (let n = 1; n <= MAX_TRAVELLERS; n++) countSel.add(new Option(String(n), String(n)));
+  countSel.value = String(traveller.count);
+  row.querySelector(".traveller-age").value = traveller.age;
+  row.querySelector(".traveller-discount").value = traveller.discount;
+  translateSubtree(row);
+  travellerFields.insertBefore(row, travellerAddBtn);
+  return row;
+}
+
+addTravellerRow();  // the default party: one adult, no discount
+syncTravellerUI();
+
+travellerAddBtn.addEventListener("click", () => {
+  addTravellerRow();
+  syncTravellerUI();
+  track("traveller-add");
+  // the row starts as another plain adult, which prices the same as raising the
+  // count on an existing one - nothing to refetch until it is actually changed
+});
+
+travellerFields.addEventListener("change", (e) => {
+  if (!e.target.closest(".traveller-row")) return;
+  syncTravellerUI();
+  // pricing is server-side: refetch, but only if results are showing
+  refetchCurrentLeg();
+});
+
+travellerFields.addEventListener("click", (e) => {
+  const btn = e.target.closest(".traveller-remove");
+  if (!btn) return;
+  btn.closest(".traveller-row").remove();
+  syncTravellerUI();
+  refetchCurrentLeg();
+});
+
 // --- transport-mode filter (bahn.de "Verkehrsmittel") ---
 
 // order matches app/bahn_api.py ALL_PRODUCTS and the bahn.de vm= URL codes
@@ -1645,7 +1786,7 @@ async function fetchJourneys(pagingRef, opts = {}) {
   const retryAgainStatusKey = opts.retryAgainStatusKey ?? "overloadRetryAgainIn";
   const win = document.getElementById("window").value;
   const dticket = dticketMode();
-  const age = ageMode();
+  const travellers = travellersUsed();
   const leg = opts.leg ?? searchLeg();
   // opts.dir names the trip half being fetched when it is not the one on screen
   const dir = opts.dir ?? (state.leg === "return" ? "return" : "outbound");
@@ -1654,7 +1795,8 @@ async function fetchJourneys(pagingRef, opts = {}) {
   });
   if (state.mode === "past") params.set("mode", "past");
   if (dticket !== "off") params.set("dticket", dticket);
-  if (age !== "adult") params.set("age", age);
+  const rs = travellersParam();
+  if (rs) params.set("travellers", rs);
   if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
   const tm = productsParam(dir);
   if (tm) params.set("products", tm);
@@ -1672,7 +1814,7 @@ async function fetchJourneys(pagingRef, opts = {}) {
     if (resp.ok) {
       state.windowUsed = Number(win);
       state.dticketUsed = dticket;
-      state.ageUsed = age;
+      state.travellersUsed = travellers;
       return resp.json();
     }
     // wait out the server's own cooldown, as often as its budget allows; the
@@ -1757,7 +1899,7 @@ function syncUrl() {
     window: document.getElementById("window").value,
   });
   if (dticketMode() !== "off") params.set("dticket", dticketMode());
-  if (ageMode() !== "adult") params.set("age", ageMode());
+  if (travellersParam()) params.set("travellers", travellersParam());
   if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
   const tm = productsParam("outbound");
   if (tm) params.set("tm", tm);
@@ -1852,13 +1994,16 @@ async function search() {
   state.returnResults = null;
   state.returnPrefetch = null;
   syncUrl();
+  const party = travellersUsed();
   track("search", {
     from: state.from.name,
     to: state.to.name,
     window: Number(document.getElementById("window").value),
     mode: state.mode,
     dticket: dticketMode(),
-    age: ageMode(),
+    age: party[0].age,
+    travellers: party.reduce((sum, tr) => sum + tr.count, 0),
+    discount: party.find((tr) => tr.discount !== "none")?.discount || "none",
     transfer: Number(transferMinutes()),
     returnTrip: state.returnTrip,
     stopovers: viasFor("outbound").length + viasFor("return").length,
@@ -2660,6 +2805,16 @@ function buildDayChart(stats, refEl) {
   return panel;
 }
 
+// the traveller ids of bahn.de's angebote/stammdaten, as the search-mask URL
+// spells them out in its r= param: age bracket, then discount and its class
+const AGE_CODES = { adult: 13, senior: 12, young: 9, child: 11, toddler: 8 };
+const DISCOUNT_CODES = {
+  "none": [16, "KLASSENLOS"],
+  "bc25-2": [17, "KLASSE_2"], "bc25-1": [17, "KLASSE_1"],
+  "bc50-2": [23, "KLASSE_2"], "bc50-1": [23, "KLASSE_1"],
+  "bc100-2": [24, "KLASSE_2"], "bc100-1": [24, "KLASSE_1"],
+};
+
 // `outbound` is set only on the return step of a round trip: the mask is then
 // built from the outbound journey and `journey` supplies the return date
 function bahnDeUrl(journey, outbound) {
@@ -2675,11 +2830,15 @@ function bahnDeUrl(journey, outbound) {
   // Verbindungen" / "Deutschland-Ticket vorhanden") so the filter carries over
   const dt = state.dticketUsed === "only" ? "&dlt=true&dltv=true"
     : state.dticketUsed === "all" ? "&dltv=true" : "";
-  // r pins who the mask prices for — <type>:<discount>:<class>:<count>, ids from
-  // bahn.de's angebote/stammdaten (16 = no discount). bahn.de already defaults
-  // to one adult, so r only has to be sent for the other brackets.
-  const ageCode = { senior: 12, young: 9, child: 11, toddler: 8 }[state.ageUsed];
-  const r = ageCode ? `&r=${ageCode}:16:KLASSENLOS:1` : "";
+  // r pins who the mask prices for — one <type>:<discount>:<class>:<count> per
+  // traveller, comma-separated, with the ids of bahn.de's angebote/stammdaten.
+  // bahn.de already defaults to a single adult without a discount, so r only has
+  // to be sent for any other party.
+  const travs = state.travellersUsed;
+  const plain = travs.length === 1 && travs[0].age === "adult"
+    && travs[0].count === 1 && travs[0].discount === "none";
+  const r = plain ? "" : `&r=${travs.map((tr) =>
+    `${AGE_CODES[tr.age]}:${DISCOUNT_CODES[tr.discount].join(":")}:${tr.count}`).join(",")}`;
   // rd switches the mask to "Hin- und Rückfahrt"; hza/rza pin both dates to a
   // departure time rather than an arrival time
   const returnDep = outbound ? ((journey.legs || [])[0]?.plannedDeparture || "").slice(0, 19) : "";
@@ -2815,8 +2974,8 @@ function priceNode(value, journey) {
     price.classList.add("price-dticket");
     price.textContent = t("dticketIncluded");
     price.title = t("dticketIncludedTooltip");
-  } else if (state.ageUsed === "toddler") {
-    // a lone 0-5-year-old never needs a ticket, so no offer price comes back
+  } else if (state.travellersUsed.every((tr) => tr.age === "toddler")) {
+    // 0-5-year-olds never need a ticket, so no offer price comes back for them
     price.classList.add("price-dticket");
     price.textContent = t("priceFree");
     price.title = t("priceFreeTooltip");
@@ -3373,8 +3532,14 @@ const qp = new URLSearchParams(location.search);
     // "1" is the legacy value from before the "all trains" mode existed
     document.getElementById("dticket").checked = ["1", "only"].includes(qp.get("dticket"));
     document.getElementById("dticket-all").checked = qp.get("dticket") === "all";
-    if (["senior", "young", "child", "toddler"].includes(qp.get("age"))) {
-      document.getElementById("age").value = qp.get("age");
+    // "age" is the legacy single-traveller form, from before the party was a list
+    const restored = parseTravellers(qp.get("travellers"))
+      || (["senior", "young", "child", "toddler"].includes(qp.get("age"))
+        ? [{ count: 1, age: qp.get("age"), discount: "none" }] : null);
+    if (restored) {
+      travellerRows().forEach((row) => row.remove());
+      restored.forEach((tr) => addTravellerRow(tr));
+      syncTravellerUI();
     }
     if (["10", "15", "20", "25", "30", "35", "40", "45"].includes(qp.get("transfer"))) {
       document.getElementById("transfer").value = qp.get("transfer");
@@ -3389,7 +3554,7 @@ const qp = new URLSearchParams(location.search);
     state.products.return = qp.get("tmr") === "all" ? new Set(PRODUCTS)
       : parseProducts(qp.get("tmr")) || new Set(state.products.outbound);
     updateTransportBtn();
-    if (ageMode() !== "adult" || transferMinutes() !== "0" || productsParam("outbound") || productsParam("return")) setAdvancedOpen(true);
+    if (travellersParam() || transferMinutes() !== "0" || productsParam("outbound") || productsParam("return")) setAdvancedOpen(true);
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1

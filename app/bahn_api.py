@@ -650,9 +650,28 @@ TRAVELLER_TYPES = {
     "toddler": "KLEINKIND",       # 0-5
 }
 
+# The BahnCards of the search mask's "Ermäßigung" dropdown, as the (art, klasse)
+# pair the vendo API wants. The trailing ids are /angebote/stammdaten's, which is
+# also what the bahn.de deep link's r= param carries.
+DISCOUNTS = {
+    "none": ("KEINE_ERMAESSIGUNG", "KLASSENLOS"),  # 16
+    "bc25-2": ("BAHNCARD25", "KLASSE_2"),          # 17
+    "bc25-1": ("BAHNCARD25", "KLASSE_1"),
+    "bc50-2": ("BAHNCARD50", "KLASSE_2"),          # 23
+    "bc50-1": ("BAHNCARD50", "KLASSE_1"),
+    "bc100-2": ("BAHNCARD100", "KLASSE_2"),        # 24
+    "bc100-1": ("BAHNCARD100", "KLASSE_1"),
+}
+
+# bahn.de's own cap on the search mask: from six travelers on it hands over to a
+# group booking form, and a plain search then comes back priced as a group.
+MAX_TRAVELLERS = 5
+# one adult without a discount — what bahn.de prices for when nothing is picked
+DEFAULT_TRAVELLERS = (("adult", 1, "none"),)
+
 
 async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str | None = None,
-                   dticket: str = "off", age: str = "adult", transfer: int = 0,
+                   dticket: str = "off", travellers: tuple = DEFAULT_TRAVELLERS, transfer: int = 0,
                    vias: tuple = (), products: tuple[str, ...] | None = None,
                    source: str = "search") -> tuple[dict, int]:
     """Returns (data, stale_age_seconds); age is 0 for a fresh answer, else how
@@ -668,8 +687,10 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     an MDA-NUR-DT meldung instead of a price, and mixed ones repriced for the paid
     legs only. "off" is a search without the ticket.
 
-    age is the traveler's bracket (a TRAVELLER_TYPES key); bahn.de prices every
-    connection for that one traveler, the way its own search mask does.
+    travellers is the search mask's traveler list, ((age, count, discount), ...)
+    with age a TRAVELLER_TYPES key and discount a DISCOUNTS key. bahn.de prices
+    every connection for the party as a whole, so what comes back is the group's
+    total, the way its own search mask shows it.
 
     transfer is bahn.de's Umstiegszeit in minutes (0 = the station's normal
     interchange time); connections with a tighter change are dropped upstream.
@@ -682,6 +703,7 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
     "Verkehrsmittel" toggles); None searches everything.
     """
     vias = tuple((via_id, stay) for via_id, stay in vias)
+    travellers = tuple((age, int(count), discount) for age, count, discount in travellers)
     # Searches default to "now", so the departure minute fragments the cache: the
     # same route searched a minute apart misses every time. Floor to 5-minute
     # buckets — results then start at most 4 minutes earlier than asked for.
@@ -697,10 +719,10 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
         "produktgattungen": list(products) if products else ALL_PRODUCTS,
         "reisende": [{
             "typ": TRAVELLER_TYPES[age],
-            "ermaessigungen": [{"art": "KEINE_ERMAESSIGUNG", "klasse": "KLASSENLOS"}],
+            "ermaessigungen": [{"art": DISCOUNTS[discount][0], "klasse": DISCOUNTS[discount][1]}],
             "alter": [],
-            "anzahl": 1,
-        }],
+            "anzahl": count,
+        } for age, count, discount in travellers],
         # bahn.de's "prefer fast connections" drops the slower regional options —
         # the free-with-the-ticket ones — from the list, which would leave the
         # "all trains" mode showing nothing the D-Ticket covers on exactly the
@@ -722,10 +744,10 @@ async def journeys(from_id: str, to_id: str, departure_iso: str, paging_ref: str
             {"id": via_id, "aufenthaltsdauer": stay} for via_id, stay in vias]
     if paging_ref:
         body["pagingReference"] = paging_ref
-    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket, age, transfer, vias, products)
+    key = ("journeys", from_id, to_id, departure_iso, paging_ref, dticket, travellers, transfer, vias, products)
     # paged responses are offsets into a result list, so they only ever stand in
     # for the same page (exact key), never for the route's primary answer
-    route = (from_id, to_id, dticket, age, transfer, vias, products) if paging_ref is None else None
+    route = (from_id, to_id, dticket, travellers, transfer, vias, products) if paging_ref is None else None
 
     def keep(data: dict) -> None:
         now = time.monotonic()
