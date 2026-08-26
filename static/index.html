@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=98">
+<link rel="stylesheet" href="/style.css?v=99">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -159,15 +159,37 @@ try {
       <button id="search" class="search-btn" type="button" data-i18n="search">Suchen</button>
     </div>
     <div id="advanced-panel" class="advanced-panel hidden">
-    <div class="field field-age">
-      <select id="age" aria-label="Alter" data-i18n-aria="age">
-        <option value="adult" selected data-i18n="ageAdult">Person (27-64 Jahre)</option>
-        <option value="senior" data-i18n="ageSenior">Person (ab 65 Jahre)</option>
-        <option value="young" data-i18n="ageYoung">Person (15-26 Jahre)</option>
-        <option value="child" data-i18n="ageChild">Kind (6-14 Jahre)</option>
-        <option value="toddler" data-i18n="ageToddler">Kind (0-5 Jahre)</option>
-      </select>
+    <div id="traveller-fields" class="traveller-fields">
+      <button id="traveller-add" class="traveller-add" type="button" data-i18n="travellerAdd">+ Reisende hinzufügen</button>
     </div>
+    <template id="traveller-row-template">
+      <div class="traveller-row">
+        <div class="field field-count">
+          <select class="traveller-count" aria-label="Anzahl Reisende" data-i18n-aria="travellerCount"></select>
+        </div>
+        <div class="field field-age">
+          <select class="traveller-age" aria-label="Alter" data-i18n-aria="age">
+            <option value="adult" data-i18n="ageAdult">Person (27-64 Jahre)</option>
+            <option value="senior" data-i18n="ageSenior">Person (ab 65 Jahre)</option>
+            <option value="young" data-i18n="ageYoung">Person (15-26 Jahre)</option>
+            <option value="child" data-i18n="ageChild">Kind (6-14 Jahre)</option>
+            <option value="toddler" data-i18n="ageToddler">Kind (0-5 Jahre)</option>
+          </select>
+        </div>
+        <div class="field field-discount">
+          <select class="traveller-discount" aria-label="Ermäßigung" data-i18n-aria="discount">
+            <option value="none" data-i18n="discountNone">keine Ermäßigung</option>
+            <option value="bc25-2" data-i18n="discountBc25Second">BahnCard 25, 2. Klasse</option>
+            <option value="bc25-1" data-i18n="discountBc25First">BahnCard 25, 1. Klasse</option>
+            <option value="bc50-2" data-i18n="discountBc50Second">BahnCard 50, 2. Klasse</option>
+            <option value="bc50-1" data-i18n="discountBc50First">BahnCard 50, 1. Klasse</option>
+            <option value="bc100-2" data-i18n="discountBc100Second">BahnCard 100, 2. Klasse</option>
+            <option value="bc100-1" data-i18n="discountBc100First">BahnCard 100, 1. Klasse</option>
+          </select>
+        </div>
+        <button class="traveller-remove" type="button" title="Reisende entfernen" data-i18n-title="travellerRemoveTitle">✕<span class="traveller-remove-label" data-i18n="travellerRemoveTitle">Reisende entfernen</span></button>
+      </div>
+    </template>
       <div class="advanced-row">
         <div class="field field-transfer">
           <label for="transfer" data-i18n="transferTime">Umstiegszeit</label>
@@ -191,113 +213,113 @@ try {
                  fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.75 L6 8 L9 4.75"/></svg>
           </button>
         </div>
+        <div id="stopover-fields" class="stopover-fields">
+          <div class="stopover-group" id="stopover-group-outbound">
+            <span class="stopover-group-label hidden" data-i18n="stepOutbound">Hinfahrt</span>
+            <div class="stopover-row hidden" id="viaOut1-row">
+              <div class="field autocomplete-wrap">
+                <label for="viaOut1" data-i18n="stopover1">Zwischenhalt 1</label>
+                <input id="viaOut1" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+                <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+                <div class="dropdown" id="viaOut1-dropdown"></div>
+              </div>
+              <div class="field field-stay">
+                <label for="viaOut1StayH" data-i18n="stayLabel">Aufenthalt</label>
+                <div class="stay-stepper" data-via="viaOut1">
+                  <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+                  <span class="stay-value">
+                    <input id="viaOut1StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                    <span class="stay-unit">h</span>
+                    <span class="stay-sep">:</span>
+                    <input id="viaOut1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                    <span class="stay-unit">min</span>
+                    <input id="viaOut1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+                  </span>
+                  <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+                </div>
+              </div>
+              <button class="stopover-remove" type="button" data-via="viaOut1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+            </div>
+            <div class="stopover-row hidden" id="viaOut2-row">
+              <div class="field autocomplete-wrap">
+                <label for="viaOut2" data-i18n="stopover2">Zwischenhalt 2</label>
+                <input id="viaOut2" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+                <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+                <div class="dropdown" id="viaOut2-dropdown"></div>
+              </div>
+              <div class="field field-stay">
+                <label for="viaOut2StayH" data-i18n="stayLabel">Aufenthalt</label>
+                <div class="stay-stepper" data-via="viaOut2">
+                  <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+                  <span class="stay-value">
+                    <input id="viaOut2StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                    <span class="stay-unit">h</span>
+                    <span class="stay-sep">:</span>
+                    <input id="viaOut2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                    <span class="stay-unit">min</span>
+                    <input id="viaOut2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+                  </span>
+                  <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+                </div>
+              </div>
+              <button class="stopover-remove" type="button" data-via="viaOut2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+            </div>
+            <button class="stopover-add" id="stopover-add-outbound" type="button" data-i18n="stopoverAdd">+ Zwischenhalt hinzufügen</button>
+          </div>
+          <div class="stopover-group hidden" id="stopover-group-return">
+            <span class="stopover-group-label hidden" data-i18n="stepReturn">Rückfahrt</span>
+            <div class="stopover-row hidden" id="viaRet1-row">
+              <div class="field autocomplete-wrap">
+                <label for="viaRet1" data-i18n="stopover1">Zwischenhalt 1</label>
+                <input id="viaRet1" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+                <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+                <div class="dropdown" id="viaRet1-dropdown"></div>
+              </div>
+              <div class="field field-stay">
+                <label for="viaRet1StayH" data-i18n="stayLabel">Aufenthalt</label>
+                <div class="stay-stepper" data-via="viaRet1">
+                  <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+                  <span class="stay-value">
+                    <input id="viaRet1StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                    <span class="stay-unit">h</span>
+                    <span class="stay-sep">:</span>
+                    <input id="viaRet1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                    <span class="stay-unit">min</span>
+                    <input id="viaRet1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+                  </span>
+                  <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+                </div>
+              </div>
+              <button class="stopover-remove" type="button" data-via="viaRet1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+            </div>
+            <div class="stopover-row hidden" id="viaRet2-row">
+              <div class="field autocomplete-wrap">
+                <label for="viaRet2" data-i18n="stopover2">Zwischenhalt 2</label>
+                <input id="viaRet2" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+                <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+                <div class="dropdown" id="viaRet2-dropdown"></div>
+              </div>
+              <div class="field field-stay">
+                <label for="viaRet2StayH" data-i18n="stayLabel">Aufenthalt</label>
+                <div class="stay-stepper" data-via="viaRet2">
+                  <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+                  <span class="stay-value">
+                    <input id="viaRet2StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                    <span class="stay-unit">h</span>
+                    <span class="stay-sep">:</span>
+                    <input id="viaRet2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                    <span class="stay-unit">min</span>
+                    <input id="viaRet2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+                  </span>
+                  <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+                </div>
+              </div>
+              <button class="stopover-remove" type="button" data-via="viaRet2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+            </div>
+            <button class="stopover-add" id="stopover-add-return" type="button" data-i18n="stopoverAdd">+ Zwischenhalt hinzufügen</button>
+          </div>
+        </div>
       </div>
-    <div id="stopover-fields" class="stopover-fields">
-      <div class="stopover-group" id="stopover-group-outbound">
-        <span class="stopover-group-label hidden" data-i18n="stepOutbound">Hinfahrt</span>
-        <div class="stopover-row hidden" id="viaOut1-row">
-          <div class="field autocomplete-wrap">
-            <label for="viaOut1" data-i18n="stopover1">Zwischenhalt 1</label>
-            <input id="viaOut1" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
-            <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
-            <div class="dropdown" id="viaOut1-dropdown"></div>
-          </div>
-          <div class="field field-stay">
-            <label for="viaOut1StayH" data-i18n="stayLabel">Aufenthalt</label>
-            <div class="stay-stepper" data-via="viaOut1">
-              <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
-              <span class="stay-value">
-                <input id="viaOut1StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
-                <span class="stay-unit">h</span>
-                <span class="stay-sep">:</span>
-                <input id="viaOut1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
-                <span class="stay-unit">min</span>
-                <input id="viaOut1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
-              </span>
-              <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
-            </div>
-          </div>
-          <button class="stopover-remove" type="button" data-via="viaOut1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
-        </div>
-        <div class="stopover-row hidden" id="viaOut2-row">
-          <div class="field autocomplete-wrap">
-            <label for="viaOut2" data-i18n="stopover2">Zwischenhalt 2</label>
-            <input id="viaOut2" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
-            <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
-            <div class="dropdown" id="viaOut2-dropdown"></div>
-          </div>
-          <div class="field field-stay">
-            <label for="viaOut2StayH" data-i18n="stayLabel">Aufenthalt</label>
-            <div class="stay-stepper" data-via="viaOut2">
-              <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
-              <span class="stay-value">
-                <input id="viaOut2StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
-                <span class="stay-unit">h</span>
-                <span class="stay-sep">:</span>
-                <input id="viaOut2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
-                <span class="stay-unit">min</span>
-                <input id="viaOut2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
-              </span>
-              <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
-            </div>
-          </div>
-          <button class="stopover-remove" type="button" data-via="viaOut2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
-        </div>
-        <button class="stopover-add" id="stopover-add-outbound" type="button" data-i18n="stopoverAdd">+ Zwischenhalt hinzufügen</button>
-      </div>
-      <div class="stopover-group hidden" id="stopover-group-return">
-        <span class="stopover-group-label hidden" data-i18n="stepReturn">Rückfahrt</span>
-        <div class="stopover-row hidden" id="viaRet1-row">
-          <div class="field autocomplete-wrap">
-            <label for="viaRet1" data-i18n="stopover1">Zwischenhalt 1</label>
-            <input id="viaRet1" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
-            <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
-            <div class="dropdown" id="viaRet1-dropdown"></div>
-          </div>
-          <div class="field field-stay">
-            <label for="viaRet1StayH" data-i18n="stayLabel">Aufenthalt</label>
-            <div class="stay-stepper" data-via="viaRet1">
-              <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
-              <span class="stay-value">
-                <input id="viaRet1StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
-                <span class="stay-unit">h</span>
-                <span class="stay-sep">:</span>
-                <input id="viaRet1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
-                <span class="stay-unit">min</span>
-                <input id="viaRet1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
-              </span>
-              <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
-            </div>
-          </div>
-          <button class="stopover-remove" type="button" data-via="viaRet1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
-        </div>
-        <div class="stopover-row hidden" id="viaRet2-row">
-          <div class="field autocomplete-wrap">
-            <label for="viaRet2" data-i18n="stopover2">Zwischenhalt 2</label>
-            <input id="viaRet2" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
-            <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
-            <div class="dropdown" id="viaRet2-dropdown"></div>
-          </div>
-          <div class="field field-stay">
-            <label for="viaRet2StayH" data-i18n="stayLabel">Aufenthalt</label>
-            <div class="stay-stepper" data-via="viaRet2">
-              <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
-              <span class="stay-value">
-                <input id="viaRet2StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
-                <span class="stay-unit">h</span>
-                <span class="stay-sep">:</span>
-                <input id="viaRet2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
-                <span class="stay-unit">min</span>
-                <input id="viaRet2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
-              </span>
-              <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
-            </div>
-          </div>
-          <button class="stopover-remove" type="button" data-via="viaRet2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
-        </div>
-        <button class="stopover-add" id="stopover-add-return" type="button" data-i18n="stopoverAdd">+ Zwischenhalt hinzufügen</button>
-      </div>
-    </div>
     </div>
   </section>
 
@@ -657,7 +679,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=112"></script>
+<script src="/app.js?v=113"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
