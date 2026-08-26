@@ -547,7 +547,7 @@ try {
   <div class="claim-modal-inner">
     <button id="report-modal-close" class="claim-modal-close" type="button" data-i18n-title="reportModalClose" data-i18n-aria="reportModalClose">✕</button>
     <h2 class="claim-modal-title" data-i18n="reportModalTitle">Statistik vs. Realität – dein Verspätungs-Report</h2>
-    <p class="claim-modal-lead" data-i18n="reportModalLead">Nach deiner Fahrt vergleichen wir die typische Verspätung (Median der letzten Tage) mit dem tatsächlichen Verlauf – der Report kommt etwa zwei Tage später per E-Mail.</p>
+    <p class="claim-modal-lead" data-i18n="reportModalLead">Nach deiner Fahrt vergleichen wir die heute angezeigte Verspätung aus der Vergangenheit mit dem, was tatsächlich passiert ist – der Report kommt etwa zwei Tage später per E-Mail.</p>
     <div id="report-teaser" class="report-teaser"></div>
     <!-- signed out: the order waits on the login page and completes on return -->
     <div id="report-login" class="report-login hidden">
@@ -557,6 +557,7 @@ try {
     <!-- signed in: the press was the order; this is the receipt -->
     <div id="report-done" class="report-done hidden">
       <p id="report-done-msg" class="report-done-msg"></p>
+      <a id="report-book" class="book-btn book-btn-lg" target="_blank" rel="noopener" data-i18n="book">Auf bahn.de buchen</a>
       <p class="report-note"><span data-i18n="reportStoredNote">Gespeichert: diese Verbindung und deine Konto-E-Mail. Abbestellen jederzeit hier oder per Link in der E-Mail.</span> <a href="/impressum.html#datenschutz-report" target="_blank" rel="noopener" data-i18n="reportPrivacyLink">Datenschutzhinweise</a></p>
       <button id="report-cancel" class="report-cancel" type="button" data-i18n="reportCancelBtn">Report abbestellen</button>
     </div>
