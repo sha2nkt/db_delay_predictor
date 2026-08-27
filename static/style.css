@@ -1160,7 +1160,9 @@ body.nudge-on #donate-footer-item { display: none; }
 .stories-banner-go { flex: 0 0 auto; margin-left: auto; color: var(--brand-red); font-size: 15px; font-weight: 600; }
 body.past-mode .stories-banner { display: none; }
 @media (max-width: 700px) {
-  .stories-banner { padding: 7px 10px; }
+  /* the row gets shorter on phones, but the side padding stays at the install
+     prompt's 12px so the two dismiss crosses line up on the same column */
+  .stories-banner { padding: 7px 12px; }
   .stories-banner-link { gap: 8px; }
   .stories-banner-logo { height: 18px; }
   .stories-banner-text strong { font-size: 12.5px; }

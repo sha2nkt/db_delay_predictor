@@ -3792,15 +3792,16 @@ function renderSummary() {
 }
 
 // --- delay stories banner ---
-// Same dismiss contract as the install prompt below: the cross hides the row and
-// keeps it hidden for DISMISS_DAYS before the nudge comes back.
+// Same dismiss contract as the install prompt below — the cross hides the row and
+// keeps it hidden for DISMISS_DAYS — but on a shorter timer: the board gains new
+// stories, so the nudge is worth repeating sooner than the one-off install offer.
 
 (function initStoriesBanner() {
   const banner = document.getElementById("stories-banner");
   if (!banner) return;
 
   const DISMISS_KEY = "storiesBannerDismissed";
-  const DISMISS_DAYS = 60;
+  const DISMISS_DAYS = 15;
 
   const dismissedTs = Number(localStorage.getItem(DISMISS_KEY) || 0);
   if (dismissedTs > 0 && Date.now() - dismissedTs < DISMISS_DAYS * 864e5) {
@@ -3833,7 +3834,7 @@ function renderSummary() {
   const iosSheet = document.getElementById("ios-install-sheet");
 
   const DISMISS_KEY = "installPromptDismissed";
-  const DISMISS_DAYS = 60;
+  const DISMISS_DAYS = 30;
 
   const standalone = window.matchMedia("(display-mode: standalone)").matches
     || window.navigator.standalone === true;
