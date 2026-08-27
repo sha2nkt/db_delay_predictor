@@ -1010,7 +1010,7 @@ def _page_html(mode: str, lang: str) -> str:
         (r'(<a id="stories-cta" class="stories-cta" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
         (r'(<img id="stories-cta-logo" src=")[^"]*(" alt=")[^"]*',
          rf"\g<1>{STORIES_LOGO[lang]}\g<2>{STORIES_ALT[lang]}"),
-        (r'(<a id="stories-banner" class="stories-banner" href=")[^"]*',
+        (r'(<a class="stories-banner-link" href=")[^"]*',
          rf"\g<1>{STORIES_PATHS[lang]}"),
         (r'(<img id="stories-banner-logo" class="stories-banner-logo" src=")[^"]*(" alt=")[^"]*',
          rf"\g<1>{STORIES_WORDMARK[lang]}\g<2>{STORIES_ALT[lang]}"),

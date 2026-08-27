@@ -253,6 +253,7 @@ const I18N = {
     storiesCtaGo: "Lesen, abstimmen oder selbst erzählen →",
     storiesBannerTitle: "Schlechte Fahrt gehabt? Erzähl sie hier.",
     storiesBannerLead: "Wir sammeln Probleme mit deutschen Zügen.",
+    storiesBannerDismiss: "Hinweis ausblenden",
     pastTitle: "Verspätungs-Check für vergangene Reisen",
     pastLead: "Gib deine Reise ein, um zu sehen, wie sie tatsächlich verlief – mit Verspätungen, verpassten Anschlüssen und deinem Entschädigungsanspruch.",
     pastCoverageLabel: "Daten verfügbar:",
@@ -523,6 +524,7 @@ const I18N = {
     storiesCtaGo: "Read, vote or tell your own →",
     storiesBannerTitle: "Had a less than ideal train experience? Report it here.",
     storiesBannerLead: "We are crowdsourcing issues with German trains.",
+    storiesBannerDismiss: "Hide this banner",
     pastTitle: "Delay check for past journeys",
     pastLead: "Enter your journey to see the trip you actually took – including delays, missed connections and what you can claim back.",
     pastCoverageLabel: "Data available:",
@@ -1775,7 +1777,6 @@ async function initPastPage() {
 
 document.getElementById("refund-cta").addEventListener("click", () => track("refund-cta"));
 document.getElementById("stories-cta").addEventListener("click", () => track("stories-cta"));
-document.getElementById("stories-banner").addEventListener("click", () => track("stories-banner"));
 document.getElementById("refund-nav").addEventListener("click", () => track("refund-nav"));
 document.getElementById("donate-footer-item").hidden = !DONATE_ENABLED;
 document.getElementById("donate-footer").addEventListener("click", () =>
@@ -3789,6 +3790,32 @@ function renderSummary() {
   panel.append(total, book);
   resultsEl.appendChild(panel);
 }
+
+// --- delay stories banner ---
+// Same dismiss contract as the install prompt below: the cross hides the row and
+// keeps it hidden for DISMISS_DAYS before the nudge comes back.
+
+(function initStoriesBanner() {
+  const banner = document.getElementById("stories-banner");
+  if (!banner) return;
+
+  const DISMISS_KEY = "storiesBannerDismissed";
+  const DISMISS_DAYS = 60;
+
+  const dismissedTs = Number(localStorage.getItem(DISMISS_KEY) || 0);
+  if (dismissedTs > 0 && Date.now() - dismissedTs < DISMISS_DAYS * 864e5) {
+    banner.classList.add("hidden");
+    return;
+  }
+
+  banner.querySelector(".stories-banner-link")
+    .addEventListener("click", () => track("stories-banner"));
+  document.getElementById("stories-banner-dismiss").addEventListener("click", () => {
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    banner.classList.add("hidden");
+    track("stories-banner", { step: "dismiss" });
+  });
+})();
 
 // --- install prompt (PWA awareness) ---
 // The manifest + service worker make the site installable, but browsers surface

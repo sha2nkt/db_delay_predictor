@@ -1126,11 +1126,11 @@ body.nudge-on #donate-footer-item { display: none; }
   font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; cursor: pointer;
 }
 .install-btn:hover { background: var(--brand-red-dark); }
-.install-dismiss {
+.install-dismiss, .stories-banner-dismiss {
   flex: 0 0 auto; background: none; border: none; color: var(--text-muted);
   font-size: 16px; line-height: 1; cursor: pointer; padding: 4px 6px; border-radius: 4px;
 }
-.install-dismiss:hover { background: var(--gray-bg); color: var(--text); }
+.install-dismiss:hover, .stories-banner-dismiss:hover { background: var(--gray-bg); color: var(--text); }
 @media (max-width: 700px) {
   .install-text strong { font-size: 13px; }
   .install-lead { font-size: 12px; }
@@ -1138,13 +1138,18 @@ body.nudge-on #donate-footer-item { display: none; }
 
 /* delay stories banner - one thin row under the install prompt */
 .stories-banner {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 4px;
   background: #fff; border: 1px solid var(--gray-border); border-radius: 8px;
   padding: 8px 12px; margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+}
+.stories-banner.hidden { display: none; }
+.stories-banner-link {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
   text-decoration: none; color: inherit;
 }
-.stories-banner:hover { border-color: var(--brand-red); }
+.stories-banner:has(.stories-banner-link:hover) { border-color: var(--brand-red); }
 .stories-banner-logo { flex: 0 0 auto; height: 20px; width: auto; }
 .stories-banner-text {
   min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline;
@@ -1155,7 +1160,8 @@ body.nudge-on #donate-footer-item { display: none; }
 .stories-banner-go { flex: 0 0 auto; margin-left: auto; color: var(--brand-red); font-size: 15px; font-weight: 600; }
 body.past-mode .stories-banner { display: none; }
 @media (max-width: 700px) {
-  .stories-banner { gap: 8px; padding: 7px 10px; }
+  .stories-banner { padding: 7px 10px; }
+  .stories-banner-link { gap: 8px; }
   .stories-banner-logo { height: 18px; }
   .stories-banner-text strong { font-size: 12.5px; }
   .stories-banner-lead { font-size: 12px; }
