@@ -123,8 +123,8 @@ def merge_parsed(plan_files: list[Path], fchg_files: list[Path], output_file: Pa
     shutil.rmtree(stage, ignore_errors=True)
     stage.mkdir()
     con = duckdb.connect()
-    con.execute("SET memory_limit='2GB'")
-    con.execute("SET threads=2")  # the pipeline box's core count; more threads than that oversubscribe the cap
+    con.execute("SET memory_limit='4GB'")
+    con.execute("SET threads=4")  # the pipeline box's core count (CX33); more threads than that oversubscribe the cap
     con.execute("SET preserve_insertion_order=false")
     con.execute(f"COPY ({latest_per_id(PLAN_COLS, plan_files)}) TO '{stage / 'plan.parquet'}' (FORMAT PARQUET)")
     con.execute(f"COPY ({latest_per_id(FCHG_COLS, fchg_files)}) TO '{stage / 'fchg.parquet'}' (FORMAT PARQUET)")
