@@ -209,8 +209,7 @@ def _footer(lang: str, base_url: str, unsub_token: str, created_ts: str) -> str:
     return (
         f"{why}<br>"
         f'<a href="{escape(unsub_url)}" style="color:{MUTED};">{escape(s["unsub"])}</a> · '
-        f'<a href="{base_url}/impressum.html" style="color:{MUTED};">{escape(s["legal"])}</a><br>'
-        "Shashank Tripathi · Hainbuchenweg 10 · 72076 Tübingen · Deutschland"
+        f'<a href="{base_url}/impressum.html" style="color:{MUTED};">{escape(s["legal"])}</a>'
     )
 
 
