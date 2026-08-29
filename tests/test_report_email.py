@@ -6,8 +6,8 @@ from app import report_email
 
 
 def test_fixture_report_renders():
-    subject, html, text = report_email.render_report(
-        report_email.fixture_row(), "https://delaybahn.com")
+    row = report_email.fixture_row() | {"lang": "de"}
+    subject, html, text = report_email.render_report(row, "https://delaybahn.com")
     assert "Tübingen Hbf" in subject and "Hamburg Hbf" in subject
     assert "IC 2167" in html and "+25 min" in html and "+10.5 min" in html
     assert "nicht erfasst" in html  # the untracked bus leg, in both cards
@@ -42,7 +42,7 @@ def test_station_names_are_escaped():
 
 
 def test_cancelled_leg_gets_red_chip_and_note():
-    row = report_email.fixture_row()
+    row = report_email.fixture_row() | {"lang": "de"}
     actuals = json.loads(json.dumps(row["actuals"]))
     actuals["legs"]["2"] = {"delayMin": None, "canceled": True, "reason": 37}
     row["actuals"] = actuals
@@ -51,7 +51,7 @@ def test_cancelled_leg_gets_red_chip_and_note():
 
 
 def test_all_unresolved_note():
-    row = report_email.fixture_row()
+    row = report_email.fixture_row() | {"lang": "de"}
     row["actuals"] = {"legs": {}}
     _, html, text = report_email.render_report(row, "https://delaybahn.com")
     assert "wiederfinden" in html and "wiederfinden" in text

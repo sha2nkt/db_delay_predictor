@@ -436,7 +436,7 @@ def fixture_row() -> dict:
     """A subscriptions row for --sample / --test-to renders."""
     return {
         "id": 0,
-        "lang": "de",
+        "lang": "en",
         "name": "Shashank",
         "snapshot": FIXTURE_SNAPSHOT,
         "actuals": FIXTURE_ACTUALS,
