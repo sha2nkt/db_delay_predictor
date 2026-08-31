@@ -404,6 +404,20 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
   font-size: 12px; color: var(--text-muted); margin-bottom: 4px;
 }
 .day-chart-cancel { color: var(--red); font-weight: 600; white-space: nowrap; }
+.day-chart-nudge { animation: day-chart-nudge 6s ease forwards; }
+@keyframes day-chart-nudge {
+  0%, 88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.day-chart-ping {
+  transform-box: fill-box; transform-origin: center;
+  animation: day-chart-ping 1.6s ease-out .8s 3;
+}
+@keyframes day-chart-ping {
+  from { opacity: .6; transform: scale(.35); }
+  to { opacity: 0; transform: scale(1.3); }
+}
+@media (prefers-reduced-motion: reduce) { .day-chart-nudge { display: none; } }
 .day-chart svg { display: block; width: 100%; height: auto; }
 .day-chart-bubble {
   position: absolute; z-index: 5; max-width: 260px; padding: 5px 9px;

@@ -2786,6 +2786,7 @@ function buildDayChart(stats, refEl) {
     document.removeEventListener("click", closeBubble);
   };
   const selectDay = (hit, title, tipY) => {
+    hint?.remove();  // the nudge has done its job after the first tap
     if (selected === hit) return closeBubble();
     if (selected) selected.setAttribute("fill", "transparent");
     else document.addEventListener("click", closeBubble);  // click-away closes
@@ -2806,6 +2807,9 @@ function buildDayChart(stats, refEl) {
     bubble.style.setProperty("--arrow-x", `${Math.max(10, Math.min(cx - left, bubble.offsetWidth - 10))}px`);
   };
 
+  let hint = null;
+  let tallest = null;
+
   slots.forEach((slot, i) => {
     const x0 = m.left + i * band;
     const cx = x0 + band / 2;
@@ -2823,6 +2827,7 @@ function buildDayChart(stats, refEl) {
       const v = rec.delay;
       title = `${fmtDay(slot.iso)} ${v >= 0 ? "+" : ""}${v} min${reason ? ` – ${reason}` : ""}`;
       const fill = v < 3 ? colors.green : v < 10 ? colors.yellow : colors.red;
+      if (v > 0 && (!tallest || v > tallest.v)) tallest = { v, cx };
       if (v !== 0) {
         svg.appendChild(svgEl("path", { d: barPath(cx - barW / 2, barW, y(0), y(v)), fill }));
       } else {
@@ -2857,6 +2862,25 @@ function buildDayChart(stats, refEl) {
     });
     svg.appendChild(hit);
   });
+
+  // tap nudge on the tallest bar: gesture icon + a few ripple pulses at its
+  // fingertip, self-fading after ~6s (or gone on the first tap)
+  if (tallest) {
+    const midY = (y(tallest.v) + y(0)) / 2;
+    hint = svgEl("g", { class: "day-chart-nudge", "pointer-events": "none", "aria-hidden": "true" });
+    hint.appendChild(svgEl("circle", {
+      cx: tallest.cx, cy: midY, r: 9,
+      fill: "none", stroke: "#fff", "stroke-width": 1.5, opacity: 0, class: "day-chart-ping",
+    }));
+    const size = 20;
+    // the icon's fingertip sits at ~(23%, 39%) of its canvas; anchor it there
+    hint.appendChild(svgEl("image", {
+      href: "/icons/click_gesture.png",
+      x: Math.min(tallest.cx - size * 0.23, W - m.right - size),
+      y: midY - size * 0.39, width: size, height: size,
+    }));
+    svg.appendChild(hint);
+  }
 
   panel.appendChild(svg);
   panel.appendChild(bubble);
