@@ -1227,7 +1227,7 @@ function flapCounter() {
   return { wrap, setValue };
 }
 
-const board = { tiles: new Map(), span: "month", epoch: 0 };
+const board = { tiles: new Map(), span: "year", epoch: 0 };
 
 function boardGroupLabels() {
   document.querySelector(".board-spans").setAttribute("aria-label", t("spanGroup"));

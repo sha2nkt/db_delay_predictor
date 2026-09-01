@@ -1488,3 +1488,10 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - Verified: `node --check` clean on app.js and sw.js; the three iterations were reviewed by the user in the browser, but no CDP/Playwright measurement pass this time.
 - Busters: `app.js` v123 → **v125** — v124 is earmarked by the unpushed lastminute worktree, and buster numbers are a global namespace; `style.css` v107 → **v109** across index, stories, login, impressum and the sw.js PRECACHE — v108 is claimed by the local db-kundendialog-mail worktree; `SHELL_VERSION` v69 → **v70**. Live no-cache pins on `/`, `/stories` and `/sw.js` (123/107/v69), every remote branch and all four local worktrees were read first, and no asset URL was requested with a candidate number before the deploy.
 - Landed straight on `main`, no worktree — a ~30-line nudge on a shipped chart.
+
+## 2026-09-01 — The damage report opens on the year view
+
+- The Störungsbilanz board on `/geschichten` and `/stories` opened on the month span, which starts over at every month boundary — on the morning of 2026-09-01 all eight tiles read 0 and the board looked like nothing had ever been reported. It now opens on the year span: `board.span` in `stories.js` starts as `"year"`, and the hardcoded `active` class in `stories.html` moved from the Monat button to Jahr so the highlight matches the data on first paint. The span click handler, the API and the other three spans are untouched, and the client always sends `?span=` explicitly, so nothing changes server-side.
+- Busters: `stories.js` v21 → **v22** in stories.html. Read first: the live no-cache pin (`/stories` serves v=21) and every remote branch (highest pin anywhere is 21); no asset URL was requested with the candidate number before the deploy. No `SHELL_VERSION` bump — the service worker precaches only the homepage shell, and stories.js rides the runtime cache under its new URL.
+- Verified: `node --check` clean on stories.js; the file pair holds exactly one span default and one hardcoded `active`, and they moved together.
+- Landed straight on `main`, no worktree — a default value and a class attribute.
