@@ -391,11 +391,14 @@ def _flix(leg: dict) -> bool:
             or str(line.get("name") or "").upper().startswith("FLX"))
 
 
-async def _replan(origin: dict, dest: dict, ready, source: str) -> dict | None:
+async def _replan(origin: dict, dest: dict, ready, source: str,
+                  dticket: str = "off", products: tuple[str, ...] | None = None) -> dict | None:
     """Next connections origin -> dest from `ready` on, cached per request minute.
     `source` only tags the upstream call for the log; it is deliberately absent from
-    the cache key, so a walk replan and an if-missed lookup still share an answer."""
-    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"))
+    the cache key, so a walk replan and an if-missed lookup still share an answer.
+    dticket/products carry the search's own restrictions when the replacement must
+    be boardable under them; they do fragment the cache."""
+    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"), dticket, products)
     if key in _replan_cache:
         _replan_cache.move_to_end(key)
         return _replan_cache[key]
@@ -405,6 +408,8 @@ async def _replan(origin: dict, dest: dict, ready, source: str) -> dict | None:
             f"A=1@O={origin['name']}@L={origin['id']}@",
             f"A=1@O={dest['name']}@L={dest['id']}@",
             ready.strftime("%Y-%m-%dT%H:%M:%S"),
+            dticket=dticket,
+            products=products,
             source=source,
         )
     except bahn_api.UpstreamError:
@@ -451,12 +456,21 @@ async def _next_connection(origin: dict, dest: dict, ready, window: int, live: b
     return best_legs
 
 
-async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict | None:
+async def _if_missed_connection(legs: list[dict], tt: dict, window: int,
+                                dticket: str = "off",
+                                products: tuple[str, ...] | None = None) -> dict | None:
     """Future mode: the next realistic connection to the journey's destination if the
     tight transfer `tt` is missed. The passenger is assumed to reach the departure
     point at planned arrival + the arriving leg's median delay; a connection counts
     as catchable when its planned departure leaves more than TRANSFER_TOLERANCE_MIN
-    minutes after that."""
+    minutes after that.
+
+    A "D-Ticket only" passenger cannot board an ICE (heavily discounted tickets are
+    excluded from the Fahrgastrechte right to switch to long-distance trains), and a
+    narrowed product set states which trains the passenger will consider at all — so
+    both restrict the replan like the search itself. dticket "all" means the paid
+    trains are acceptable, which is the unrestricted replan already."""
+    dticket = "only" if dticket == "only" else "off"
     a, b = tt["legIndex"], tt["depLegIndex"]
     arr = _planned_dt(legs[a], "plannedArrival")
     origin = legs[b]["origin"]
@@ -465,7 +479,7 @@ async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict
         return None
     ready = arr + timedelta(minutes=_walk_minutes(legs, a, b) + tt["medianDelay"])
     # `window` belongs in the key: it decides the span leg_delay_stats summarises
-    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"), window)
+    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"), window, dticket, products)
     if key in _if_missed_cache:
         _if_missed_cache.move_to_end(key)
         _note_if_missed(True)
@@ -473,7 +487,7 @@ async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict
         # the way out, so callers may share one object
         return _if_missed_cache[key]
     _note_if_missed(False)
-    data = await _replan(origin, dest, ready, "if-missed")
+    data = await _replan(origin, dest, ready, "if-missed", dticket, products)
     if data is None:
         # upstream refused: transient, and caching it would suppress the panel for
         # everyone on this route until the process restarts
@@ -806,7 +820,7 @@ async def journeys(
     # lookups on top of that.
     if not past and not stale_age and bahn_api.healthy():
         async def fill(j: dict, tt: dict) -> None:
-            tt["ifMissed"] = await _if_missed_connection(j["legs"], tt, window)
+            tt["ifMissed"] = await _if_missed_connection(j["legs"], tt, window, dticket, product_filter)
 
         pending = [(j, tt) for j in journeys_out for tt in j["tightTransfers"]]
         await asyncio.gather(*(fill(j, tt) for j, tt in pending[:MAX_IF_MISSED_REPLANS]))
