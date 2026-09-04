@@ -304,7 +304,13 @@ def _session(profile: str) -> requests.AsyncSession:
     return requests.AsyncSession(
         impersonate=profile,
         timeout=20,
-        headers={"Accept": "application/json"},
+        headers={
+            "Accept": "application/json",
+            # the impersonation profiles send no Accept-Language, and since
+            # 2026-09-04 Akamai answers /angebote/fahrplan without one with
+            # 403 OPS_BLOCKED from every IP
+            "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+        },
     )
 
 
