@@ -30,6 +30,20 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://delaybahn.com/geschichten"/>
   </url>
   <url>
+    <loc>https://delaybahn.com/rangliste</loc>
+    <changefreq>daily</changefreq>
+    <xhtml:link rel="alternate" hreflang="de" href="https://delaybahn.com/rangliste"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://delaybahn.com/leaderboard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://delaybahn.com/rangliste"/>
+  </url>
+  <url>
+    <loc>https://delaybahn.com/leaderboard</loc>
+    <changefreq>daily</changefreq>
+    <xhtml:link rel="alternate" hreflang="de" href="https://delaybahn.com/rangliste"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://delaybahn.com/leaderboard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://delaybahn.com/rangliste"/>
+  </url>
+  <url>
     <loc>https://delaybahn.com/entschaedigung</loc>
     <changefreq>monthly</changefreq>
     <xhtml:link rel="alternate" hreflang="de" href="https://delaybahn.com/entschaedigung"/>
