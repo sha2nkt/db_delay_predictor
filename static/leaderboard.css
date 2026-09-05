@@ -163,6 +163,9 @@
 .lb-sort {
   all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
   font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;
+  /* manipulation: a tap must sort immediately, not wait for a possible
+     double-tap zoom; the padding pulls the touch target up to ~44px */
+  touch-action: manipulation; padding: 10px 4px; margin: -10px -4px;
 }
 .lb-sort::after {
   content: ""; width: 0; height: 0; border: 4px solid transparent; border-top-color: currentColor;
@@ -240,18 +243,21 @@
   .lb-flag { width: 20px; height: 13px; }
   .lb-table th { padding: 10px 6px; }
   .lb-table td { padding: 10px 6px; font-size: 13px; }
-  .lb-col-rank { width: 30px; }
   .lb-table td.lb-rank { font-size: 14px; }
-  .lb-col-trend, .lb-col-stops, .lb-table td.lb-trend, .lb-table td.lb-stops { display: none; }
   .lb-meter { min-width: 96px; gap: 6px; }
   .lb-meter-value { width: 46px; }
   .lb-country-cell { gap: 6px; }
-}
-
-/* phones: the cancellation column would only be reachable by scrolling the
-   table sideways; the figure stays on the podium cards and in the map tooltip */
-@media (max-width: 480px) {
-  .lb-table th:nth-child(5), .lb-table td:nth-child(5) { display: none; }
-  .lb-table th { white-space: normal; }
-  .lb-meter { min-width: 84px; }
+  /* phones: every column stays reachable — the table keeps its width and
+     scrolls sideways under the pinned rank + country columns. border-collapse
+     must be separate: Safari leaves collapsed borders behind on sticky cells */
+  .lb-table { min-width: 620px; border-collapse: separate; border-spacing: 0; }
+  .lb-table-wrap { overscroll-behavior-x: contain; }
+  .lb-table th:nth-child(-n+2), .lb-table td:nth-child(-n+2) {
+    position: sticky; z-index: 1; background: #fff;
+  }
+  .lb-table th:first-child, .lb-table td:first-child { left: 0; }
+  .lb-col-rank { width: 42px; min-width: 42px; }
+  .lb-table th:nth-child(2), .lb-table td:nth-child(2) {
+    left: 42px; box-shadow: 6px 0 6px -6px rgba(0,0,0,.25);
+  }
 }
