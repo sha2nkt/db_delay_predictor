@@ -1939,6 +1939,8 @@ body.past-mode .stories-banner { display: none; }
 /* the account's name in every header is the way to its trips */
 .auth-name { color: #fff; font-weight: 700; text-decoration: none; }
 .auth-name:hover { text-decoration: underline; }
+/* the account icon stands in for the name on phone home headers only */
+.auth-icon { display: none; }
 /* "saved under Meine Fahrten": the receipt under the ordered-report modal's booking button */
 .trip-saved {
   display: block; margin-top: 8px; text-align: center;
@@ -2066,6 +2068,9 @@ body.past-mode .stories-banner { display: none; }
   .header-home .auth-name, .header-stories .auth-name {
     display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;
   }
-  .header-home .auth-name { max-width: 4em; }
   .header-stories .auth-name { max-width: 9em; }
+  /* home header: the barely-readable clipped name becomes the account icon */
+  .header-home .auth-name { display: inline-flex; align-items: center; }
+  .header-home .auth-name .auth-icon { display: block; }
+  .header-home .auth-name .auth-name-text { display: none; }
 }

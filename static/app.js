@@ -3517,9 +3517,10 @@ function renderAuth(account) {
   authLoginEl.classList.toggle("hidden", !!name);
   document.getElementById("auth-user").classList.toggle("hidden", !name);
   const nameEl = document.getElementById("auth-name");
-  nameEl.textContent = name || "";
+  document.getElementById("auth-name-text").textContent = name || "";
   nameEl.href = tripsPath();
   nameEl.title = t("navTrips");
+  nameEl.setAttribute("aria-label", t("navTrips"));
 }
 
 authLoginEl.addEventListener("click", () => {
