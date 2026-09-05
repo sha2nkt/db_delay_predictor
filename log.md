@@ -1612,3 +1612,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - The person icon lived only inside the phone circle; the user asked for it beside the name on desktop too. `.auth-icon` is now visible everywhere at 17 px (sized to the 13 px name, 22 px inside the phone circle as before), `.auth-name` became an inline-flex with a 5 px gap, and `.auth-user` aligns by center instead of text baseline — the same baseline quirk that had floated the phone icon. CSS only; the phone circle and the stories/trips headers (whose markup carries no icon) are unchanged.
 - Verified by headless-Chrome renders: 1000 px shows icon + name + Abmelden centered on one row with both pills, 500 px still shows the circled icon alone.
 - Busters: `style.css` v117 → **v118** (six pages + the sw.js PRECACHE), `SHELL_VERSION` v80 → **v81**. `app.js` stays v132. Live pins read first (117/132/v80 from today's own deploy, the highest anywhere); no skips. No asset URL was requested with a candidate number before the deploy.
+
+## 2026-09-06 — The signed-out Meine Fahrten card ends on the lost-time payoff
+
+- The login card's lead described the list ("als Liste deiner nächsten und vergangenen Fahrten") but not the reason to bother. It now ends the way the onboarding card does: "… und zeigt dir, wie viel Zeit dich Verspätungen und Ausfälle wirklich gekostet haben." / "… and shows you how much time delays and cancellations have really cost you." Title and login button unchanged; strings updated in both trips.js language tables and the German markup in trips.html.
+- Verified by rendering `_trips_html("de")` and `("en")` server-side (both new leads substituted) and `node --check`.
+- Busters: `trips.js` v4 → **v5** in trips.html (still not in the sw.js PRECACHE). Live pin read first (4, from today's own deploy, the highest anywhere). No asset URL was requested with a candidate number before the deploy.
