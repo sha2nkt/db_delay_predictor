@@ -18,7 +18,7 @@
 <meta property="og:locale" content="de_DE">
 <meta property="og:locale:alternate" content="en_US">
 <link rel="icon" type="image/png" href="/favicon.png">
-<link rel="stylesheet" href="/style.css?v=88">
+<link rel="stylesheet" href="/style.css?v=110">
 <link rel="stylesheet" href="/leaderboard.css?v=1">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
@@ -40,9 +40,9 @@
     <p class="lb-lead" data-i18n="heroLead">Sechs Bahnländer, ein Maßstab: der Anteil der Halte, an denen der Zug weniger als 6 Minuten verspätet ankam. Jeden Morgen aus den Verspätungsdaten des Vortags neu berechnet.</p>
     <div class="lb-controls">
       <div class="lb-periods" role="group" aria-label="Zeitraum">
-        <button type="button" class="lb-period active" data-period="day" data-i18n="periodDay">Tag</button>
+        <button type="button" class="lb-period" data-period="day" data-i18n="periodDay">Tag</button>
         <button type="button" class="lb-period" data-period="week" data-i18n="periodWeek">Woche</button>
-        <button type="button" class="lb-period" data-period="month" data-i18n="periodMonth">Monat</button>
+        <button type="button" class="lb-period active" data-period="month" data-i18n="periodMonth">Monat</button>
       </div>
       <p id="lb-range" class="lb-range"></p>
     </div>
@@ -76,11 +76,11 @@
           <tr>
             <th class="lb-col-rank" scope="col">#</th>
             <th scope="col" data-i18n="colCountry">Land</th>
-            <th scope="col" data-i18n="colPunctuality">Pünktlich (&lt; 6 min)</th>
-            <th class="lb-col-num" scope="col" data-i18n="colAvgDelay">Ø Verspätung</th>
-            <th class="lb-col-num" scope="col" data-i18n="colCancelled">Ausfälle</th>
-            <th class="lb-col-num lb-col-stops" scope="col" data-i18n="colStops">Halte</th>
-            <th class="lb-col-trend" scope="col" data-i18n="colTrend">Letzte 30 Tage</th>
+            <th scope="col"><button type="button" class="lb-sort" data-sort="punctuality"><span data-i18n="colPunctuality">Pünktlich (&lt; 6 min)</span></button></th>
+            <th class="lb-col-num" scope="col"><button type="button" class="lb-sort" data-sort="avgDelay"><span data-i18n="colAvgDelay">Ø Verspätung</span></button></th>
+            <th class="lb-col-num" scope="col"><button type="button" class="lb-sort" data-sort="cancelled"><span data-i18n="colCancelled">Ausfälle</span></button></th>
+            <th class="lb-col-num lb-col-stops" scope="col"><button type="button" class="lb-sort" data-sort="stops"><span data-i18n="colStops">Halte</span></button></th>
+            <th class="lb-col-trend" scope="col" data-i18n="colTrend" data-i18n-title="colTrendTitle" title="Anteil pünktlicher Halte pro Tag in den letzten 30 Tagen, links der älteste Tag, der Punkt ist der neueste. Jede Linie hat ihre eigene Skala.">Letzte 30 Tage</th>
           </tr>
         </thead>
         <tbody id="lb-rows"></tbody>

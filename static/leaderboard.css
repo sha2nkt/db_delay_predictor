@@ -159,6 +159,20 @@
   color: var(--text-muted); padding: 12px 12px; border-bottom: 1px solid var(--gray-border);
   white-space: nowrap;
 }
+/* header buttons look like the plain headings; the caret shows the sorted column */
+.lb-sort {
+  all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;
+}
+.lb-sort::after {
+  content: ""; width: 0; height: 0; border: 4px solid transparent; border-top-color: currentColor;
+  border-bottom: 0; opacity: .3; transition: opacity .15s;
+}
+.lb-sort.asc::after { border-top: 0; border-bottom: 4px solid currentColor; }
+.lb-sort:hover, .lb-sort.active { color: var(--text); }
+.lb-sort.active::after { opacity: 1; }
+.lb-sort:focus-visible { outline: 2px solid var(--brand-red); outline-offset: 3px; border-radius: 3px; }
+.lb-table th.lb-col-num .lb-sort { flex-direction: row-reverse; }
 .lb-table td {
   padding: 11px 12px; border-bottom: 1px solid var(--gray-border); vertical-align: middle;
   font-variant-numeric: tabular-nums; font-size: 14px;
@@ -166,6 +180,7 @@
 .lb-table tr:last-child td { border-bottom: 0; }
 .lb-table .lb-col-num, .lb-table td.lb-num { text-align: right; }
 .lb-col-rank { width: 40px; }
+.lb-col-trend { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
 .lb-table td.lb-rank { line-height: 0; }
 .lb-table tr.unranked td { color: var(--text-muted); line-height: normal; }
 .lb-country-cell { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }

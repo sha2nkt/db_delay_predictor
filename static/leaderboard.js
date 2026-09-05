@@ -29,6 +29,7 @@ const I18N = {
     colCancelled: "Ausfälle",
     colStops: "Halte",
     colTrend: "Letzte 30 Tage",
+    colTrendTitle: "Anteil pünktlicher Halte pro Tag in den letzten 30 Tagen, links der älteste Tag, der Punkt ist der neueste. Jede Linie hat ihre eigene Skala.",
     tipRank: "Platz {n}",
     tipUnranked: "nicht gewertet",
     tipPunctual: "pünktlich",
@@ -82,6 +83,7 @@ const I18N = {
     colCancelled: "Cancelled",
     colStops: "Stops",
     colTrend: "Last 30 days",
+    colTrendTitle: "Share of on-time stops per day over the last 30 days, oldest day on the left, the dot is the latest. Each line has its own scale.",
     tipRank: "Rank {n}",
     tipUnranked: "not ranked",
     tipPunctual: "on time",
@@ -213,18 +215,25 @@ function applyI18n() {
     const key = el.dataset.i18n;
     if (S[key] != null) el.textContent = S[key];
   });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
+  });
   document.querySelector(".lb-periods").setAttribute("aria-label", t("periodGroup"));
 }
 
 /* ---------- state ---------- */
 let data = null;
 let period = PERIODS.includes(new URLSearchParams(location.search).get("period"))
-  ? new URLSearchParams(location.search).get("period") : "day";
+  ? new URLSearchParams(location.search).get("period") : "month";
 let paths = {};       // code -> <path>
 let svg = null;
 let leaders = null;   // <g> with the dotted lines from displaced labels
 let labels = null;    // <g> with name + figure per country
 let pinned = null;    // code whose tooltip a tap pinned open
+// table order: which column, and the numeric direction; each metric's default
+// is its best-first direction, a second click on the same header flips it
+const SORT_DEFAULT = { punctuality: "desc", avgDelay: "asc", cancelled: "asc", stops: "desc" };
+let sort = { key: "punctuality", dir: "desc" };
 
 function current() { return data.periods[period]; }
 function entry(code) { return current().countries.find((c) => c.code === code) || null; }
@@ -521,17 +530,48 @@ function sparkline(code) {
   return s;
 }
 
+/* the ranked countries in the chosen order, each with its position under
+   that column's best-first ordering (the official rank for the default sort);
+   countries without a rank always trail in their API order */
+function sortedRows(countries) {
+  const ranked = countries.filter((c) => c.rank);
+  const unranked = countries.filter((c) => !c.rank);
+  const key = sort.key;
+  const best = SORT_DEFAULT[key] === "asc" ? 1 : -1;
+  const val = (c) => (c[key] == null ? Infinity * best : c[key]);
+  ranked.sort((a, b) => (val(a) - val(b)) * best || a.rank - b.rank);
+  const rows = ranked.map((c, i) => ({ c, pos: i + 1 }));
+  if (sort.dir !== SORT_DEFAULT[key]) rows.reverse();
+  return rows.concat(unranked.map((c) => ({ c, pos: null })));
+}
+
+function renderSortHeaders() {
+  document.querySelectorAll(".lb-sort").forEach((b) => {
+    const active = b.dataset.sort === sort.key;
+    b.classList.toggle("active", active);
+    b.classList.toggle("asc", active && sort.dir === "asc");
+    b.closest("th").setAttribute("aria-sort", active ? (sort.dir === "asc" ? "ascending" : "descending") : "none");
+  });
+}
+
+function setSort(key) {
+  sort = { key, dir: sort.key === key ? (sort.dir === "asc" ? "desc" : "asc") : SORT_DEFAULT[key] };
+  if (window.umami) window.umami.track("leaderboard-sort", { key, dir: sort.dir });
+  if (data) renderTable();
+}
+
 function renderTable() {
   const tbody = $("lb-rows");
   tbody.innerHTML = "";
   const cur = current();
   $("lb-status").textContent = cur.countries.length ? "" : t("noData");
-  for (const c of cur.countries) {
+  renderSortHeaders();
+  for (const { c, pos } of sortedRows(cur.countries)) {
     const tr = document.createElement("tr");
     tr.className = c.rank ? "r" + c.rank : "unranked";
     const td = (cls) => { const d = document.createElement("td"); if (cls) d.className = cls; tr.appendChild(d); return d; };
     const rankTd = td("lb-rank");
-    if (c.rank) rankTd.appendChild(rankBadge(c.rank)); else rankTd.textContent = "–";
+    if (pos) rankTd.appendChild(rankBadge(pos)); else rankTd.textContent = "–";
 
     const cell = document.createElement("span");
     cell.className = "lb-country-cell";
@@ -596,7 +636,7 @@ function setPeriod(next, fromUser) {
   });
   if (fromUser) {
     const url = new URL(location.href);
-    if (next === "day") url.searchParams.delete("period"); else url.searchParams.set("period", next);
+    if (next === "month") url.searchParams.delete("period"); else url.searchParams.set("period", next);
     history.replaceState(null, "", url);
     if (window.umami) window.umami.track("leaderboard-period", { period: next });
   }
@@ -637,6 +677,9 @@ buildMap();
 setPeriod(period, false);
 document.querySelectorAll(".lb-period").forEach((b) => {
   b.addEventListener("click", () => setPeriod(b.dataset.period, true));
+});
+document.querySelectorAll(".lb-sort").forEach((b) => {
+  b.addEventListener("click", () => setSort(b.dataset.sort));
 });
 load(true);
 // a page left open: poll while visible, and once more when the tab comes back
