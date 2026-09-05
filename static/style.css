@@ -1944,7 +1944,8 @@ body.past-mode .stories-banner { display: none; }
 .auth-name { color: #fff; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
 .auth-name:hover { text-decoration: underline; }
 /* the account icon rides beside the name on desktop and replaces it on phone home headers */
-.auth-icon { display: block; width: 17px; height: 17px; }
+/* nudged down: flex centers the boxes, but the glyphs' optical center sits lower */
+.auth-icon { display: block; width: 17px; height: 17px; position: relative; top: 1.5px; }
 /* "saved under Meine Fahrten": the receipt under the ordered-report modal's booking button */
 .trip-saved {
   display: block; margin-top: 8px; text-align: center;
@@ -2079,6 +2080,6 @@ body.past-mode .stories-banner { display: none; }
     width: 34px; height: 34px; border: 2px solid #fff; border-radius: 50%;
   }
   .header-home .auth-name:hover { background: rgba(255,255,255,.15); text-decoration: none; }
-  .header-home .auth-name .auth-icon { width: 22px; height: 22px; }
+  .header-home .auth-name .auth-icon { width: 22px; height: 22px; top: 0; }
   .header-home .auth-name .auth-name-text { display: none; }
 }

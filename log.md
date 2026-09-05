@@ -1618,3 +1618,9 @@ Append-only. Add new entries at the bottom with a date heading; never edit or de
 - The login card's lead described the list ("als Liste deiner nächsten und vergangenen Fahrten") but not the reason to bother. It now ends the way the onboarding card does: "… und zeigt dir, wie viel Zeit dich Verspätungen und Ausfälle wirklich gekostet haben." / "… and shows you how much time delays and cancellations have really cost you." Title and login button unchanged; strings updated in both trips.js language tables and the German markup in trips.html.
 - Verified by rendering `_trips_html("de")` and `("en")` server-side (both new leads substituted) and `node --check`.
 - Busters: `trips.js` v4 → **v5** in trips.html (still not in the sw.js PRECACHE). Live pin read first (4, from today's own deploy, the highest anywhere). No asset URL was requested with a candidate number before the deploy.
+
+## 2026-09-06 — The desktop account icon drops onto the name's optical center
+
+- The user's screenshot showed the person icon riding high beside the username. Flex `align-items: center` aligns boxes, but a 13 px bold name's glyphs sit below their line box's center, so the icon looked lifted. `.auth-icon` now carries `position: relative; top: 1.5px`; the phone circle overrides it back to `top: 0` (its centering is geometric and was already right). One rule in style.css.
+- Verified in a 3× headless-Chrome render at 1000 px — icon head level with the caps, body base on the baseline, Abmelden unchanged — and a 500 px render confirming the circle did not move.
+- Busters: `style.css` v118 → **v119** (six pages + the sw.js PRECACHE), `SHELL_VERSION` v81 → **v82**. Live pins read first (118/v81 from today's own deploy, the highest anywhere); no skips. No asset URL was requested with a candidate number before the deploy.
