@@ -37,6 +37,21 @@ const I18N = {
     kindReturn: "Rückfahrt",
     open: "Auf bahn.de öffnen",
     check: "Verspätung & Entschädigung prüfen",
+    reportBtn: "Störung melden",
+    storyBtn: "Geschichte erzählen",
+    pickReport: "Diesen Zug melden",
+    pickStory: "Über diesen Zug erzählen",
+    pickHintReport: "Welchen Zug möchtest du melden? Wähle ihn mit dem Pfeil.",
+    pickHintStory: "Um welchen Zug geht es? Wähle ihn mit dem Pfeil.",
+    pickWhat: "Was ist passiert?",
+    problem_delay: "Verspätung",
+    problem_cancelled: "Zugausfall",
+    problem_missed: "Anschluss verpasst",
+    problem_ac: "Klimaanlage defekt",
+    problem_wc: "WC defekt/schmutzig",
+    problem_crowding: "Überfüllt",
+    problem_wifi: "WLAN geht nicht",
+    problem_other: "Sonstiges",
     removeTitle: "Aus der Liste entfernen",
     checkBusy: "Prüfe …",
     checkThrottle: "Zu viele Anfragen – bitte kurz warten.",
@@ -112,6 +127,21 @@ const I18N = {
     kindReturn: "Return",
     open: "Open on bahn.de",
     check: "Check delay & compensation",
+    reportBtn: "Report train issues",
+    storyBtn: "Share delay story",
+    pickReport: "Report this train",
+    pickStory: "Tell about this train",
+    pickHintReport: "Which train do you want to report? Pick it with the arrow.",
+    pickHintStory: "Which train is your story about? Pick it with the arrow.",
+    pickWhat: "What went wrong?",
+    problem_delay: "Delayed",
+    problem_cancelled: "Cancelled",
+    problem_missed: "Missed connection",
+    problem_ac: "AC not working",
+    problem_wc: "WC broken/dirty",
+    problem_crowding: "Overcrowded",
+    problem_wifi: "Wi-Fi not working",
+    problem_other: "Other",
     removeTitle: "Remove from the list",
     checkBusy: "Checking …",
     checkThrottle: "Too many requests – please wait a moment.",
@@ -169,6 +199,9 @@ const track = (name, data) => window.umami?.track(name, data);
 
 const SELF = lang === "en" ? "/en/my-trips" : "/meine-fahrten";
 const HOME = lang === "en" ? "/en/" : "/";
+const STORIES = lang === "en" ? "/stories" : "/geschichten";
+// the damage report's tiles, in the stories page's order (BOARD_CODES in stories.js)
+const PROBLEMS = ["delay", "cancelled", "missed", "ac", "wc", "crowding", "wifi", "other"];
 // where a claim is filed: the trip overview on bahn.de, like the search's claim modal
 const CLAIM_URL = "https://www.bahn.de/buchung/reiseuebersicht/vergangene";
 // products IRIS never covers, as in the search (UNTRACKED_PRODUCTS in app/main.py)
@@ -341,6 +374,9 @@ function legRow(leg, struck, live) {
 function buildCheck(data) {
   const panel = document.createElement("div");
   panel.className = "trip-check";
+  // the hand-off to the stories page: shown above the legs while a leg is being picked
+  const hint = document.createElement("div");
+  hint.className = "pick-hint";
   const legs = data.legs || [];
   const trainLegs = legs.filter((l) => !l.walking);
   const finalLeg = trainLegs[trainLegs.length - 1];
@@ -383,7 +419,10 @@ function buildCheck(data) {
   legsEl.className = "legs";
   const missedAt = sim ? sim.missedAtLegIndex : null;
   const addRows = (list, live) => list.forEach((leg, i) => {
-    const row = legRow(leg, missedAt != null && list === legs && i >= missedAt, live);
+    const struck = missedAt != null && list === legs && i >= missedAt;
+    const row = legRow(leg, struck, live);
+    // the trip's own trains can be picked; the replan's are the check's guess, not a ride
+    if (list === legs && !leg.walking) row.appendChild(legPick(panel, leg, struck));
     if (i === 0) row.classList.add("rail-first");
     if (i === list.length - 1) row.classList.add("rail-last");
     legsEl.appendChild(row);
@@ -402,8 +441,78 @@ function buildCheck(data) {
     note.textContent = t("simIncomplete");
     legsEl.appendChild(note);
   }
-  panel.append(top, legsEl);
+  panel.append(top, hint, legsEl);
   return panel;
+}
+
+/* The stories page with a train of the trip in its form: `story` opens the
+   compose form, `report` the damage report's tap form. The stations, day,
+   departure and train travel as query parameters the page reads on load;
+   the leg's outcome on the day lets it pre-tick what went wrong; a report
+   names the tile the visitor chose. */
+function storiesLink(kind, leg, struck, problem) {
+  const d = leg.delayOnDate;
+  const dep = leg.plannedDeparture || "";
+  const params = new URLSearchParams({
+    trip: kind, from: leg.origin?.name || "", to: leg.destination?.name || "",
+    date: dep.slice(0, 10), time: dep.slice(11, 16), train: leg.line?.name || "",
+  });
+  if (d?.delayMin != null) params.set("delay", String(d.delayMin));
+  if (d?.canceled) params.set("canceled", "1");
+  else if (struck) params.set("missed", "1");
+  if (problem) params.set("problem", problem);
+  return `${STORIES}?${params}`;
+}
+
+/* A leg row's hand-off: an arrow pointed at the form of whichever mode the
+   panel is in. A story goes straight to the compose form; a report first
+   asks what went wrong, as chips under the row, each leading to its tile. */
+function legPick(panel, leg, struck) {
+  const pick = document.createElement("a");
+  pick.className = "leg-pick";
+  pick.textContent = "→";
+  pick.dataset.report = storiesLink("report", leg, struck);
+  pick.dataset.story = storiesLink("story", leg, struck);
+  pick.addEventListener("click", (e) => {
+    if (panel.dataset.pick !== "report") {
+      track("trip-story");
+      return;
+    }
+    e.preventDefault();
+    const row = pick.closest(".leg");
+    const open = row.nextElementSibling?.classList.contains("leg-problems");
+    closeProblems(panel);
+    if (open) return;
+    row.after(problemChips(leg, struck));
+    pick.setAttribute("aria-expanded", "true");
+  });
+  return pick;
+}
+
+function problemChips(leg, struck) {
+  const box = document.createElement("div");
+  box.className = "leg-problems";
+  const lead = document.createElement("div");
+  lead.className = "leg-problems-lead";
+  lead.textContent = t("pickWhat");
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  for (const code of PROBLEMS) {
+    const chip = document.createElement("a");
+    chip.className = "chip";
+    chip.href = storiesLink("report", leg, struck, code);
+    chip.textContent = t("problem_" + code);
+    chip.addEventListener("click", () => track("trip-report", { problem: code }));
+    chips.appendChild(chip);
+  }
+  box.append(lead, chips);
+  return box;
+}
+
+// at most one leg asks what went wrong at a time
+function closeProblems(panel) {
+  panel.querySelectorAll(".leg-problems").forEach((el) => el.remove());
+  panel.querySelectorAll(".leg-pick").forEach((a) => a.removeAttribute("aria-expanded"));
 }
 
 // --- an upcoming trip: the search's card as it stood when the trip was filed ---
@@ -517,16 +626,13 @@ function togglePanel(panel, button) {
   button.setAttribute("aria-expanded", String(!hidden));
 }
 
-// first press fetches and shows the check, later ones fold it away and back
-async function toggleCheck(trip, card, button) {
-  const panel = card.querySelector(".trip-check");
-  if (panel) {
-    const hidden = panel.classList.toggle("hidden");
-    button.setAttribute("aria-expanded", String(!hidden));
-    return;
-  }
+// the card's check panel, fetched on the first call; null when the fetch failed
+async function ensureCheck(trip, card) {
+  const existing = card.querySelector(".trip-check");
+  if (existing) return existing;
   card.querySelector(".trip-check-status")?.remove();
-  button.disabled = true;
+  const buttons = card.querySelectorAll(".trip-actions button");
+  buttons.forEach((b) => { b.disabled = true; });
   const status = document.createElement("div");
   status.className = "trip-check-status";
   status.textContent = t("checkBusy");
@@ -534,15 +640,62 @@ async function toggleCheck(trip, card, button) {
   try {
     const data = await api(`/api/trips/${trip.id}/check`);
     status.remove();
-    card.appendChild(buildCheck(data));
-    button.setAttribute("aria-expanded", "true");
+    const panel = buildCheck(data);
+    card.appendChild(panel);
     track("trip-check");
+    return panel;
   } catch (e) {
     status.classList.add("error");
     status.textContent = t(e.status === 429 ? "checkThrottle" : "loadError");
+    return null;
   } finally {
-    button.disabled = false;
+    buttons.forEach((b) => { b.disabled = false; });
   }
+}
+
+// the three buttons follow the panel: all expanded with it, the pick mode's own lit
+function syncActions(card, panel) {
+  const hidden = panel.classList.contains("hidden");
+  card.querySelectorAll(".trip-actions button").forEach((b) => {
+    b.setAttribute("aria-expanded", String(!hidden));
+    b.classList.toggle("active", !hidden && !!b.dataset.pick && b.dataset.pick === panel.dataset.pick);
+  });
+}
+
+// first press fetches and shows the check, later ones fold it away and back
+async function toggleCheck(trip, card) {
+  const existing = card.querySelector(".trip-check");
+  const panel = existing || await ensureCheck(trip, card);
+  if (!panel) return;
+  if (existing) panel.classList.toggle("hidden");
+  delete panel.dataset.pick;
+  closeProblems(panel);
+  syncActions(card, panel);
+}
+
+/* The same panel with a hand-off link on every train of the trip: the
+   visitor picks the one the report or the story is about. The other mode's
+   button switches the links over; the same button again folds the panel. */
+async function togglePick(trip, card, kind) {
+  const existing = card.querySelector(".trip-check");
+  const panel = existing || await ensureCheck(trip, card);
+  if (!panel) return;
+  const again = !panel.classList.contains("hidden") && panel.dataset.pick === kind;
+  panel.classList.toggle("hidden", again);
+  closeProblems(panel);
+  if (again) {
+    delete panel.dataset.pick;
+  } else {
+    panel.dataset.pick = kind;
+    panel.querySelector(".pick-hint").textContent = t(kind === "report" ? "pickHintReport" : "pickHintStory");
+    panel.querySelectorAll(".leg-pick").forEach((a) => {
+      a.href = a.dataset[kind];
+      a.title = t(kind === "report" ? "pickReport" : "pickStory");
+      a.setAttribute("aria-label", a.title);
+    });
+    track("trip-pick", { kind });
+  }
+  syncActions(card, panel);
 }
 
 function tripCard(trip, past) {
@@ -611,8 +764,19 @@ function tripCard(trip, past) {
     check.className = "book-btn";
     check.textContent = t("check");
     check.setAttribute("aria-expanded", "false");
-    check.addEventListener("click", () => toggleCheck(trip, card, check));
+    check.addEventListener("click", () => toggleCheck(trip, card));
     actions.appendChild(check);
+    // the same panel, with a leg to pick for the stories page's two forms
+    for (const [kind, key] of [["report", "reportBtn"], ["story", "storyBtn"]]) {
+      const pick = document.createElement("button");
+      pick.type = "button";
+      pick.className = "book-btn trip-link";
+      pick.dataset.pick = kind;
+      pick.textContent = t(key);
+      pick.setAttribute("aria-expanded", "false");
+      pick.addEventListener("click", () => togglePick(trip, card, kind));
+      actions.appendChild(pick);
+    }
   } else {
     // the search's card, behind a button like the past trips' check
     const panel = buildPlan(trip);

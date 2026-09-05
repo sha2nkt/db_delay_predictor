@@ -1305,7 +1305,7 @@ async function tapProblem(code) {
 }
 
 /* -- the tap form: where and when, asked before a tap counts -- */
-const tap = { code: null };
+const tap = { code: null, prefill: null };  // prefill: a trip from Meine Fahrten, applied on open
 
 function openTapForm(code) {
   const form = document.getElementById("tap-form");
@@ -1318,9 +1318,11 @@ function openTapForm(code) {
   document.getElementById("q-other-field").classList.toggle("hidden", code !== "other");
   document.getElementById("q-other").required = code === "other";
   fillNow("q");
+  if (tap.prefill) fillTrip("q", tap.prefill);
   form.classList.remove("hidden");
   form.scrollIntoView({ block: "nearest", behavior: stillPlease.matches ? "auto" : "smooth" });
-  document.getElementById("q-from").focus();
+  // filled in from a trip, the only thing left to do is send it
+  (tap.prefill ? form.querySelector('[type="submit"]') : document.getElementById("q-from")).focus();
 }
 
 function closeTapForm() {
@@ -1353,6 +1355,7 @@ function initTapForm() {
         problem_other: document.getElementById("q-other").value.trim(),
       });
       track("report-tap", { problem: code });
+      tap.prefill = null;  // the trip is reported; the next tap starts blank
       closeTapForm();
       board.epoch += 1; // an in-flight span fetch must not paint over this
       applyBoard(res, false);
@@ -1505,6 +1508,77 @@ function applyStatic() {
 }
 
 
+/* -- a trip handed over from Meine Fahrten --------------------------------
+   /geschichten?trip=story|report&from=&to=&date=&time=&train=&delay=&canceled=&missed=&problem=
+   opens the compose form or the damage report's tap form with the trip
+   filled in. The parameters are read once and dropped from the URL, so a
+   reload or a share of the page does not reopen the form; a signed-out
+   visitor is sent to the login with the full URL as the way back. */
+function readTripHandover() {
+  const qp = new URLSearchParams(location.search);
+  if (!["story", "report"].includes(qp.get("trip"))) return null;
+  const handover = {
+    kind: qp.get("trip"), next: location.pathname + location.search,
+    from: qp.get("from") || "", to: qp.get("to") || "",
+    date: qp.get("date") || "", time: qp.get("time") || "", train: qp.get("train") || "",
+    delay: qp.get("delay") ? Number(qp.get("delay")) : null,
+    canceled: qp.get("canceled") === "1",
+    missed: qp.get("missed") === "1",
+    problem: qp.get("problem") || "",  // a report: the tile chosen on Meine Fahrten
+  };
+  history.replaceState(null, "", location.pathname);
+  return handover;
+}
+
+function fillTrip(prefix, trip) {
+  document.getElementById(prefix + "-from").value = trip.from;
+  document.getElementById(prefix + "-to").value = trip.to;
+  if (trip.date) document.getElementById(prefix + "-date").value = trip.date;
+  if (trip.time) document.getElementById(prefix + "-time").value = trip.time;
+  document.getElementById(prefix + "-train").value = trip.train;
+}
+
+// what the day's outcome says went wrong, in the board's own codes
+function tripProblems(trip) {
+  const out = [];
+  if (trip.canceled) out.push("cancelled");
+  if (trip.missed) out.push("missed");
+  // bahn.de counts a train as late from six minutes
+  if (trip.delay != null && trip.delay >= 6) out.push("delay");
+  return out;
+}
+
+function applyTripHandover(trip) {
+  if (!me) {
+    track("login-prompt");
+    location.assign("/login?next=" + encodeURIComponent(trip.next));
+    return;
+  }
+  track("trip-handover", { kind: trip.kind });
+  if (trip.kind === "story") {
+    const form = document.getElementById("compose-form");
+    form.classList.remove("hidden");
+    fillTrip("c", trip);
+    for (const code of tripProblems(trip)) {
+      const box = document.getElementById("p-" + code);
+      if (box) box.checked = true;
+    }
+    form.scrollIntoView({ block: "start", behavior: stillPlease.matches ? "auto" : "smooth" });
+    document.getElementById("c-title").focus({ preventScroll: true });
+    return;
+  }
+  tap.prefill = trip;
+  // the tile the visitor chose, else one an outcome the data already shows; the rest is their call
+  const code = board.tiles.has(trip.problem) ? trip.problem : tripProblems(trip).find((c) => board.tiles.has(c));
+  if (code) {
+    openTapForm(code);
+    return;
+  }
+  document.querySelector(".board-section").scrollIntoView({ block: "start", behavior: stillPlease.matches ? "auto" : "smooth" });
+}
+
+const tripHandover = readTripHandover();
+
 applyStatic();
 initCompose();
 initTapForm();
@@ -1512,6 +1586,7 @@ initTapForm();
 // votes marked only when the request carried the token
 loadMe().then(() => {
   initBoard();
+  if (tripHandover) applyTripHandover(tripHandover);
   loadPermalink();
   loadTop();
   loadNew();

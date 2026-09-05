@@ -1995,6 +1995,33 @@ body.past-mode .stories-banner { display: none; }
 /* the in-place check under a past trip: the verdict row, then the search's leg rows */
 .trip-actions button.book-btn { font-family: inherit; }
 .trip-actions button.book-btn:disabled { opacity: .6; cursor: wait; }
+/* the hand-offs to the stories page sit beside the check as quieter buttons */
+.trip-actions .trip-link { border-color: var(--gray-border); color: var(--text); }
+.trip-actions .trip-link:hover, .trip-actions .trip-link.active { border-color: var(--brand-red); color: var(--brand-red); background: #fff; }
+/* pick mode: a question above the legs and an arrow at the end of every train row */
+.trip-check .pick-hint, .trip-check .leg-pick { display: none; }
+.trip-check[data-pick] .pick-hint { display: block; margin-top: 10px; font-size: 13px; font-weight: 600; }
+/* the arrow keeps a column on the right and sits on the first line, level with the
+   stop marker, so a long route wraps around it instead of pushing it down */
+.trip-check[data-pick] .leg:not(.leg-walk) { padding-right: 36px; }
+.trip-check[data-pick] .leg-pick {
+  display: inline-flex; align-items: center; justify-content: center;
+  position: absolute; right: 0; top: var(--stop-y); transform: translateY(-50%);
+  width: 26px; height: 26px; font-size: 15px; font-weight: 700; line-height: 1;
+  color: var(--brand-red); border: 1.5px solid var(--brand-red); border-radius: 50%; text-decoration: none;
+}
+.trip-check[data-pick] .leg-pick:hover, .trip-check[data-pick] .leg-pick[aria-expanded="true"] {
+  background: var(--brand-red); color: #fff;
+}
+/* a report's question under the picked row; the rail runs on behind it like .if-missed-panel */
+.leg-problems { margin: 2px 0 6px 26px; position: relative; }
+.leg-problems::after {
+  content: ""; position: absolute; left: -19px; top: -2px; bottom: -6px;
+  width: 2px; background: color-mix(in srgb, var(--text-muted) 45%, #fff);
+}
+.leg-problems-lead { font-size: 12.5px; font-weight: 600; color: var(--text-muted); padding: 2px 0 6px; }
+.leg-problems .chip { padding: 5px 12px; font-size: 12.5px; text-decoration: none; }
+.leg-problems .chip:hover { border-color: var(--brand-red); color: var(--brand-red); }
 .trip-check { margin-top: 12px; }
 .trip-check.hidden { display: none; }
 .trip-check-verdict { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
