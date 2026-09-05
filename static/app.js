@@ -248,6 +248,9 @@ const I18N = {
     navTrips: "Meine Fahrten",
     tripSaved: "✓ Unter „Meine Fahrten“ gespeichert",
     tripBtnTitle: "Zu Meine Fahrten hinzufügen",
+    tripModalTitle: "Fahrt merken",
+    tripModalLead: "Gemerkte Fahrten sammelt DelayBahn unter „Meine Fahrten“: mit der Verspätungsstatistik von heute und – nach der Fahrt – der tatsächlichen Verspätung und deinem Entschädigungsanspruch.",
+    tripLoginBtn: "Anmelden & Fahrt merken",
     tripBtnOnTitle: "In Meine Fahrten gespeichert – zum Entfernen klicken",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
     refundCtaLead: "Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.",
@@ -523,6 +526,9 @@ const I18N = {
     navTrips: "My trips",
     tripSaved: "✓ Saved under “My trips”",
     tripBtnTitle: "Add to My trips",
+    tripModalTitle: "Save this trip",
+    tripModalLead: "Saved trips collect under “My trips”: with today's delay statistics and, after the journey, what the delay actually was and what you can claim.",
+    tripLoginBtn: "Log in & save this trip",
     tripBtnOnTitle: "Saved in My trips – click to remove",
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
@@ -817,6 +823,7 @@ function applyLang(lang) {
   if (state.staleSeconds) setStaleNotice(state.staleSeconds);
   if (claimModal.open) populateClaimModal();
   if (reportModal.open) populateReportModal();
+  if (tripModal.open && tripPending) openTripModal(tripPending.journeys, tripPending.url);
   renderTripSteps();
   render();
 }
@@ -3429,21 +3436,49 @@ async function removeTrips(journeys, account) {
   track("trip-remove", { via: "add" });
 }
 
+/* Signed out, the press opens this instead of jumping straight to the login:
+   the bookmark is unlabelled, so what it does has to be said once before the
+   visitor is sent away for an account. The login button then parks the press
+   exactly as the bell's does. */
+const tripModal = document.getElementById("trip-modal");
+let tripPending = null;   // {journeys, url} the modal's login button files on return
+
+function openTripModal(journeys, url) {
+  tripPending = { journeys, url };
+  const j = journeys[0]?.journey;
+  const legs = j?.legs || [];
+  const from = legs[0]?.origin?.name || state.from?.name || "";
+  const to = legs[legs.length - 1]?.destination?.name || state.to?.name || "";
+  const dep = legs[0]?.plannedDeparture;
+  document.getElementById("trip-modal-journey").textContent =
+    from && to ? `${from} → ${to}${dep ? `, ${fmtBahnDate(dep)}, ${fmtTime(dep)}` : ""}` : "";
+  if (!tripModal.open) tripModal.showModal();
+}
+
+document.getElementById("trip-modal-close").addEventListener("click", () => tripModal.close());
+// a click on the backdrop lands on the dialog element itself
+tripModal.addEventListener("click", (e) => { if (e.target === tripModal) tripModal.close(); });
+
+document.getElementById("trip-login-btn").addEventListener("click", () => {
+  if (!tripPending) return;
+  try {
+    sessionStorage.setItem(TRIP_PENDING_KEY, JSON.stringify({
+      ...tripPending, search: tripSearchMeta(), ts: Date.now(),
+    }));
+  } catch (e) { /* no storage: the bookmark has to be pressed again after the login */ }
+  track("trip-login");
+  const next = location.pathname + location.search;
+  location.assign("/login?next=" + encodeURIComponent(next) + "&reason=trips");
+});
+
 async function onTripClick(journeys, url, btn) {
   btn.disabled = true;
   try {
     let account = null;
     try { account = await currentAccount(); } catch (e) { /* SDK unreachable: same as signed out */ }
     if (!account || !account.verified) {
-      // park the press for the return from the login page, like a bell's order
-      try {
-        sessionStorage.setItem(TRIP_PENDING_KEY, JSON.stringify({
-          journeys, url, search: tripSearchMeta(), ts: Date.now(),
-        }));
-      } catch (e) { /* no storage: the bookmark has to be pressed again after the login */ }
-      track("trip-login");
-      const next = location.pathname + location.search;
-      location.assign("/login?next=" + encodeURIComponent(next) + "&reason=trips");
+      track("trip-modal");
+      openTripModal(journeys, url);
       return;
     }
     if (tripBtnOn(btn)) await removeTrips(journeys, account);

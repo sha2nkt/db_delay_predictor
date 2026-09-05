@@ -1947,6 +1947,14 @@ body.past-mode .stories-banner { display: none; }
 .trip-saved:hover { text-decoration: underline; }
 .trip-saved.hidden { display: none; }
 
+/* the signed-out bookmark modal: the journey it would save, above the login */
+.trip-modal-journey {
+  margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: var(--gray-bg);
+  font-size: 14px; font-weight: 600; line-height: 1.4;
+}
+.trip-modal-journey:empty { display: none; }
+#trip-modal .report-submit { margin-top: 14px; margin-bottom: 4px; }
+
 .trips-main { max-width: 720px; }
 .trips-intro { font-size: 13.5px; line-height: 1.45; color: var(--text-muted); margin: 0 2px 14px; }
 .trips-login { text-align: center; padding: 22px 18px 24px; }
