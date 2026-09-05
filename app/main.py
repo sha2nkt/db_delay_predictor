@@ -1447,6 +1447,8 @@ def _trips_html(lang: str) -> str:
         (r'(<a id="auth-name" class="auth-name" href=")[^"]*', rf"\g<1>{TRIPS_PATHS[lang]}"),
         (r'(<a id="trips-search-link" class="trips-search-link" href=")[^"]*',
          rf"\g<1>{home}"),
+        (r'(<a id="trips-onboard-btn" class="report-submit trips-login-btn" href=")[^"]*',
+         rf"\g<1>{home}"),
         (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{home}\g<2>"),
         (r'(<a href=")[^"]*(" data-i18n="footerStories")', rf"\g<1>{STORIES_PATHS[lang]}\g<2>"),
     ]

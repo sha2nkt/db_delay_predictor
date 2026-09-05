@@ -19,6 +19,9 @@ const I18N = {
     nextEmpty: "Noch keine anstehende Fahrt.",
     nextEmptyLink: "Verbindung suchen →",
     pastEmpty: "Noch keine vergangene Fahrt.",
+    onboardTitle: "Noch keine Fahrten gespeichert",
+    onboardLead: "Merk dir deine Verbindungen über das Lesezeichen neben jedem Buchen-Button – DelayBahn zeigt dir dann, wie viel Zeit dich Verspätungen und Ausfälle wirklich gekostet haben.",
+    onboardBtn: "Verbindung suchen",
     loading: "Lade deine Fahrten …",
     loadError: "Das hat gerade nicht geklappt – bitte später noch einmal versuchen.",
     statsHeading: "Deine Bilanz",
@@ -108,6 +111,9 @@ const I18N = {
     nextEmpty: "No upcoming trip yet.",
     nextEmptyLink: "Search a connection →",
     pastEmpty: "No past trip yet.",
+    onboardTitle: "No trips saved yet",
+    onboardLead: "Bookmark a connection next to its booking button and DelayBahn will show you how much time delays and cancellations have really cost you.",
+    onboardBtn: "Search a connection",
     loading: "Loading your trips …",
     loadError: "That didn't work right now – please try again later.",
     statsHeading: "Your tally",
@@ -794,6 +800,11 @@ function tripCard(trip, past) {
 }
 
 function syncEmpty() {
+  // a fresh account gets the pitch card instead of two empty section headings
+  const none = $("trips-next").children.length === 0 && $("trips-past").children.length === 0;
+  $("trips-onboard").classList.toggle("hidden", !none);
+  $("trips-next-section").classList.toggle("hidden", none);
+  $("trips-past-section").classList.toggle("hidden", none);
   $("trips-next-empty").classList.toggle("hidden", $("trips-next").children.length > 0);
   $("trips-past-empty").classList.toggle("hidden", $("trips-past").children.length > 0);
 }
