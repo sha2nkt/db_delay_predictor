@@ -1,177 +1,356 @@
-"""Passwordless accounts for the stories board: a username and an email
-address, nothing else. Both registering and logging in send the same mail,
-carrying two forms of one secret: a magic link and a 6-digit code. Either
-proves mailbox control, which doubles as the double opt-in (verified_ts, set
-on first use, is the proof) and starts the session. The code exists for the
-cross-device case - request on the laptop, mail opens on the phone - where
-clicking the link would sign in the wrong device. Only the self-chosen
-username is ever shown publicly. Accounts that never confirm are purged after
-UNVERIFIED_DAYS (data minimization, and it frees the squatted name).
+"""Accounts for the stories board live in Firebase Authentication: nothing
+about who somebody is touches this server's disk. The browser signs in
+through the Firebase JS SDK (Google, Apple, phone, or email + password) and
+sends the resulting ID token as a bearer on every request that needs an
+account; this module verifies the token's signature against Google's public
+keys - fetched once and cached, no network per request - and reads the
+account straight from the signed claims.
 
-The tables live in the stories SQLite file (stories.connect), because accounts
-exist only to pin story authorship and votes to a stable name. Sessions, links
-and codes are stored server-side only as SHA-256 hashes, so a leaked DB leaks
-neither live sessions nor pending logins. Each account has at most one
-outstanding login - issuing a new one invalidates the old, and using either
-form clears both.
+The one thing Firebase cannot enforce is a unique public username, so the
+claim of a name is a transaction on a tiny Firestore registry
+(usernames/{lowercased} -> uid, users/{uid} -> name), and the claimed name is
+then stamped on the account as the custom claim `handle`, so every later
+token carries it and no lookup is needed to attribute a post. Names never
+change once claimed, so a token can never carry a stale one.
+
+Configuration is a single service-account file (FIREBASE_SA_FILE); without it
+every account operation reports itself unavailable (503) and the rest of the
+site is unaffected. Blocking throughout - run it off the event loop.
 """
 
 import hashlib
+import logging
+import os
 import random
 import secrets
-import sqlite3
-from contextlib import closing
+import threading
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
+from app import reports, stories, trips
 from app.ratelimit import SlidingWindowLimiter
-from app.stories import connect
 
-SESSION_DAYS = 180
-MAGIC_LINK_HOURS = 1
-UNVERIFIED_DAYS = 7
+log = logging.getLogger(__name__)
+
+# a token minted a moment ago must not be "used too early" because this box's
+# clock trails Google's by a second; 10 s is well inside the SDK's 60 s cap
+CLOCK_SKEW_SECONDS = 10
+
+# Firestore collections. The first two are keyed for the one lookup each
+# answers: "is this name free" and "does this account already have one".
+_NAMES = "usernames"
+_USERS = "users"
+# Pending email logins. Firebase has no email one-time code of its own - its
+# codes are SMS only, its email flows are all clickable links - so the code is
+# minted here and kept here. It lives in Firestore rather than the app's
+# SQLite deliberately: no part of a login may touch this server's disk.
+_CODES = "email_codes"
+
+CODE_DIGITS = 6
+CODE_TTL_MINUTES = 15
 
 # A 6-digit code is only a million possibilities, so the attempt budget - not
 # the hash - is what protects it: MAX_TRIES wrong guesses kill the pending
 # login outright and a new mail has to be requested. (The stored SHA-256 is
-# therefore brute-forceable offline from a stolen DB, but only against logins
-# still pending inside the one-hour window, and a reader of the DB file has
-# far better options anyway. The link half is a full 256-bit token.)
-CODE_DIGITS = 6
+# therefore brute-forceable offline by anyone who can read Firestore, but only
+# against logins still pending inside the short window, and the rules there
+# deny every client.)
 MAX_TRIES = 5
 
-# Per-ACCOUNT budgets, independent of the per-IP limiters below. The mail is
+# Per-ADDRESS budgets, independent of the per-IP limiters below. The mail is
 # the login here, so a spray of requests for someone else's address is both a
 # way to bombard them and a way to burn the provider's daily quota - and once
 # that quota is gone, nobody can log in at all. A throttled request issues
 # nothing and sends nothing, but still reports success: "too many requests"
-# would say when this account last asked for a login, and the link already in
+# would say when this address last asked for a code, and the code already in
 # the mailbox still works, so a legitimate user is never locked out by this.
-# (Whether an address has an account at all is answered plainly - see
-# request_link - but when it last logged in is not.)
 RESEND_COOLDOWN_SECONDS = 60
-MAX_LINKS_PER_DAY = 10
+MAX_CODES_PER_DAY = 10
 
-# Guesses are capped per login (MAX_TRIES) *and* cumulatively per day, because
-# re-issuing a login resets the former - without this an attacker would simply
-# request a fresh mail for five more attempts.
-MAX_CODE_FAILS_PER_DAY = 20
+# How many abandoned pending logins to clear per issued code (see
+# _Registry._sweep_expired). Well above the one document an issue can add, so
+# a backlog drains; low enough that the read cost of a sign-in stays trivial.
+SWEEP_LIMIT = 20
 
-# Link requests and account minting are per-IP budgets. Registration is the
-# tighter one: nobody legitimately needs many accounts a day, but a shared
-# NAT (campus, office) must still let a handful of people sign up.
-login_limiter = SlidingWindowLimiter(
-    burst_limit=5, burst_window=60, sustained_limit=30, sustained_window=3600
-)
+# Claiming a name is the one write a fresh account makes; nobody legitimately
+# needs many a day, but a shared NAT (campus, office) must still let a
+# handful of people sign up.
 register_limiter = SlidingWindowLimiter(
     burst_limit=3, burst_window=300, sustained_limit=10, sustained_window=86400
 )
-# complements the per-account MAX_TRIES budget: that one caps guessing against
-# a single account, this one caps spraying one guess across many
-code_limiter = SlidingWindowLimiter(
-    burst_limit=10, burst_window=60, sustained_limit=50, sustained_window=3600
-)
-# Name suggestions cost one indexed SELECT and give nothing away, so this
-# budget only exists to keep a bored visitor from rerolling in a loop. It has
-# to stay well clear of honest clicking: one on page load, then a handful.
+# Name suggestions cost one batched Firestore read and give nothing away, so
+# this budget only exists to keep a bored visitor from rerolling in a loop.
 suggest_limiter = SlidingWindowLimiter(
     burst_limit=20, burst_window=60, sustained_limit=120, sustained_window=3600
 )
+# Asking for a code sends mail, so this is the tightest per-IP budget of the
+# lot; the per-address budget above is what protects one mailbox, this is what
+# stops one machine spraying many.
+email_limiter = SlidingWindowLimiter(
+    burst_limit=5, burst_window=60, sustained_limit=30, sustained_window=3600
+)
+# Complements the per-address MAX_TRIES budget: that one caps guessing against
+# a single address, this one caps spraying one guess across many.
+code_limiter = SlidingWindowLimiter(
+    burst_limit=10, burst_window=60, sustained_limit=50, sustained_window=3600
+)
+
+
+class AuthUnavailable(Exception):
+    """Firebase is not configured or not reachable: the caller answers 503,
+    never "invalid login" - that would tell a user to fix something on their
+    side that is broken on ours."""
+
+
+def configured() -> bool:
+    return bool(os.environ.get("FIREBASE_SA_FILE"))
+
+
+def status() -> dict:
+    """In-memory only - /health calls this."""
+    return {"configured": configured()}
+
+
+# --- Firebase wiring ----------------------------------------------------------
+# Imported lazily and initialised once: firebase_admin pulls in the google-cloud
+# stack, which has no business loading for a request that never needs it.
+
+_lock = threading.Lock()
+_app = None
+_db = None
+
+
+def _firebase():
+    """(firebase_admin.auth, firestore client), initialised on first use."""
+    global _app, _db
+    with _lock:
+        if _app is None:
+            sa_file = os.environ.get("FIREBASE_SA_FILE")
+            if not sa_file or not Path(sa_file).is_file():
+                raise AuthUnavailable("FIREBASE_SA_FILE is unset or missing")
+            try:
+                import firebase_admin
+                from firebase_admin import credentials, firestore
+            except ImportError as exc:
+                # a deploy that pulled the new code without `uv sync`: the site
+                # is fine, accounts are simply unavailable, and that has to
+                # read as 503 rather than a traceback
+                raise AuthUnavailable(f"firebase-admin is not installed: {exc}") from exc
+            _app = firebase_admin.initialize_app(credentials.Certificate(sa_file))
+            _db = firestore.client(_app)
+    from firebase_admin import auth as fb_auth
+
+    return fb_auth, _db
+
+
+def _verify(token: str) -> dict | None:
+    """The token's claims, or None when it is not a valid, current Firebase
+    ID token for this project. Replaced wholesale by the tests."""
+    fb_auth, _ = _firebase()
+    from firebase_admin import exceptions
+
+    try:
+        return fb_auth.verify_id_token(
+            token, app=_app, clock_skew_seconds=CLOCK_SKEW_SECONDS
+        )
+    except (fb_auth.InvalidIdTokenError, ValueError):
+        # expired and revoked are subclasses; a garbage string is the ValueError
+        return None
+    except exceptions.FirebaseError as exc:
+        # the public keys could not be fetched: nothing to verify against
+        raise AuthUnavailable(str(exc)) from exc
+
+
+def _stamp(uid: str, name: str) -> None:
+    """Write the claimed name onto the Firebase account: the display name
+    for the SDK's own use, and the custom claim the server trusts."""
+    fb_auth, _ = _firebase()
+    fb_auth.update_user(uid, display_name=name, app=_app)
+    fb_auth.set_custom_user_claims(uid, {"handle": name}, app=_app)
+
+
+class _Registry:
+    """The Firestore side of usernames, isolated so tests can swap in a
+    dict. Names are compared lowercased: "Jonas" and "jonas" would be
+    indistinguishable in a comment thread."""
+
+    def __init__(self, db):
+        self._db = db
+
+    def taken(self, names: list[str]) -> set[str]:
+        """Which of these names (lowercased) already belong to someone - one
+        batched read for the whole list."""
+        refs = [self._db.collection(_NAMES).document(n.lower()) for n in names]
+        return {snap.id for snap in self._db.get_all(refs) if snap.exists}
+
+    def claim(self, uid: str, name: str) -> str:
+        """"ok", "taken", or "named" (this account already has a name).
+        One transaction, so two claims of the same name - or two names by
+        one account - cannot both go through."""
+        from google.cloud import firestore
+
+        name_ref = self._db.collection(_NAMES).document(name.lower())
+        user_ref = self._db.collection(_USERS).document(uid)
+
+        @firestore.transactional
+        def run(txn):
+            # reads first, as Firestore transactions require
+            user_snap = user_ref.get(transaction=txn)
+            name_snap = name_ref.get(transaction=txn)
+            if user_snap.exists:
+                return "named"
+            if name_snap.exists:
+                return "taken"
+            stamp = {"ts": firestore.SERVER_TIMESTAMP}
+            txn.set(name_ref, {"uid": uid, "name": name, **stamp})
+            txn.set(user_ref, {"name": name, **stamp})
+            return "ok"
+
+        return run(self._db.transaction())
+
+    def release(self, uid: str) -> str | None:
+        """Drop the account's registry entries; the name it held, if any."""
+        user_ref = self._db.collection(_USERS).document(uid)
+        snap = user_ref.get()
+        if not snap.exists:
+            return None
+        name = snap.get("name")
+        self._db.collection(_NAMES).document(name.lower()).delete()
+        user_ref.delete()
+        return name
+
+    # --- pending email logins -------------------------------------------------
+    # Keyed by a hash of the address rather than the address itself: Firestore
+    # document ids are listable, and a collection of plaintext addresses of
+    # people mid-login is not something to keep even behind deny-all rules.
+
+    def _sweep_expired(self, now: datetime) -> None:
+        """Delete pending logins nobody ever came back for. Redeeming a code
+        removes its document and so does a later attempt on an expired one,
+        but a code that is simply abandoned would otherwise sit here forever
+        - and "the entry is deleted" is what the privacy notice promises.
+
+        Runs on the back of issuing a code, which is the only moment this
+        collection grows: one issue adds at most one document, so clearing
+        SWEEP_LIMIT of them per issue drains a backlog rather than falling
+        behind, while the cap keeps a sign-in request's read cost bounded.
+        Never raises - a Firestore hiccup here must not cost somebody their
+        login, and the next issue will sweep again anyway."""
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        try:
+            stale = (
+                self._db.collection(_CODES)
+                .where(filter=FieldFilter("expire_at", "<", now))
+                .limit(SWEEP_LIMIT)
+                .stream()
+            )
+            for doc in stale:
+                doc.reference.delete()
+        except Exception as exc:  # noqa: BLE001 - see the contract above
+            log.warning("sweeping expired login codes failed: %s", exc)
+
+    def issue_code(self, email: str, code_hash: str) -> bool:
+        """Record a freshly minted code against this address, spending one of
+        its daily allowance. False when the cooldown or the allowance says no
+        mail should go out - the caller then sends nothing and still reports
+        success. One transaction, so two simultaneous requests cannot both
+        pass the budget check."""
+        from google.cloud import firestore
+
+        ref = self._db.collection(_CODES).document(_email_key(email))
+        now = _now()
+        today = now.date().isoformat()
+        self._sweep_expired(now)
+
+        @firestore.transactional
+        def run(txn):
+            snap = ref.get(transaction=txn)
+            sent, last = 0, None
+            if snap.exists:
+                data = snap.to_dict()
+                # the daily counter resets on the UTC date turning over
+                sent = data.get("sent_today", 0) if data.get("day") == today else 0
+                last = data.get("sent_at")
+            if sent >= MAX_CODES_PER_DAY:
+                return False
+            if last is not None and (now - _parse(last)).total_seconds() < RESEND_COOLDOWN_SECONDS:
+                return False
+            expires = now + timedelta(minutes=CODE_TTL_MINUTES)
+            txn.set(ref, {
+                "code_hash": code_hash,
+                "expires": _iso(expires),
+                # the same instant as a real Timestamp, for the Firestore TTL
+                # policy on this collection: redeeming deletes the document
+                # and so does a later attempt, but a code that is simply
+                # abandoned would otherwise sit here forever, and "the entry
+                # is deleted" is what the privacy notice promises
+                "expire_at": expires,
+                "tries": 0,
+                "sent_at": _iso(now),
+                "day": today,
+                "sent_today": sent + 1,
+            })
+            return True
+
+        return run(self._db.transaction())
+
+    def redeem_code(self, email: str, code_hash: str) -> bool:
+        """Spend the pending code for this address. True only for the right
+        code, unexpired, with guesses left - and then the pending login is
+        gone, so it cannot be spent twice. A wrong guess costs one try, and
+        the last one voids the login outright so brute force has to start
+        over from a new mail. All inside one transaction, so two racing
+        attempts cannot both win."""
+        from google.cloud import firestore
+
+        ref = self._db.collection(_CODES).document(_email_key(email))
+        now = _now()
+
+        @firestore.transactional
+        def run(txn):
+            snap = ref.get(transaction=txn)
+            if not snap.exists:
+                return False
+            data = snap.to_dict()
+            if _parse(data["expires"]) < now or data.get("tries", 0) >= MAX_TRIES:
+                txn.delete(ref)
+                return False
+            # compare_digest over two hex digests: not reachable through HTTP
+            # jitter, but free to do right
+            if not secrets.compare_digest(data.get("code_hash", ""), code_hash):
+                if data.get("tries", 0) + 1 >= MAX_TRIES:
+                    txn.delete(ref)
+                else:
+                    txn.update(ref, {"tries": data.get("tries", 0) + 1})
+                return False
+            txn.delete(ref)
+            return True
+
+        return run(self._db.transaction())
+
+    def refund_code(self, email: str) -> None:
+        """Undo issue_code for a code that never left the server, handing back
+        the cooldown and the daily slot it spent - otherwise the retry the
+        caller just asked for would report success and send nothing."""
+        self._db.collection(_CODES).document(_email_key(email)).delete()
+
+
+def _registry() -> _Registry:
+    _, db = _firebase()
+    return _Registry(db)
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _token_hash(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
+def _iso(when: datetime) -> str:
+    return when.isoformat(timespec="seconds")
 
 
-def _new_session(conn: sqlite3.Connection, user_id: int) -> str:
-    token = secrets.token_urlsafe(32)
-    conn.execute(
-        "INSERT INTO sessions (token_hash, user_id, ts) VALUES (?, ?, ?)",
-        (_token_hash(token), user_id, _now().isoformat(timespec="seconds")),
-    )
-    return token
-
-
-def _roll_budget(conn: sqlite3.Connection, user_id: int) -> sqlite3.Row:
-    """Zero the daily counters when the UTC date has turned over, and return
-    the account's current budget row."""
-    today = _now().date().isoformat()
-    row = conn.execute(
-        "SELECT budget_day, links_sent, code_fails, link_last_sent"
-        " FROM users WHERE id = ?",
-        (user_id,),
-    ).fetchone()
-    if row["budget_day"] != today:
-        conn.execute(
-            "UPDATE users SET budget_day = ?, links_sent = 0, code_fails = 0"
-            " WHERE id = ?",
-            (today, user_id),
-        )
-        row = conn.execute(
-            "SELECT budget_day, links_sent, code_fails, link_last_sent"
-            " FROM users WHERE id = ?",
-            (user_id,),
-        ).fetchone()
-    return row
-
-
-def _issue_magic(conn: sqlite3.Connection, user_id: int) -> tuple[str, str] | None:
-    """(link_token, code) for one pending login, replacing any outstanding
-    one; None when this account's cooldown or daily allowance says no mail
-    should go out. Resets the per-login guess budget but never the daily one."""
-    now = _now()
-    budget = _roll_budget(conn, user_id)
-    if budget["links_sent"] >= MAX_LINKS_PER_DAY:
-        return None
-    last = budget["link_last_sent"]
-    if last is not None:
-        waited = (now - datetime.fromisoformat(last)).total_seconds()
-        if waited < RESEND_COOLDOWN_SECONDS:
-            return None
-
-    token = secrets.token_urlsafe(32)
-    code = f"{secrets.randbelow(10 ** CODE_DIGITS):0{CODE_DIGITS}d}"
-    expires = (now + timedelta(hours=MAGIC_LINK_HOURS)).isoformat(timespec="seconds")
-    conn.execute(
-        "UPDATE users SET magic_hash = ?, magic_code = ?, magic_expires = ?,"
-        " magic_tries = 0, links_sent = links_sent + 1, link_last_sent = ?"
-        " WHERE id = ?",
-        (_token_hash(token), _token_hash(code), expires,
-         now.isoformat(timespec="seconds"), user_id),
-    )
-    return token, code
-
-
-def _clear_magic(conn: sqlite3.Connection, user_id: int) -> None:
-    conn.execute(
-        "UPDATE users SET magic_hash = NULL, magic_code = NULL,"
-        " magic_expires = NULL, magic_tries = 0 WHERE id = ?",
-        (user_id,),
-    )
-
-
-def refund_link(email: str) -> None:
-    """Undo _issue_magic() for a link that never left the server. The mail
-    failed to send, so the pending login is voided and the cooldown and daily
-    allowance it spent are handed back - otherwise the retry the caller just
-    asked for would answer 202 and send nothing. The cooldown guarantees the
-    voided login is the one this caller minted and not a newer one."""
-    with closing(connect()) as conn, conn:
-        conn.execute(
-            "UPDATE users SET magic_hash = NULL, magic_code = NULL,"
-            " magic_expires = NULL, magic_tries = 0,"
-            " links_sent = MAX(links_sent - 1, 0), link_last_sent = NULL"
-            " WHERE email = ?",
-            (normalize_email(email),),
-        )
-
-
-def _purge_unverified(conn: sqlite3.Connection) -> None:
-    cutoff = (_now() - timedelta(days=UNVERIFIED_DAYS)).isoformat(timespec="seconds")
-    conn.execute("DELETE FROM users WHERE verified_ts IS NULL AND ts < ?", (cutoff,))
+def _parse(raw: str) -> datetime:
+    return datetime.fromisoformat(raw)
 
 
 def normalize_email(email: str) -> str:
@@ -180,12 +359,144 @@ def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
-# Suggested handles: <lazy adjective>_<creature><digits>, in the site's two
-# languages. Every word is ASCII and at most _MAX_WORD long, so the longest
-# possible name - 10 + "_" + 10 + four digits - is exactly the 25 characters
-# RegisterIn allows; test_auth.py pins that. Fictional creatures are folklore
-# or public domain rather than trademarked characters: the site mints these
-# names itself, and a name it minted is one it hands out under its own logo.
+def _email_key(email: str) -> str:
+    return hashlib.sha256(normalize_email(email).encode()).hexdigest()
+
+
+def _code_hash(code: str) -> str:
+    return hashlib.sha256(code.encode()).hexdigest()
+
+
+# --- the email code -----------------------------------------------------------
+
+def issue_email_code(email: str) -> tuple[str, str] | None:
+    """(code, kind) for one pending login, replacing any outstanding one, or
+    None when this address's cooldown or daily allowance says no mail should
+    go out. kind is "welcome" the first time an address is seen and "login"
+    afterwards, so a first mail does not read like a login it never asked
+    for. Raises AuthUnavailable."""
+    email = normalize_email(email)
+    code = f"{secrets.randbelow(10 ** CODE_DIGITS):0{CODE_DIGITS}d}"
+    if not _registry().issue_code(email, _code_hash(code)):
+        return None
+    return code, "login" if _existing_user(email) else "welcome"
+
+
+def _existing_user(email: str) -> str | None:
+    """The uid already registered to this address, or None."""
+    fb_auth, _ = _firebase()
+    try:
+        return fb_auth.get_user_by_email(email, app=_app).uid
+    except fb_auth.UserNotFoundError:
+        return None
+
+
+def verify_email_code(email: str, code: str) -> str | None:
+    """Redeem the code and hand back a Firebase custom token the browser
+    signs in with; None on any failure (unknown address, no pending login,
+    expired, wrong code, or budget exhausted) - the caller must not spell out
+    which. Redeeming proves control of the mailbox, so the account is created
+    if new and marked verified either way; that is exactly the guarantee the
+    old emailed link gave. An address that already signed in through Google
+    lands in the same account, which is the point: the address is the
+    identity, and this is no weaker than the password reset Google itself
+    offers. Raises AuthUnavailable."""
+    email = normalize_email(email)
+    if not code or not _registry().redeem_code(email, _code_hash(code)):
+        return None
+    fb_auth, _ = _firebase()
+    uid = _existing_user(email)
+    if uid is None:
+        uid = fb_auth.create_user(email=email, email_verified=True, app=_app).uid
+    else:
+        # the code proved the mailbox; an account that had never confirmed it
+        # (signed up with a password and never clicked) is confirmed now
+        fb_auth.update_user(uid, email_verified=True, app=_app)
+    return fb_auth.create_custom_token(uid, app=_app).decode()
+
+
+def refund_code(email: str) -> None:
+    """Undo issue_email_code when the mail could not be sent. Raises
+    AuthUnavailable."""
+    _registry().refund_code(normalize_email(email))
+
+
+# --- the account behind a request ---------------------------------------------
+
+def account(token: str | None) -> dict | None:
+    """The account a bearer token proves, or None when the token is missing,
+    malformed, expired, or not ours. `name` is None until the account has
+    claimed one; `verified` says whether the sign-in method proved contact
+    with the person - Google and Apple vouch for the address, a phone number
+    was just confirmed by SMS, and email + password only counts once the
+    verification mail was clicked. `email` is the address on the account,
+    lowercased, or None (a phone sign-in has none) - where a report goes.
+    Raises AuthUnavailable."""
+    if not token:
+        return None
+    claims = _verify(token)
+    if not claims or not claims.get("sub"):
+        return None
+    provider = (claims.get("firebase") or {}).get("sign_in_provider", "")
+    verified = bool(claims.get("email_verified")) or provider == "phone"
+    return {
+        "uid": claims["sub"],
+        "name": claims.get("handle") or None,
+        "email": normalize_email(claims["email"]) if claims.get("email") else None,
+        "verified": verified,
+        "provider": provider,
+    }
+
+
+def claim_handle(uid: str, name: str) -> str:
+    """Give this account its public name: "ok", "taken", or "named" when it
+    already has one. The name is only stamped onto the token once the
+    registry accepted it, so a race on one name ends with exactly one
+    winner carrying it. Raises AuthUnavailable."""
+    result = _registry().claim(uid, name)
+    if result == "ok":
+        _stamp(uid, name)
+    return result
+
+
+def delete_account(uid: str) -> bool:
+    """GDPR erasure helper (manual, on request via kontakt@): removes the
+    Firebase account and its registry entries, drops its votes and taps,
+    anonymizes authored posts in place - the stories stay, the name goes -
+    and scrubs the account from its journey-report orders. False when
+    Firebase has no such account.
+
+    One caveat, verified end-to-end rather than assumed: an ID token issued
+    before the deletion keeps verifying until it expires (Firebase tokens
+    last an hour, and account() checks the signature, not the account's
+    continued existence). So for up to an hour the erased account can still
+    write, and the username it released can be claimed by somebody else
+    while the old token still carries it. Refreshing is already impossible -
+    the account is gone - so the window cannot be extended. Closing it
+    outright means verify_id_token(check_revoked=True), which spends a
+    Firebase round trip on EVERY authenticated request; that is a poor
+    trade for a manual, rare operation, so the window is accepted. If
+    deletion ever becomes a moderation tool (banning), revisit this and
+    pass check_revoked on the write paths only."""
+    fb_auth, _ = _firebase()
+    try:
+        fb_auth.delete_user(uid, app=_app)
+    except fb_auth.UserNotFoundError:
+        return False
+    name = _registry().release(uid)
+    stories.forget_account(uid, name)
+    reports.forget_account(uid)
+    trips.forget_account(uid)
+    return True
+
+
+# --- suggested handles --------------------------------------------------------
+# <lazy adjective>_<creature><digits>, in the site's two languages. Every word
+# is ASCII and at most _MAX_WORD long, so the longest possible name - 10 + "_"
+# + 10 + four digits - is exactly the 25 characters HandleIn allows;
+# test_auth.py pins that. Fictional creatures are folklore or public domain
+# rather than trademarked characters: the site mints these names itself, and
+# a name it minted is one it hands out under its own logo.
 _MAX_WORD = 10
 
 _LAZY = {
@@ -224,11 +535,13 @@ _CREATURES = {
     ],
 }
 
-# One SELECT per round instead of one per candidate, and the rounds widen the
-# number rather than repeating the same shape: two digits reads best, so it is
-# what a first-time visitor is offered, and only a collision spends more.
+# One batched read per round instead of one per candidate, and the rounds
+# widen the number rather than repeating the same shape: two digits reads
+# best, so it is what a first-time visitor is offered, and only a collision
+# spends more.
 _SUGGEST_CANDIDATES = 8
 _SUGGEST_DIGITS = (2, 3, 4)
+
 
 # A suggestion is a public handle, not a secret - the ordinary PRNG is the
 # right tool. Nothing downstream trusts the name to be unguessable.
@@ -242,232 +555,15 @@ def suggest_name(lang: str = "de") -> str | None:
     """A free username in the house format, or None if even four digits kept
     colliding (which needs the wordlist to be exhausted, not merely busy).
     Free at the moment of asking only: nothing is reserved, so two visitors
-    can be offered the same name and the second one to register gets the 409
-    that any hand-typed clash would get. Blocking - run off the event loop."""
+    can be offered the same name and the second one to claim it gets the 409
+    that any hand-typed clash would get. Raises AuthUnavailable."""
     if lang not in _LAZY:
         lang = "de"
-    with closing(connect()) as conn:
-        for digits in _SUGGEST_DIGITS:
-            names = [_candidate(lang, digits) for _ in range(_SUGGEST_CANDIDATES)]
-            marks = ",".join("?" * len(names))
-            # name is COLLATE NOCASE, so this IN matches the same way the
-            # UNIQUE index does - a candidate differing only in case is taken
-            taken = {
-                row["name"].lower() for row in conn.execute(
-                    f"SELECT name FROM users WHERE name IN ({marks})", names
-                )
-            }
-            for name in names:
-                if name.lower() not in taken:
-                    return name
+    registry = _registry()
+    for digits in _SUGGEST_DIGITS:
+        names = [_candidate(lang, digits) for _ in range(_SUGGEST_CANDIDATES)]
+        taken = registry.taken(names)
+        for name in names:
+            if name.lower() not in taken:
+                return name
     return None
-
-
-def register(name: str, email: str) -> tuple[str, str, str | None, str | None] | None:
-    """(kind, stored_name, link_token, code): kind "new" when the account was
-    created, or "existing" when the email already has an account - then the
-    login logs into THAT account, so a sign-up with an address already in use
-    ends in a working login rather than a dead end. token and code are
-    None when the account's own rate budget says no mail should go out; the
-    caller still answers 202. None (the whole return) when the name is taken
-    case-insensitively - "Jonas" and "jonas" would be indistinguishable in a
-    comment thread. Blocking, like everything here - run off the event loop."""
-    email = normalize_email(email)
-    with closing(connect()) as conn, conn:
-        _purge_unverified(conn)
-        row = conn.execute(
-            "SELECT id, name, verified_ts FROM users WHERE email = ?", (email,)
-        ).fetchone()
-        if row is not None:
-            stored = row["name"]
-            # A never-confirmed account has never been shown, has no posts and
-            # no votes, so its name can still change - the only way someone who
-            # typo'd their handle at signup can correct it. The new name is
-            # only *recorded* here and applied when the emailed login is
-            # redeemed, so knowing an address is not enough to rename someone
-            # else's pending account: whoever reads the mailbox decides.
-            if row["verified_ts"] is None and name.lower() != stored.lower():
-                taken = conn.execute(
-                    "SELECT 1 FROM users WHERE name = ? AND id <> ?",
-                    (name, row["id"]),
-                ).fetchone()
-                if taken is not None:
-                    return None
-                conn.execute(
-                    "UPDATE users SET pending_name = ? WHERE id = ?",
-                    (name, row["id"]),
-                )
-                stored = name  # the mail greets them by the name they just typed
-            issued = _issue_magic(conn, row["id"])
-            token, code = issued if issued else (None, None)
-            return "existing", stored, token, code
-        try:
-            cur = conn.execute(
-                "INSERT INTO users (name, email, ts) VALUES (?, ?, ?)",
-                (name, email, _now().isoformat(timespec="seconds")),
-            )
-        except sqlite3.IntegrityError:
-            return None
-        issued = _issue_magic(conn, cur.lastrowid)
-        token, code = issued if issued else (None, None)
-        return "new", name, token, code
-
-
-def request_link(email: str) -> tuple[str, str | None, str | None] | None:
-    """(stored_name, link_token, code) for the account behind this email -
-    token and code None when its resend budget says no mail should go out,
-    which the caller still reports as success. None (the whole return) only
-    when the address has no account at all: the caller turns that into "no
-    account yet, create one", so the two cases must not be conflated - a
-    visitor on cooldown asking again is not a visitor without an account.
-    Same shape as register()."""
-    with closing(connect()) as conn, conn:
-        row = conn.execute(
-            "SELECT id, name FROM users WHERE email = ?", (normalize_email(email),)
-        ).fetchone()
-        if row is None:
-            return None
-        issued = _issue_magic(conn, row["id"])
-        token, code = issued if issued else (None, None)
-        return row["name"], token, code
-
-
-# Redemption is one conditional UPDATE, not a SELECT followed by an UPDATE:
-# SQLite starts a deferred transaction on first write, so two concurrent
-# redemptions of the same link would both pass a separate SELECT and both open
-# a session. Matching on the secret inside the UPDATE means exactly one caller
-# can win - the loser's WHERE no longer matches, because the winner nulled it.
-# Timestamps compare as text: every one is written by isoformat() in UTC, so
-# lexicographic and chronological order agree.
-_CLAIM = (
-    "UPDATE users SET magic_hash = NULL, magic_code = NULL, magic_expires = NULL,"
-    " magic_tries = 0, verified_ts = COALESCE(verified_ts, ?)"
-)
-
-
-def _session_for(conn: sqlite3.Connection, row: sqlite3.Row) -> tuple[dict, str]:
-    """Open the session, applying a rename that a re-registration recorded.
-    Redeeming the login is what authorises it - the request that asked for the
-    name only proposed it."""
-    name = row["name"]
-    if row["pending_name"]:
-        try:
-            conn.execute(
-                "UPDATE users SET name = ? WHERE id = ?",
-                (row["pending_name"], row["id"]),
-            )
-            name = row["pending_name"]
-        except sqlite3.IntegrityError:
-            pass  # claimed by somebody else meanwhile; keep the current name
-        conn.execute(
-            "UPDATE users SET pending_name = NULL WHERE id = ?", (row["id"],)
-        )
-    return {"id": row["id"], "name": name}, _new_session(conn, row["id"])
-
-
-def consume(token: str) -> tuple[dict, str] | None:
-    """Redeem a magic link: single use, expiring. None on unknown or expired
-    token. Using it also kills the code half of the same login."""
-    if not token:
-        return None
-    now = _now().isoformat(timespec="seconds")
-    with closing(connect()) as conn, conn:
-        row = conn.execute(
-            _CLAIM + " WHERE magic_hash = ? AND magic_expires >= ?"
-                     " RETURNING id, name, pending_name",
-            (now, _token_hash(token), now),
-        ).fetchone()
-        return None if row is None else _session_for(conn, row)
-
-
-def consume_code(email: str, code: str) -> tuple[dict, str] | None:
-    """Redeem the 6-digit half, which needs the address too - a code alone
-    would otherwise be guessable against every account at once. None on any
-    failure (unknown address, no pending login, expired, wrong code, or budget
-    exhausted); a wrong guess spends one of MAX_TRIES, and the last one voids
-    the pending login so brute force has to start over from a new mail."""
-    if not code:
-        return None
-    now = _now().isoformat(timespec="seconds")
-    email = normalize_email(email)
-    with closing(connect()) as conn, conn:
-        # the hash comparison happens inside the claim so it stays atomic; a
-        # timing side channel on comparing two SHA-256 hex digests is not
-        # reachable through HTTP jitter
-        row = conn.execute(
-            _CLAIM + " WHERE email = ? AND magic_code = ? AND magic_expires >= ?"
-                     "   AND magic_tries < ? AND code_fails < ?"
-                     " RETURNING id, name, pending_name",
-            (now, email, _token_hash(code), now, MAX_TRIES, MAX_CODE_FAILS_PER_DAY),
-        ).fetchone()
-        if row is not None:
-            return _session_for(conn, row)
-
-        # a miss: spend one from both budgets, and void the login when either
-        # runs out. code_fails survives re-issuing, magic_tries does not.
-        row = conn.execute(
-            "SELECT id, magic_code, magic_expires, magic_tries FROM users"
-            " WHERE email = ?",
-            (email,),
-        ).fetchone()
-        if row is None or row["magic_code"] is None:
-            return None
-        spent = _roll_budget(conn, row["id"])["code_fails"]
-        if spent >= MAX_CODE_FAILS_PER_DAY:
-            # Out of guesses for today: refuse the code but leave the pending
-            # login untouched. Voiding it here would hand an attacker a denial
-            # of login - one guess after each mail would kill every link the
-            # owner requests. The link half is unaffected by this budget, so
-            # whoever actually reads the mailbox still gets in.
-            return None
-        conn.execute(
-            "UPDATE users SET code_fails = ? WHERE id = ?", (spent + 1, row["id"])
-        )
-        if row["magic_expires"] < now or row["magic_tries"] + 1 >= MAX_TRIES:
-            _clear_magic(conn, row["id"])
-        else:
-            conn.execute(
-                "UPDATE users SET magic_tries = magic_tries + 1 WHERE id = ?",
-                (row["id"],),
-            )
-        return None
-
-
-def session_user(token: str | None) -> dict | None:
-    """The account behind a session cookie, or None. Expired sessions are
-    deleted on sight rather than by a sweeper."""
-    if not token:
-        return None
-    with closing(connect()) as conn, conn:
-        row = conn.execute(
-            "SELECT s.token_hash, s.ts, u.id, u.name FROM sessions s"
-            " JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?",
-            (_token_hash(token),),
-        ).fetchone()
-        if row is None:
-            return None
-        created = datetime.fromisoformat(row["ts"])
-        if _now() - created > timedelta(days=SESSION_DAYS):
-            conn.execute("DELETE FROM sessions WHERE token_hash = ?", (row["token_hash"],))
-            return None
-    return {"id": row["id"], "name": row["name"]}
-
-
-def logout(token: str | None) -> None:
-    if not token:
-        return
-    with closing(connect()) as conn, conn:
-        conn.execute("DELETE FROM sessions WHERE token_hash = ?", (_token_hash(token),))
-
-
-def delete_account(name: str) -> bool:
-    """GDPR erasure helper (manual, on request via kontakt@): drops the
-    account, its sessions and votes (cascade), and anonymizes authored posts
-    in place - the stories stay, the name goes."""
-    with closing(connect()) as conn, conn:
-        cur = conn.execute("DELETE FROM users WHERE name = ?", (name,))
-        if cur.rowcount == 0:
-            return False
-        conn.execute("UPDATE stories SET author = '' WHERE author = ?", (name,))
-        conn.execute("UPDATE comments SET author = '' WHERE author = ?", (name,))
-    return True

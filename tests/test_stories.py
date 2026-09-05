@@ -2,9 +2,12 @@
 frontend relies on: vote dedup and toggling, the top list excluding unvoted
 stories, and comment threading staying inside one story."""
 
+import sqlite3
+from contextlib import closing
+
 import pytest
 
-from app import auth, stories
+from app import stories
 
 
 @pytest.fixture(autouse=True)
@@ -22,9 +25,8 @@ def make(from_station="Berlin Hbf", to_station="", departure="", train="",
 
 
 def user(name):
-    _kind, _name, magic, _code = auth.register(name, f"{name}@example.org")
-    account, _session = auth.consume(magic)
-    return account["id"]
+    """An account is just its Firebase uid down here."""
+    return f"uid-{name}"
 
 
 def test_create_returns_full_row():
@@ -187,7 +189,6 @@ def test_the_train_is_optional():
 def test_a_pre_journey_story_survives_the_rename(tmp_path, monkeypatch):
     """Stories written when a story named one station must keep it, as the
     origin - the column is renamed, not dropped and re-added empty."""
-    import sqlite3
     path = tmp_path / "legacy.db"
     with sqlite3.connect(path) as raw:
         raw.executescript(
@@ -202,6 +203,69 @@ def test_a_pre_journey_story_survives_the_rename(tmp_path, monkeypatch):
     row = stories.list_stories("new", 10, 0)[0]
     assert row["from_station"] == "Kassel-Wilhelmshoehe"
     assert row["to_station"] == "" and row["departure"] == ""
+
+
+def test_accounts_move_out_to_firebase(tmp_path, monkeypatch):
+    """A DB from the SQLite-account era: votes, comment votes and taps are
+    re-keyed by the uid the import script gives the account in Firebase, the
+    sessions go, and the users table is set aside for that import rather
+    than dropped - forgetting to run it must not cost the accounts."""
+    path = tmp_path / "legacy.db"
+    with sqlite3.connect(path) as raw:
+        raw.executescript(
+            "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE,"
+            " ts TEXT NOT NULL, email TEXT NOT NULL DEFAULT '', verified_ts TEXT);"
+            "CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id INTEGER"
+            " NOT NULL REFERENCES users(id), ts TEXT NOT NULL) WITHOUT ROWID;"
+            "CREATE TABLE stories (id INTEGER PRIMARY KEY, ts TEXT NOT NULL,"
+            " from_station TEXT NOT NULL, to_station TEXT NOT NULL DEFAULT '',"
+            " departure TEXT NOT NULL DEFAULT '', train TEXT NOT NULL DEFAULT '',"
+            " problem_other TEXT NOT NULL DEFAULT '', edited_ts TEXT, deleted_ts TEXT,"
+            " title TEXT NOT NULL, text TEXT NOT NULL, author TEXT NOT NULL DEFAULT '');"
+            "CREATE TABLE comments (id INTEGER PRIMARY KEY, story_id INTEGER NOT NULL,"
+            " parent_id INTEGER, ts TEXT NOT NULL, author TEXT NOT NULL DEFAULT '',"
+            " text TEXT NOT NULL, edited_ts TEXT, deleted_ts TEXT);"
+            "CREATE TABLE votes (story_id INTEGER NOT NULL, user_id INTEGER NOT NULL,"
+            " PRIMARY KEY (story_id, user_id)) WITHOUT ROWID;"  # pre-downvote: no value
+            "CREATE TABLE comment_votes (comment_id INTEGER NOT NULL, user_id INTEGER"
+            " NOT NULL, value INTEGER NOT NULL DEFAULT 1,"
+            " PRIMARY KEY (comment_id, user_id)) WITHOUT ROWID;"
+            "CREATE TABLE problem_reports (user_id INTEGER NOT NULL, code TEXT NOT NULL,"
+            " day TEXT NOT NULL, ts TEXT NOT NULL, from_station TEXT NOT NULL,"
+            " to_station TEXT NOT NULL DEFAULT '', departure TEXT NOT NULL DEFAULT '',"
+            " train TEXT NOT NULL DEFAULT '', problem_other TEXT NOT NULL DEFAULT '',"
+            " PRIMARY KEY (user_id, code, day)) WITHOUT ROWID;"
+            "INSERT INTO users VALUES (7, 'Jonas', '2026-08-24T10:00:00+00:00',"
+            " 'jonas@example.org', '2026-08-24T10:05:00+00:00');"
+            "INSERT INTO sessions VALUES ('abc', 7, '2026-08-24T10:05:00+00:00');"
+            "INSERT INTO stories (ts, from_station, title, text, author)"
+            " VALUES ('2026-08-24T11:00:00+00:00', 'Berlin Hbf', 'Old', 'x', 'Jonas');"
+            "INSERT INTO comments (story_id, ts, author, text)"
+            " VALUES (1, '2026-08-24T11:30:00+00:00', 'Meike', 'same');"
+            "INSERT INTO votes VALUES (1, 7);"
+            "INSERT INTO comment_votes VALUES (1, 7, -1);"
+            "INSERT INTO problem_reports VALUES (7, 'wc', '2026-08-24',"
+            " '2026-08-24T11:00:00+00:00', 'Berlin Hbf', '', '', '', '');"
+        )
+    monkeypatch.setattr(stories, "DB_PATH", path)
+
+    story = stories.list_stories("new", 10, 0, "legacy-7")[0]
+    assert (story["score"], story["voted"]) == (1, 1)
+    assert stories.list_comments(1, "legacy-7")[0]["voted"] == -1
+    assert stories.count_problems("all")["wc"] == 1
+    with closing(stories.connect()) as conn:
+        tables = {r["name"] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'")}
+        assert "sessions" not in tables and "users" not in tables
+        assert "users_legacy" in tables
+        assert conn.execute("SELECT name FROM users_legacy").fetchone()["name"] == "Jonas"
+        for table in ("votes", "comment_votes", "problem_reports"):
+            cols = [r["name"] for r in conn.execute(f"PRAGMA table_info({table})")]
+            assert "uid" in cols and "user_id" not in cols, table
+        assert conn.execute("SELECT uid FROM problem_reports").fetchone()["uid"] == "legacy-7"
+    # a second connect finds nothing left to migrate and changes nothing
+    with closing(stories.connect()) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM votes").fetchone()[0] == 1
 
 
 def test_problems_round_trip_in_offer_order():

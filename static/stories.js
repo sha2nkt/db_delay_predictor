@@ -8,6 +8,7 @@ const I18N = {
     docTitle: "Delay Geschichten – DelayBahn",
     logoSrc: "/logo_delay_stories_wide_german_transparent.png",
     logoAlt: "Delay Geschichten",
+    headerTitle: "Delay Geschichten",
     tagline: "Gestrandet, verspätet, überlebt – erzähl’s hier",
     topHeading: "Top-Geschichten",
     listHeading: "Geschichten",
@@ -63,6 +64,7 @@ const I18N = {
     spanGroup: "Zeitraum",
     navLogin: "Anmelden",
     navLogout: "Abmelden",
+    navTrips: "Meine Fahrten",
     composeSend: "Veröffentlichen",
     sending: "Wird gesendet …",
     footerBack: "← Zur Verbindungssuche",
@@ -117,6 +119,7 @@ const I18N = {
     docTitle: "Delay Stories – DelayBahn",
     logoSrc: "/logo_delay_stories_wide_transparent.png",
     logoAlt: "Delay Stories",
+    headerTitle: "Delay Stories",
     tagline: "Stranded, delayed, survived – tell it here",
     topHeading: "Top stories",
     listHeading: "Stories",
@@ -172,6 +175,7 @@ const I18N = {
     spanGroup: "Time span",
     navLogin: "Login",
     navLogout: "Logout",
+    navTrips: "My trips",
     composeSend: "Publish",
     sending: "Sending …",
     footerBack: "← Back to the journey search",
@@ -248,8 +252,13 @@ function el(tag, cls, text) {
 // a masked line icon (style.css .ico-*), in the color of the text around it
 const icon = (name) => el("span", "ico ico-" + name);
 
-/* -- identity: the HttpOnly session cookie; `me` mirrors /api/auth/me -- */
+/* -- identity: the Firebase account this browser holds, once it is complete
+   (signed in, contact proven, username claimed). `me.name` attributes rows;
+   `me.user` mints the bearer token every writing request carries. The SDK
+   is loaded only when the login page left the "account" hint behind, so
+   the anonymous majority never downloads it. -- */
 let me = null;
+let fb = null;
 
 function toLogin() {
   track("login-prompt");  // how often the board sends someone off to sign in
@@ -259,11 +268,21 @@ function toLogin() {
 function renderAuth() {
   document.getElementById("auth-login").classList.toggle("hidden", !!me);
   document.getElementById("auth-user").classList.toggle("hidden", !me);
-  document.getElementById("auth-name").textContent = me ? me.name : "";
+  const nameEl = document.getElementById("auth-name");
+  nameEl.textContent = me ? me.name : "";
+  // the name is the way to the account's booked trips
+  nameEl.href = lang === "en" ? "/en/my-trips" : "/meine-fahrten";
+  nameEl.title = I18N[lang].navTrips;
 }
 
-/* -- API -- */
-async function api(path, opts) {
+/* -- API: every request from a signed-in visitor carries their token, so the
+   lists come back with their own votes marked and the writes are theirs -- */
+async function api(path, opts = {}) {
+  if (me) {
+    // cached until shortly before expiry; the SDK refreshes it on its own
+    const token = await me.user.getIdToken();
+    opts.headers = { ...(opts.headers || {}), "Authorization": "Bearer " + token };
+  }
   const resp = await fetch(path, opts);
   if (!resp.ok) {
     const err = new Error("http " + resp.status);
@@ -306,7 +325,8 @@ async function castVote(item, kind, dir) {
     item.voted = res.voted;
     track(voteEvent(kind, res.voted));
   } catch (e) {
-    if (e.status === 401) { toLogin(); return; } // session expired mid-visit
+    // login lapsed, or the account lost a step (403): the login page knows which
+    if (e.status === 401 || e.status === 403) { toLogin(); return; }
     /* otherwise leave the arrows as they were */
   }
   updateVoteEls(item, kind);
@@ -1213,7 +1233,7 @@ function flapCounter() {
   return { wrap, setValue };
 }
 
-const board = { tiles: new Map(), span: "month", epoch: 0 };
+const board = { tiles: new Map(), span: "year", epoch: 0 };
 
 function boardGroupLabels() {
   document.querySelector(".board-spans").setAttribute("aria-label", t("spanGroup"));
@@ -1375,19 +1395,33 @@ function initBoard() {
 
 /* -- auth -- */
 async function loadMe() {
-  try {
-    const res = await api("/api/auth/me");
-    me = res.name ? res : null;
-  } catch (e) {
-    me = null;
+  let hinted = false;
+  try { hinted = localStorage.getItem("account") === "1"; } catch (e) {}
+  if (hinted) {
+    try {
+      fb = await import("/firebase.js?v=1");
+      if (fb.auth) {
+        await fb.auth.authStateReady();
+        const user = fb.auth.currentUser;
+        if (user) {
+          const who = await fb.identity(user);
+          if (who.verified && who.name) me = { user, name: who.name };
+        }
+      }
+      // signed out elsewhere, or a step short: stop paying for the SDK
+      if (!me) fb.remember(false);
+    } catch (e) {
+      me = null;
+    }
   }
   renderAuth();
 }
 
 document.getElementById("auth-logout").addEventListener("click", async () => {
   try {
-    await fetch("/api/auth/logout", { method: "POST" });
-  } catch (e) { /* cookie may outlive one failed request; reload sorts it out */ }
+    await fb.signOut(fb.auth);
+  } catch (e) { /* the SDK may still hold the user; reload sorts it out */ }
+  fb.remember(false);
   // reload rather than patch state: every rendered "voted" arrow is stale now
   location.reload();
 });
@@ -1473,12 +1507,15 @@ function applyStatic() {
 
 applyStatic();
 initCompose();
-initBoard();
 initTapForm();
-loadMe();
-loadPermalink();
-loadTop();
-loadNew();
+// the lists wait for the identity: they come back with the viewer's own
+// votes marked only when the request carried the token
+loadMe().then(() => {
+  initBoard();
+  loadPermalink();
+  loadTop();
+  loadNew();
+});
 
 document.getElementById("more-btn").addEventListener("click", loadNew);
 document.querySelectorAll(".list-sort").forEach((btn) => {

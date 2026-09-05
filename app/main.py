@@ -19,7 +19,10 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, StringConstraints
 
-from app import auth, bahn_api, delays, feedback, leaderboard, live_delays, mailer, ratelimit, stories
+from app import (
+    auth, bahn_api, delays, feedback, leaderboard, live_delays, mailer, ratelimit, reports,
+    stories, trips,
+)
 from app.config import env_int
 
 log = logging.getLogger(__name__)
@@ -401,11 +404,14 @@ def _flix(leg: dict) -> bool:
             or str(line.get("name") or "").upper().startswith("FLX"))
 
 
-async def _replan(origin: dict, dest: dict, ready, source: str) -> dict | None:
+async def _replan(origin: dict, dest: dict, ready, source: str,
+                  dticket: str = "off", products: tuple[str, ...] | None = None) -> dict | None:
     """Next connections origin -> dest from `ready` on, cached per request minute.
     `source` only tags the upstream call for the log; it is deliberately absent from
-    the cache key, so a walk replan and an if-missed lookup still share an answer."""
-    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"))
+    the cache key, so a walk replan and an if-missed lookup still share an answer.
+    dticket/products carry the search's own restrictions when the replacement must
+    be boardable under them; they do fragment the cache."""
+    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"), dticket, products)
     if key in _replan_cache:
         _replan_cache.move_to_end(key)
         return _replan_cache[key]
@@ -415,6 +421,8 @@ async def _replan(origin: dict, dest: dict, ready, source: str) -> dict | None:
             f"A=1@O={origin['name']}@L={origin['id']}@",
             f"A=1@O={dest['name']}@L={dest['id']}@",
             ready.strftime("%Y-%m-%dT%H:%M:%S"),
+            dticket=dticket,
+            products=products,
             source=source,
         )
     except bahn_api.UpstreamError:
@@ -461,12 +469,21 @@ async def _next_connection(origin: dict, dest: dict, ready, window: int, live: b
     return best_legs
 
 
-async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict | None:
+async def _if_missed_connection(legs: list[dict], tt: dict, window: int,
+                                dticket: str = "off",
+                                products: tuple[str, ...] | None = None) -> dict | None:
     """Future mode: the next realistic connection to the journey's destination if the
     tight transfer `tt` is missed. The passenger is assumed to reach the departure
     point at planned arrival + the arriving leg's median delay; a connection counts
     as catchable when its planned departure leaves more than TRANSFER_TOLERANCE_MIN
-    minutes after that."""
+    minutes after that.
+
+    A "D-Ticket only" passenger cannot board an ICE (heavily discounted tickets are
+    excluded from the Fahrgastrechte right to switch to long-distance trains), and a
+    narrowed product set states which trains the passenger will consider at all — so
+    both restrict the replan like the search itself. dticket "all" means the paid
+    trains are acceptable, which is the unrestricted replan already."""
+    dticket = "only" if dticket == "only" else "off"
     a, b = tt["legIndex"], tt["depLegIndex"]
     arr = _planned_dt(legs[a], "plannedArrival")
     origin = legs[b]["origin"]
@@ -475,7 +492,7 @@ async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict
         return None
     ready = arr + timedelta(minutes=_walk_minutes(legs, a, b) + tt["medianDelay"])
     # `window` belongs in the key: it decides the span leg_delay_stats summarises
-    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"), window)
+    key = (origin["id"], dest["id"], ready.strftime("%Y-%m-%dT%H:%M"), window, dticket, products)
     if key in _if_missed_cache:
         _if_missed_cache.move_to_end(key)
         _note_if_missed(True)
@@ -483,7 +500,7 @@ async def _if_missed_connection(legs: list[dict], tt: dict, window: int) -> dict
         # the way out, so callers may share one object
         return _if_missed_cache[key]
     _note_if_missed(False)
-    data = await _replan(origin, dest, ready, "if-missed")
+    data = await _replan(origin, dest, ready, "if-missed", dticket, products)
     if data is None:
         # upstream refused: transient, and caching it would suppress the panel for
         # everyone on this route until the process restarts
@@ -608,6 +625,95 @@ def compensation_pct(arrival_delay: int | None) -> int | None:
     return 50 if arrival_delay >= 120 else 25 if arrival_delay >= 60 else 0
 
 
+async def _past_verdict(legs: list[dict], window: int, live: bool) -> dict:
+    """What a journey's actual day adds to it once every leg carries its
+    delayOnDate: the arrival delay at the destination (ridden through missed
+    connections and their replacements by _simulate_walk), the compensation
+    it amounts to, and on a live day whether some leg is still unreported.
+    Shared by the past-mode search and the trips page's in-place check."""
+    train_legs = [leg for leg in legs if not leg["walking"]]
+    final_d = train_legs[-1].get("delayOnDate")
+    sim = await _simulate_walk(legs, window, MAX_REPLANS, live)
+    out = {}
+    if live:
+        # on a live day a missing observation means "not reported yet",
+        # which is a different message than "we have no data for this train";
+        # untracked products (tram, bus, ...) never report, so they must not
+        # hold the journey pending forever
+        out["pending"] = any(
+            leg.get("delayOnDate") is None
+            for leg in train_legs
+            if leg["line"]["product"] not in UNTRACKED_PRODUCTS
+        )
+    if sim["missedAtLegIndex"] is not None:
+        # a connection was missed: the realistic arrival comes from the
+        # simulated continuation, not the booked itinerary's final leg
+        planned_final = _planned_dt(train_legs[-1], "plannedArrival")
+        arrival_delay = None
+        if sim["arrival"] and planned_final:
+            arrival_delay = round((sim["arrival"] - planned_final).total_seconds() / 60)
+        out.update({
+            "arrivalDelay": arrival_delay,
+            "arrivalCanceled": bool(final_d and final_d["canceled"]),
+            "missedTransfers": [sim["missed"]] if sim["missed"] else [],
+            "compensationPct": compensation_pct(arrival_delay),
+            "simulation": {
+                "missedAtLegIndex": sim["missedAtLegIndex"],
+                "legs": sim["extra"],
+                "actualArrival": sim["arrival"].isoformat() if sim["arrival"] else None,
+                "incomplete": sim["incomplete"],
+                "uncertain": sim["uncertain"],
+            },
+        })
+    else:
+        # every connection was made: exact arrival delay of the final leg
+        arrival_delay = final_d["delayMin"] if final_d else None
+        out.update({
+            "arrivalDelay": arrival_delay,
+            "arrivalCanceled": bool(final_d and final_d["canceled"]),
+            "missedTransfers": [],
+            "compensationPct": compensation_pct(arrival_delay),
+        })
+    return out
+
+
+def _parse_travellers(raw: str | None, age: str) -> tuple[tuple[str, int, str], ...]:
+    """The search mask's traveler list: "<age>:<count>:<discount>" per entry,
+    comma-separated, e.g. "adult:2:bc25-2,child:1:none". Links and cached
+    frontends from before the list existed carry a single `age` instead.
+
+    Entries sharing an age and a discount are merged so that equivalent parties
+    share one cache entry, the way the product filter is normalized."""
+    if not raw:
+        return ((age, 1, "none"),)
+    merged: dict[tuple[str, str], int] = {}
+    for entry in raw.split(","):
+        parts = entry.split(":")
+        if len(parts) != 3:
+            raise HTTPException(422, "travellers entries must be <age>:<count>:<discount>")
+        t_age, count, discount = parts
+        if t_age not in bahn_api.TRAVELLER_TYPES:
+            raise HTTPException(422, f"unknown traveller age: {t_age}")
+        if discount not in bahn_api.DISCOUNTS:
+            raise HTTPException(422, f"unknown discount: {discount}")
+        if not count.isdigit() or not 1 <= int(count) <= bahn_api.MAX_TRAVELLERS:
+            raise HTTPException(422, f"traveller count must be 1-{bahn_api.MAX_TRAVELLERS}")
+        merged[(t_age, discount)] = merged.get((t_age, discount), 0) + int(count)
+    if sum(merged.values()) > bahn_api.MAX_TRAVELLERS:
+        raise HTTPException(422, f"at most {bahn_api.MAX_TRAVELLERS} travellers")
+    return tuple((t_age, count, discount) for (t_age, discount), count in merged.items())
+
+
+def _search_throttle(request: Request) -> None:
+    wait = _search_limiter.retry_after(client_ip(request))
+    if wait is not None:
+        bahn_api.metrics["client_rate_limited"] += 1
+        raise HTTPException(
+            429, "too many searches; please slow down",
+            headers={"Retry-After": str(wait)},
+        )
+
+
 @app.get("/api/journeys")
 async def journeys(
     request: Request,
@@ -620,7 +726,13 @@ async def journeys(
     mode: str = Query("future"),
     dticket: str = Query("0"),
     age: str = Query("adult"),
+    travellers_raw: str | None = Query(None, alias="travellers"),
     transfer: int = Query(0),
+    via1: str | None = Query(None),
+    via1_stay: int = Query(0, alias="via1Stay", ge=0, le=1439),
+    via2: str | None = Query(None),
+    via2_stay: int = Query(0, alias="via2Stay", ge=0, le=1439),
+    products: str | None = None,
 ):
     if window not in (7, 15, 30):
         raise HTTPException(422, "window must be 7, 15 or 30")
@@ -630,17 +742,23 @@ async def journeys(
         raise HTTPException(422, "mode must be future or past")
     if age not in bahn_api.TRAVELLER_TYPES:
         raise HTTPException(422, "age must be adult, senior, young, child or toddler")
+    travellers = _parse_travellers(travellers_raw, age)
+    # bahn.de's "Verkehrsmittel" filter: a comma-separated subset of the product
+    # list. Normalized to canonical order so equivalent selections share a cache
+    # entry; the full set (or none) means unfiltered.
+    product_filter = None
+    if products:
+        requested = set(products.split(","))
+        unknown = requested.difference(bahn_api.ALL_PRODUCTS)
+        if unknown:
+            raise HTTPException(422, f"unknown products: {', '.join(sorted(unknown))}")
+        if len(requested) < len(bahn_api.ALL_PRODUCTS):
+            product_filter = tuple(p for p in bahn_api.ALL_PRODUCTS if p in requested)
     # "1" is the legacy value from before the "all trains" mode existed; links
     # and cached frontends still send it
     dticket = {"1": "only", "only": "only", "all": "all"}.get(dticket, "off")
     # our own limit on this client, distinct from bahn.de throttling us (503)
-    wait = _search_limiter.retry_after(client_ip(request))
-    if wait is not None:
-        bahn_api.metrics["client_rate_limited"] += 1
-        raise HTTPException(
-            429, "too many searches; please slow down",
-            headers={"Retry-After": str(wait)},
-        )
+    _search_throttle(request)
     response.headers["Cache-Control"] = "public, max-age=120"
     past = mode == "past"
     # the D-Ticket is excluded from Fahrgastrechte compensation, so the filter
@@ -648,12 +766,17 @@ async def journeys(
     # time would hide the tight connection someone actually took
     if past:
         dticket = "off"
-        # prices play no part in the compensation check, so the traveler's age
-        # bracket doesn't either; pinning it keeps past searches on one cache entry
-        age = "adult"
+        # prices play no part in the compensation check, so who is travelling
+        # doesn't either; pinning it keeps past searches on one cache entry
+        travellers = bahn_api.DEFAULT_TRAVELLERS
         transfer = 0
+    # stopovers are a planning tool; the past check inspects one journey that
+    # already happened, so the frontend hides them there like the return trip
+    vias = () if past else tuple(
+        (via, stay) for via, stay in ((via1, via1_stay), (via2, via2_stay)) if via)
     try:
-        data, stale_age = await bahn_api.journeys(from_id, to_id, departure, paging_ref, dticket, age, transfer)
+        data, stale_age = await bahn_api.journeys(
+            from_id, to_id, departure, paging_ref, dticket, travellers, transfer, vias, product_filter)
     except bahn_api.UpstreamError as e:
         raise _upstream_http_error(e)
     if stale_age:
@@ -693,47 +816,7 @@ async def journeys(
         if ez_duration and ez_duration != journey["durationSeconds"]:
             journey["ezDurationSeconds"] = ez_duration
         if past:
-            final_d = train_legs[-1].get("delayOnDate")
-            sim = await _simulate_walk(legs, window, MAX_REPLANS, live)
-            if live:
-                # on a live day a missing observation means "not reported yet",
-                # which is a different message than "we have no data for this train";
-                # untracked products (tram, bus, ...) never report, so they must not
-                # hold the journey pending forever
-                journey["pending"] = any(
-                    leg.get("delayOnDate") is None
-                    for leg in train_legs
-                    if leg["line"]["product"] not in UNTRACKED_PRODUCTS
-                )
-            if sim["missedAtLegIndex"] is not None:
-                # a connection was missed: the realistic arrival comes from the
-                # simulated continuation, not the booked itinerary's final leg
-                planned_final = _planned_dt(train_legs[-1], "plannedArrival")
-                arrival_delay = None
-                if sim["arrival"] and planned_final:
-                    arrival_delay = round((sim["arrival"] - planned_final).total_seconds() / 60)
-                journey.update({
-                    "arrivalDelay": arrival_delay,
-                    "arrivalCanceled": bool(final_d and final_d["canceled"]),
-                    "missedTransfers": [sim["missed"]] if sim["missed"] else [],
-                    "compensationPct": compensation_pct(arrival_delay),
-                    "simulation": {
-                        "missedAtLegIndex": sim["missedAtLegIndex"],
-                        "legs": sim["extra"],
-                        "actualArrival": sim["arrival"].isoformat() if sim["arrival"] else None,
-                        "incomplete": sim["incomplete"],
-                        "uncertain": sim["uncertain"],
-                    },
-                })
-            else:
-                # every connection was made: exact arrival delay of the final leg
-                arrival_delay = final_d["delayMin"] if final_d else None
-                journey.update({
-                    "arrivalDelay": arrival_delay,
-                    "arrivalCanceled": bool(final_d and final_d["canceled"]),
-                    "missedTransfers": [],
-                    "compensationPct": compensation_pct(arrival_delay),
-                })
+            journey.update(await _past_verdict(legs, window, live))
         else:
             final_stats = train_legs[-1].get("delayStats")
             leg_medians = [
@@ -766,7 +849,7 @@ async def journeys(
     # lookups on top of that.
     if not past and not stale_age and bahn_api.healthy():
         async def fill(j: dict, tt: dict) -> None:
-            tt["ifMissed"] = await _if_missed_connection(j["legs"], tt, window)
+            tt["ifMissed"] = await _if_missed_connection(j["legs"], tt, window, dticket, product_filter)
 
         pending = [(j, tt) for j in journeys_out for tt in j["tightTransfers"]]
         await asyncio.gather(*(fill(j, tt) for j, tt in pending[:MAX_IF_MISSED_REPLANS]))
@@ -799,6 +882,7 @@ async def health():
             "departureOnDate": len(delays._dep_date_cache),
         },
         "upstream": bahn_api.status(),
+        "auth": auth.status(),
         "mail": mailer.status(),
     }
 
@@ -847,7 +931,12 @@ STORIES_PATHS = {"de": "/geschichten", "en": "/stories"}
 LEADERBOARD_PATHS = {"de": "/rangliste", "en": "/leaderboard"}
 STORIES_LOGO = {"de": "/logo_delay_stories_square_german.png",
                 "en": "/logo_delay_stories_square.png"}
+STORIES_WORDMARK = {"de": "/logo_delay_stories_wide_german_transparent.png",
+                    "en": "/logo_delay_stories_wide_transparent.png"}
 STORIES_ALT = {"de": "Delay Geschichten", "en": "Delay Stories"}
+# the account's booked trips; private, so no meta beyond the title
+TRIPS_PATHS = {"de": "/meine-fahrten", "en": "/en/my-trips"}
+TRIPS_TITLE = {"de": "Meine Fahrten – DelayBahn", "en": "My Trips – DelayBahn"}
 
 OG_LOCALE = {"de": "de_DE", "en": "en_US"}
 
@@ -980,6 +1069,14 @@ def _page_html(mode: str, lang: str) -> str:
         (r'(<a id="stories-cta" class="stories-cta" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
         (r'(<img id="stories-cta-logo" src=")[^"]*(" alt=")[^"]*',
          rf"\g<1>{STORIES_LOGO[lang]}\g<2>{STORIES_ALT[lang]}"),
+        (r'(<a class="stories-banner-link" href=")[^"]*',
+         rf"\g<1>{STORIES_PATHS[lang]}"),
+        (r'(<img id="stories-banner-logo" class="stories-banner-logo" src=")[^"]*(" alt=")[^"]*',
+         rf"\g<1>{STORIES_WORDMARK[lang]}\g<2>{STORIES_ALT[lang]}"),
+        # the account corner and the ordered-report receipt both point at the trips page
+        (r'(<a id="auth-name" class="auth-name" href=")[^"]*', rf"\g<1>{TRIPS_PATHS[lang]}"),
+        (r'(<a id="report-trip-saved" class="trip-saved hidden" href=")[^"]*',
+         rf"\g<1>{TRIPS_PATHS[lang]}"),
     ]
     if lang == "en":
         subs += [
@@ -1121,8 +1218,12 @@ def _stories_html(lang: str, story: dict | None = None) -> str:
         (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{paths['de']}\g<2>"),
         (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{paths['en']}\g<2>"),
         # in-page navigation stays inside the current language
-        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
+        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{PAGE_PATHS[('future', lang)]}"),
+        (r'(<a class="stories-mark" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
+        (r'(<img id="site-logo" src=")[^"]*(" alt=")[^"]*',
+         rf"\g<1>{STORIES_WORDMARK[lang]}\g<2>{STORIES_ALT[lang]}"),
         (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{PAGE_PATHS[('future', lang)]}\g<2>"),
+        (r'(<a id="auth-name" class="auth-name" href=")[^"]*', rf"\g<1>{TRIPS_PATHS[lang]}"),
     ]
     if story:
         subs.append((r'(<meta property="og:type" content=")[^"]*', r"\g<1>article"))
@@ -1329,6 +1430,55 @@ async def login_alias() -> RedirectResponse:
     return RedirectResponse("/login", status_code=301)
 
 
+def _trips_html(lang: str) -> str:
+    """Render one language of the trips page from trips.html: the same page
+    at /meine-fahrten and /en/my-trips. The list itself is fetched by the
+    script with the account's token, so nothing personal is in the markup."""
+    html = (STATIC_DIR / "trips.html").read_text(encoding="utf-8")
+    home = PAGE_PATHS[("future", lang)]
+    subs = [
+        (r'<html lang="[^"]*"', f'<html lang="{lang}"'),
+        (r"<title>[^<]*</title>", f"<title>{TRIPS_TITLE[lang]}</title>"),
+        (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{TRIPS_PATHS['de']}\g<2>"),
+        (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{TRIPS_PATHS['en']}\g<2>"),
+        # in-page navigation stays inside the current language
+        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{home}"),
+        (r'(<a id="auth-name" class="auth-name" href=")[^"]*', rf"\g<1>{TRIPS_PATHS[lang]}"),
+        (r'(<a id="trips-search-link" class="trips-search-link" href=")[^"]*',
+         rf"\g<1>{home}"),
+        (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{home}\g<2>"),
+        (r'(<a href=")[^"]*(" data-i18n="footerStories")', rf"\g<1>{STORIES_PATHS[lang]}\g<2>"),
+    ]
+    for pattern, repl in subs:
+        html = re.sub(pattern, repl, html, count=1)
+    if lang == "en":
+        html = html.replace('data-lang="en" class="lang-btn"', 'data-lang="en" class="lang-btn active"')
+        html = html.replace('data-lang="de" class="lang-btn active"', 'data-lang="de" class="lang-btn"')
+        html = _translate(html, "trips.js")
+    return html
+
+
+@app.get("/meine-fahrten")
+async def trips_page_de() -> HTMLResponse:
+    return HTMLResponse(_trips_html("de"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/en/my-trips")
+async def trips_page_en() -> HTMLResponse:
+    return HTMLResponse(_trips_html("en"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/meine-fahrten/")
+@app.get("/meine-fahrten.html")
+async def trips_alias_de() -> RedirectResponse:
+    return RedirectResponse(TRIPS_PATHS["de"], status_code=301)
+
+
+@app.get("/en/my-trips/")
+async def trips_alias_en() -> RedirectResponse:
+    return RedirectResponse(TRIPS_PATHS["en"], status_code=301)
+
+
 @app.get("/en/manifest.json")
 async def en_manifest() -> Response:
     """English install target: same app, but it opens on the English URL."""
@@ -1522,9 +1672,15 @@ class CommentEditIn(BaseModel):
     text: _text_field(1, 2000)
 
 
+class HandleIn(BaseModel):
+    # HN-style handles: short, ASCII, no spaces - what makes a name recognizable
+    # across posts. The stricter charset also keeps names trivially safe to echo.
+    name: str = Field(pattern=r"^[A-Za-z0-9_-]{2,25}$")
+
+
 # Addresses arrive pasted, so surrounding whitespace is trimmed before the
 # shape check rather than rejected by it. The check is only a shape check -
-# the emailed link is what actually proves the address exists.
+# the emailed code is what actually proves the address exists.
 _EmailField = Annotated[
     str,
     StringConstraints(
@@ -1534,50 +1690,58 @@ _EmailField = Annotated[
 ]
 
 
-class RegisterIn(BaseModel):
-    # HN-style handles: short, ASCII, no spaces - what makes a name recognizable
-    # across posts. The stricter charset also keeps names trivially safe to echo.
-    name: str = Field(pattern=r"^[A-Za-z0-9_-]{2,25}$")
+class EmailCodeIn(BaseModel):
     email: _EmailField
     lang: Literal["de", "en"] = "de"
 
 
-class RequestLinkIn(BaseModel):
-    email: _EmailField
-    lang: Literal["de", "en"] = "de"
-
-
-class ConsumeIn(BaseModel):
-    token: str = Field(min_length=1, max_length=128)
-
-
-class ConsumeCodeIn(BaseModel):
+class VerifyCodeIn(BaseModel):
     email: _EmailField
     code: str = Field(pattern=r"^[0-9]{6}$")
 
 
-SESSION_COOKIE = "db_session"
+# Identity is a Firebase ID token in the Authorization header, never a cookie:
+# nothing about a login is kept on this server, and a bearer is not sent by a
+# cross-site form, which is the whole CSRF story.
+def _bearer(request: Request) -> str | None:
+    scheme, _, token = request.headers.get("authorization", "").partition(" ")
+    token = token.strip()
+    return token if scheme.lower() == "bearer" and token else None
 
 
-def _set_session_cookie(response: Response, token: str) -> None:
-    # Lax + JSON-only POST bodies double as the CSRF story: a cross-site form
-    # can neither send the cookie nor produce application/json
-    response.set_cookie(
-        SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400,
-        httponly=True, samesite="lax", secure=True, path="/",
-    )
+def _auth_down(exc: Exception) -> HTTPException:
+    log.warning("firebase unavailable: %s", exc)
+    return HTTPException(503, "accounts are temporarily unavailable")
 
 
-async def _session_user(request: Request) -> dict | None:
-    return await anyio.to_thread.run_sync(
-        auth.session_user, request.cookies.get(SESSION_COOKIE)
-    )
+async def _optional_user(request: Request) -> dict | None:
+    """The account behind the request's bearer, or None without one. A token
+    that is present but bad is a 401 rather than "anonymous": the SDK
+    refreshes tokens on its own, so a bad one is a stale page or a forgery,
+    and both should hear about it rather than quietly lose their votes."""
+    token = _bearer(request)
+    if token is None:
+        return None
+    try:
+        user = await anyio.to_thread.run_sync(auth.account, token)
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
+    if user is None:
+        raise HTTPException(401, "invalid or expired login token")
+    return user
 
 
 async def _require_user(request: Request) -> dict:
-    user = await _session_user(request)
+    """An account that may write: signed in, contact proven, name claimed.
+    The two 403s name the missing step so the page can send the visitor
+    there rather than to a generic error."""
+    user = await _optional_user(request)
     if user is None:
         raise HTTPException(401, "login required")
+    if not user["verified"]:
+        raise HTTPException(403, "unverified")
+    if not user["name"]:
+        raise HTTPException(403, "unnamed")
     return user
 
 
@@ -1590,49 +1754,80 @@ def _stories_throttle(limiter: ratelimit.SlidingWindowLimiter, request: Request)
         )
 
 
-async def _send_link(
-    email: str, name: str, token: str, code: str, lang: str, kind: str
-) -> None:
-    """Send the magic link on the request's clock - a second or so of SMTP -
-    so a relay refusal (out of Brevo credits, most likely) reaches the user as
-    a 503 instead of a "check your inbox" for a mail that will not come. The
-    budget the failed send spent is handed back, so the retry we just asked
-    for is not swallowed by the cooldown."""
-    sent = await anyio.to_thread.run_sync(
-        mailer.send_magic_link, email, name, token, code, lang, kind
-    )
-    if not sent:
-        await anyio.to_thread.run_sync(auth.refund_link, email)
-        raise HTTPException(503, "email could not be sent; please try again later")
-
-
-def _resend_hint() -> dict:
-    """How long the login page must wait before offering "resend" again. The
-    same constant for every caller - an account's real remaining cooldown
-    would say when it last asked for a login, which is not something to hand
-    out. Read per request so tests can move it."""
+@app.post("/api/auth/email-code", status_code=202)
+async def auth_email_code(body: EmailCodeIn, request: Request) -> dict:
+    """Step one of the email path: mail a six-digit code. Always 202, whether
+    or not a mail actually went out - an address's spent cooldown is not
+    something to report, and the code already in the mailbox still works.
+    Whether the address has an account is likewise never said here: both
+    cases answer identically, and the wording of the mail is the only place
+    the difference shows."""
+    _stories_throttle(auth.email_limiter, request)
+    try:
+        issued = await anyio.to_thread.run_sync(auth.issue_email_code, body.email)
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
+    # a spent per-address budget yields no code: nothing is wrong, there is
+    # simply no new mail, and the answer stays the same 202 either way
+    if issued is not None:
+        code, kind = issued
+        # on the request's clock - a second or so of SMTP - so a relay refusal
+        # (out of Brevo credits, most likely) reaches the user as a 503
+        # instead of a "check your inbox" for a mail that will not come
+        sent = await anyio.to_thread.run_sync(
+            mailer.send_login_code, auth.normalize_email(body.email),
+            code, body.lang, kind,
+        )
+        if not sent:
+            # hand back the cooldown and the daily slot the failed send spent,
+            # so the retry we just asked for is not swallowed by it
+            await anyio.to_thread.run_sync(auth.refund_code, body.email)
+            raise HTTPException(503, "email could not be sent; please try again later")
     return {"resend_after": auth.RESEND_COOLDOWN_SECONDS}
 
 
-@app.post("/api/auth/register", status_code=202)
-async def auth_register(reg: RegisterIn, request: Request) -> dict:
-    """No session yet - that starts when the emailed link is consumed. An
-    email that already has an account gets a login link to it instead of a
-    second account, so a sign-up with an address already in use still ends in
-    a working login."""
-    _stories_throttle(auth.register_limiter, request)
-    result = await anyio.to_thread.run_sync(auth.register, reg.name, reg.email)
-    if result is None:
-        raise HTTPException(409, "name already taken")
-    kind, stored_name, magic_token, code = result
-    # a spent per-account budget yields no token: the account is fine, there is
-    # simply no new mail, and the answer stays the same 202 either way
-    if magic_token is not None:
-        await _send_link(
-            auth.normalize_email(reg.email), stored_name, magic_token, code,
-            reg.lang, "welcome" if kind == "new" else "login",
+@app.post("/api/auth/email-code/verify")
+async def auth_email_code_verify(body: VerifyCodeIn, request: Request):
+    """Step two: the code buys a Firebase custom token, which the browser
+    signs in with - so from here on this is an ordinary Firebase session and
+    nothing about the login stays on this server. One 401 for every failure:
+    which of wrong/expired/used-up applies is not something to spell out."""
+    _stories_throttle(auth.code_limiter, request)
+    try:
+        token = await anyio.to_thread.run_sync(
+            auth.verify_email_code, body.email, body.code
         )
-    return _resend_hint()
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
+    if token is None:
+        raise HTTPException(401, "code invalid or expired")
+    return {"token": token}
+
+
+@app.post("/api/auth/handle", status_code=201)
+async def auth_handle(body: HandleIn, request: Request) -> dict:
+    """The one write a fresh account makes here: its public name, once. It
+    needs a proven contact first (see auth.account), so a squatted name
+    always has a reachable person behind it. The 409 says which of the two
+    conflicts it is: "taken" wants another name, "named" means this account
+    already has one and the page merely holds a token from before it did."""
+    user = await _optional_user(request)
+    if user is None:
+        raise HTTPException(401, "login required")
+    if not user["verified"]:
+        raise HTTPException(403, "unverified")
+    if user["name"]:
+        raise HTTPException(409, "named")
+    _stories_throttle(auth.register_limiter, request)
+    try:
+        result = await anyio.to_thread.run_sync(
+            auth.claim_handle, user["uid"], body.name
+        )
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
+    if result != "ok":
+        raise HTTPException(409, result)
+    return {"name": body.name}
 
 
 @app.get("/api/auth/suggest-name")
@@ -1644,7 +1839,10 @@ async def auth_suggest_name(
     endpoint taking a name would be a handle-enumeration oracle, and this
     answers the same question without being one."""
     _stories_throttle(auth.suggest_limiter, request)
-    name = await anyio.to_thread.run_sync(auth.suggest_name, lang)
+    try:
+        name = await anyio.to_thread.run_sync(auth.suggest_name, lang)
+    except auth.AuthUnavailable as exc:
+        raise _auth_down(exc)
     if name is None:
         raise HTTPException(503, "no free name found")
     # every caller must get its own name; an edge cache serving one twice
@@ -1653,76 +1851,14 @@ async def auth_suggest_name(
     return {"name": name}
 
 
-@app.post("/api/auth/request-link", status_code=202)
-async def auth_request_link(req: RequestLinkIn, request: Request) -> dict:
-    """Login step one. 404 when the address has no account, so the page can
-    say so and offer to create one - a login form that answers "check your
-    inbox" for an address that will never receive anything is a dead end.
-    That does make this an "is this address registered?" oracle; login_limiter
-    is what keeps it to a trickle rather than a scrape. A spent resend budget
-    still answers 202 - when an account last logged in stays private."""
-    _stories_throttle(auth.login_limiter, request)
-    result = await anyio.to_thread.run_sync(auth.request_link, req.email)
-    if result is None:
-        raise HTTPException(404, "no account for this address")
-    stored_name, magic_token, code = result
-    if magic_token is not None:
-        await _send_link(
-            auth.normalize_email(req.email), stored_name, magic_token, code,
-            req.lang, "login",
-        )
-    return _resend_hint()
-
-
-@app.post("/api/auth/consume")
-async def auth_consume(body: ConsumeIn, response: Response):
-    """Login step two, POSTed by the /verify landing page so a mail scanner
-    prefetching the GET can't burn the single-use token."""
-    result = await anyio.to_thread.run_sync(auth.consume, body.token)
-    if result is None:
-        raise HTTPException(401, "link invalid or expired")
-    user, token = result
-    _set_session_cookie(response, token)
-    return {"name": user["name"]}
-
-
-@app.post("/api/auth/consume-code")
-async def auth_consume_code(body: ConsumeCodeIn, request: Request, response: Response):
-    """The typed-code half of the same login, for when the mail was opened on
-    another device. One 401 for every failure - which of wrong/expired/used-up
-    applies is not something the response should spell out."""
-    _stories_throttle(auth.code_limiter, request)
-    result = await anyio.to_thread.run_sync(auth.consume_code, body.email, body.code)
-    if result is None:
-        raise HTTPException(401, "code invalid or expired")
-    user, token = result
-    _set_session_cookie(response, token)
-    return {"name": user["name"]}
-
-
-@app.post("/api/auth/logout", status_code=204)
-async def auth_logout(request: Request) -> Response:
-    await anyio.to_thread.run_sync(
-        auth.logout, request.cookies.get(SESSION_COOKIE)
-    )
-    response = Response(status_code=204)
-    response.delete_cookie(SESSION_COOKIE, path="/")
-    return response
-
-
 @app.get("/api/auth/me")
 async def auth_me(request: Request):
-    user = await _session_user(request)
-    return {"name": user["name"] if user else None}
-
-
-@app.get("/verify")
-async def verify_page() -> FileResponse:
-    """Magic-link landing page: it reads ?token= client-side and redeems it
-    via POST /api/auth/consume on a button click, never on the GET itself."""
-    return FileResponse(
-        STATIC_DIR / "verify.html", headers={"Cache-Control": "no-cache"}
-    )
+    """What the server reads from the token. The page learns the same from
+    the SDK's own claims without a round trip; this is the wiring check."""
+    user = await _optional_user(request)
+    if user is None:
+        return {"name": None}
+    return {"name": user["name"], "uid": user["uid"], "verified": user["verified"]}
 
 
 @app.get("/api/stories")
@@ -1732,9 +1868,9 @@ async def stories_index(
     limit: int = Query(30, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
-    user = await _session_user(request)
+    user = await _optional_user(request)
     return await anyio.to_thread.run_sync(
-        stories.list_stories, sort, limit, offset, user["id"] if user else None
+        stories.list_stories, sort, limit, offset, user["uid"] if user else None
     )
 
 
@@ -1760,22 +1896,22 @@ async def stories_create(story: StoryIn, request: Request):
 BoardSpan = Literal["week", "month", "year", "all"]
 
 
-def _board(span: str, user_id: int | None) -> dict:
+def _board(span: str, uid: str | None) -> dict:
     """Counts over the span plus the codes the viewer tapped today - the
     tiles render both from one answer, and a tap is answered with the same
     shape so it needs no second round trip."""
     return {
         "counts": stories.count_problems(span),
-        "mine": stories.my_reports(user_id) if user_id is not None else [],
+        "mine": stories.my_reports(uid) if uid is not None else [],
     }
 
 
-# public and anonymous, like reading the stories themselves; a session only
+# public and anonymous, like reading the stories themselves; a login only
 # adds which tiles are the viewer's own
 @app.get("/api/stories/problems")
 async def stories_problems(request: Request, span: BoardSpan = "month"):
-    user = await _session_user(request)
-    return await anyio.to_thread.run_sync(_board, span, user["id"] if user else None)
+    user = await _optional_user(request)
+    return await anyio.to_thread.run_sync(_board, span, user["uid"] if user else None)
 
 
 @app.post("/api/stories/problems/{code}")
@@ -1793,13 +1929,13 @@ async def stories_report(
         raise HTTPException(422, "problem_other required")
     _stories_throttle(stories.vote_limiter, request)
     result = await anyio.to_thread.run_sync(
-        stories.set_report, user["id"], code, report.vote,
+        stories.set_report, user["uid"], code, report.vote,
         report.from_station, report.to_station, report.departure, report.train,
         report.problem_other,
     )
     if result is None:
         raise HTTPException(404, "unknown problem")
-    return await anyio.to_thread.run_sync(_board, span, user["id"])
+    return await anyio.to_thread.run_sync(_board, span, user["uid"])
 
 
 @app.post("/api/stories/{story_id}/vote")
@@ -1807,7 +1943,7 @@ async def stories_vote(story_id: int, vote: StoryVoteIn, request: Request):
     user = await _require_user(request)
     _stories_throttle(stories.vote_limiter, request)
     result = await anyio.to_thread.run_sync(
-        stories.set_vote, story_id, user["id"], int(vote.vote)
+        stories.set_vote, story_id, user["uid"], int(vote.vote)
     )
     if result is None:
         raise HTTPException(404, "story not found")
@@ -1816,9 +1952,9 @@ async def stories_vote(story_id: int, vote: StoryVoteIn, request: Request):
 
 @app.get("/api/stories/{story_id}/comments")
 async def stories_comments(story_id: int, request: Request):
-    user = await _session_user(request)
+    user = await _optional_user(request)
     result = await anyio.to_thread.run_sync(
-        stories.list_comments, story_id, user["id"] if user else None
+        stories.list_comments, story_id, user["uid"] if user else None
     )
     if result is None:
         raise HTTPException(404, "story not found")
@@ -1828,9 +1964,9 @@ async def stories_comments(story_id: int, request: Request):
 @app.get("/api/stories/{story_id}")
 async def stories_show(story_id: int, request: Request):
     # the fixed /api/stories/problems path is registered earlier and keeps winning
-    user = await _session_user(request)
+    user = await _optional_user(request)
     story = await anyio.to_thread.run_sync(
-        stories.get_story, story_id, user["id"] if user else None
+        stories.get_story, story_id, user["uid"] if user else None
     )
     if story is None:
         raise HTTPException(404, "story not found")
@@ -1866,7 +2002,7 @@ async def comment_vote(comment_id: int, vote: StoryVoteIn, request: Request):
     user = await _require_user(request)
     _stories_throttle(stories.vote_limiter, request)
     result = await anyio.to_thread.run_sync(
-        stories.set_comment_vote, comment_id, user["id"], int(vote.vote)
+        stories.set_comment_vote, comment_id, user["uid"], int(vote.vote)
     )
     if result is None:
         raise HTTPException(404, "comment not found")
@@ -1927,6 +2063,306 @@ async def service_worker() -> FileResponse:
         media_type="text/javascript",
         headers={"Cache-Control": "no-cache"},
     )
+
+
+# --- journey reports: the bell orders a post-journey forecast-vs-actual email ---
+# The order is tied to the Delay Stories account (app/auth.py): the account
+# already proved its address, so the bell needs no email form and no double
+# opt-in of its own - one signed-in press is the order, a second one withdraws
+# it. The unsubscribe link in the mail itself keeps working without a login.
+
+
+class ReportOrder(BaseModel):
+    lang: Literal["de", "en"] = "de"
+    journey: dict
+    search: dict = Field(default_factory=dict)
+
+
+async def _report_user(request: Request) -> dict:
+    """An account a report can be mailed to: signed in, address proven. No
+    username is needed - the report goes to the inbox, not the board - so
+    this is deliberately looser than _require_user."""
+    user = await _optional_user(request)
+    if user is None:
+        raise HTTPException(401, "login required")
+    if not user["verified"] or not user["email"]:
+        raise HTTPException(403, "unverified")
+    return user
+
+
+@app.post("/api/reports/subscribe")
+async def report_subscribe(order: ReportOrder, request: Request) -> dict:
+    user = await _report_user(request)
+    _stories_throttle(reports.subscribe_limiter, request)
+    try:
+        return await anyio.to_thread.run_sync(
+            reports.subscribe, user, order.lang, order.journey, order.search
+        )
+    except reports.TooManyOpenReports as exc:
+        # its own status so the page can name the limit instead of refusing the
+        # journey; the count travels with it, the copy lives in the page
+        raise HTTPException(409, {"error": "too_many_open_reports", "limit": exc.limit})
+    except reports.SnapshotError as exc:
+        raise HTTPException(422, str(exc))
+
+
+@app.get("/api/reports/mine")
+async def report_mine(request: Request) -> dict:
+    """The account's open orders, so the page can light the bells of the
+    journeys it already ordered a report for."""
+    user = await _report_user(request)
+    subs = await anyio.to_thread.run_sync(reports.mine, user["uid"])
+    return {"email": user["email"], "subscriptions": subs}
+
+
+@app.delete("/api/reports/{sub_id}", status_code=204)
+async def report_cancel(sub_id: int, request: Request) -> Response:
+    user = await _report_user(request)
+    if not await anyio.to_thread.run_sync(reports.cancel, user["uid"], sub_id):
+        raise HTTPException(404, "no such open report")
+    return Response(status_code=204)
+
+
+_R_STRINGS = {
+    "de": {
+        "unsubTitle": "Abmelden & Daten löschen",
+        "unsubLead": "Damit werden alle offenen Verspätungs-Reports dieses Kontos storniert und"
+        " E-Mail-Adresse, Benutzername und Konto-Kennung aus den Report-Einträgen gelöscht.",
+        "unsubBtn": "Jetzt abmelden & Daten löschen",
+        "unsubbedTitle": "Abgemeldet",
+        "unsubbedLead": "Alle offenen Reports wurden storniert und deine personenbezogenen"
+        " Daten aus den Report-Einträgen gelöscht.",
+        "deadTitle": "Link ungültig",
+        "deadLead": "Dieser Link ist nicht (mehr) gültig.",
+        "back": "← Zur Verbindungssuche",
+    },
+    "en": {
+        "unsubTitle": "Unsubscribe & delete data",
+        "unsubLead": "This cancels every open delay report of this account and removes the"
+        " email address, username and account id from the report entries.",
+        "unsubBtn": "Unsubscribe & delete my data now",
+        "unsubbedTitle": "Unsubscribed",
+        "unsubbedLead": "All open reports were cancelled and your personal data was removed"
+        " from the report entries.",
+        "deadTitle": "Invalid link",
+        "deadLead": "This link is not (or no longer) valid.",
+        "back": "← Back to connection search",
+    },
+}
+
+
+def _r_page(lang: str, title: str, lead: str, form_html: str = "", status: int = 200) -> HTMLResponse:
+    s = _R_STRINGS[lang]
+    return HTMLResponse(
+        "<!DOCTYPE html>"
+        f'<html lang="{lang}"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        '<meta name="robots" content="noindex">'
+        f"<title>{escape(title)} – DelayBahn</title>"
+        '<link rel="icon" type="image/png" href="/favicon.png">'
+        '<link rel="stylesheet" href="/style.css">'
+        '</head><body><header><div class="header-inner">'
+        '<a class="logo-link" href="/"><img class="logo" src="/logo.png" alt="DelayBahn"></a>'
+        f'<span class="header-title">{escape(title)}</span></div></header>'
+        f'<main><div class="legal-card"><p>{escape(lead)}</p>{form_html}'
+        f'<p style="margin-top:18px;"><a href="/">{escape(s["back"])}</a></p>'
+        "</div></main></body></html>",
+        status_code=status,
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+def _r_dead_page() -> HTMLResponse:
+    s = _R_STRINGS["de"]
+    return _r_page("de", s["deadTitle"], s["deadLead"], status=404)
+
+
+@app.get("/r/unsubscribe")
+async def report_unsubscribe_page(token: str = Query("")) -> HTMLResponse:
+    lang = await anyio.to_thread.run_sync(reports.token_lang, token)
+    if lang is None:
+        return _r_dead_page()
+    s = _R_STRINGS[lang]
+    # a deliberate click, never auto-submitted: this deletes data
+    form = (
+        f'<form method="post" action="/r/unsubscribe?token={escape(token)}">'
+        f'<button class="search-btn" type="submit">{escape(s["unsubBtn"])}</button></form>'
+    )
+    return _r_page(lang, s["unsubTitle"], s["unsubLead"], form)
+
+
+@app.post("/r/unsubscribe")
+async def report_unsubscribe_submit(token: str = Query("")) -> HTMLResponse:
+    """Form target and RFC 8058 one-click target (List-Unsubscribe-Post) in one;
+    the one-click POST body is ignored."""
+    lang = (await anyio.to_thread.run_sync(reports.token_lang, token)) or "de"
+    ok = await anyio.to_thread.run_sync(reports.unsubscribe, token)
+    if not ok:
+        return _r_dead_page()
+    s = _R_STRINGS[lang]
+    return _r_page(lang, s["unsubbedTitle"], s["unsubbedLead"])
+
+
+# --- booked trips: the "Meine Fahrten" page ------------------------------------
+# The bookmark beside a booking button files the journey, and so does a
+# signed-in press on the booking button itself; the page lists them and lets
+# the account drop what it did not book.
+
+
+class TripPress(BaseModel):
+    lang: Literal["de", "en"] = "de"
+    via: Literal["card", "summary", "report-modal", "add"] = "card"
+    url: str
+    journeys: list[dict] = Field(min_length=1, max_length=trips.MAX_JOURNEYS_PER_PRESS)
+    search: dict = Field(default_factory=dict)
+
+
+async def _trips_user(request: Request) -> dict:
+    """An account with a proven contact; no username or email address is
+    needed to keep a list of one's own trips."""
+    user = await _optional_user(request)
+    if user is None:
+        raise HTTPException(401, "login required")
+    if not user["verified"]:
+        raise HTTPException(403, "unverified")
+    return user
+
+
+@app.post("/api/trips")
+async def trips_record(press: TripPress, request: Request) -> dict:
+    user = await _trips_user(request)
+    _stories_throttle(trips.record_limiter, request)
+    try:
+        saved = await anyio.to_thread.run_sync(
+            trips.record, user["uid"], press.lang, press.via, press.url,
+            press.journeys, press.search,
+        )
+    except trips.TripError as exc:
+        raise HTTPException(422, str(exc))
+    return {"trips": saved}
+
+
+# how many past trips one list load may still run the check for; the rest
+# follow on later loads or when their button is pressed
+TRIP_VERDICTS_PER_LOAD = 5
+
+
+@app.get("/api/trips")
+async def trips_mine(request: Request) -> dict:
+    """Every trip of the account plus the Berlin clock the page splits them
+    on, so a visitor abroad still sees today's trip under "next". Past trips
+    whose check has not run yet get it here, a few per load, so the tally
+    counts what a cancellation really cost rather than the final leg alone."""
+    user = await _trips_user(request)
+    mine = await anyio.to_thread.run_sync(trips.mine, user["uid"])
+    now = trips.berlin_now()
+    todo = [t for t in mine if t["arrival"] <= now and not t["resolved"]]
+    for t in todo[:TRIP_VERDICTS_PER_LOAD]:
+        try:
+            verdict = await _trip_verdict(user["uid"], t["id"])
+        except bahn_api.UpstreamError:
+            break  # bahn.de is the missing piece: leave the rest for a later load
+        if verdict is None:
+            continue
+        t["delay"], t["canceled"] = trips.verdict_outcome(verdict)
+        t["resolved"] = verdict["final"]
+    return {"now": now, "trips": mine}
+
+
+@app.delete("/api/trips/{trip_id}", status_code=204)
+async def trips_remove(trip_id: int, request: Request) -> Response:
+    user = await _trips_user(request)
+    if not await anyio.to_thread.run_sync(trips.remove, user["uid"], trip_id):
+        raise HTTPException(404, "no such trip")
+    return Response(status_code=204)
+
+
+def _tracked_train(leg: dict) -> bool:
+    line = leg["line"]
+    return (not leg["walking"] and line["product"] not in UNTRACKED_PRODUCTS
+            and bool(line["fahrtNr"]) and bool(leg["destination"]["id"]))
+
+
+def _leg_stops(legs: list[dict]) -> set[tuple[str, datetime]]:
+    """Every (station, planned time) a stored itinerary touches - _live_stops
+    over normalized legs rather than bahn.de's raw sections."""
+    stops = set()
+    for leg in legs:
+        if not _tracked_train(leg):
+            continue
+        for stop, key in ((leg["origin"], "plannedDeparture"), (leg["destination"], "plannedArrival")):
+            if stop["id"] and leg.get(key):
+                stops.add((delays.pad_eva(str(stop["id"])), delays.to_berlin_naive(leg[key])))
+    return stops
+
+
+def _attach_day_delays(legs: list[dict], live: bool) -> None:
+    """Give stored legs the day's actual arrival delay, exactly as normalize_leg
+    does for a past search: IRIS on a day the nightly parquet has not reached,
+    the parquet everywhere else. Blocking - run it off the event loop."""
+    for leg in legs:
+        if not _tracked_train(leg) or not leg.get("plannedArrival"):
+            continue
+        train = str(leg["line"]["fahrtNr"]).replace(" ", "")
+        eva = delays.pad_eva(str(leg["destination"]["id"]))
+        arrival = delays.to_berlin_naive(leg["plannedArrival"])
+        hit = live_delays.leg_delay_on_date(train, eva, arrival) if live else None
+        leg["delayOnDate"] = hit if hit is not None else delays.leg_delay_on_date(train, eva, arrival)
+
+
+async def _trip_verdict(uid: str, trip_id: int) -> dict | None:
+    """The compensation page's verdict for one filed trip: each leg's delay
+    on the day, missed connections and the onward journey the simulation
+    rides instead, and what that adds up to - the same lookups and the same
+    simulation as a past-mode search, on the itinerary on file. `final` says
+    the day is in the nightly data, so the answer cannot change: only then is
+    it stored with the trip; a live day, or one nobody has data for yet, is
+    answered fresh each time. None when the trip is not this account's, not
+    over yet, or has no train leg. Raises bahn_api.UpstreamError."""
+    stored = await anyio.to_thread.run_sync(trips.stored_verdict, uid, trip_id)
+    if stored is not None:
+        return stored
+    filed = await anyio.to_thread.run_sync(trips.journey_legs, uid, trip_id)
+    if filed is None or filed["arrival"] > trips.berlin_now():
+        return None
+    legs = filed["legs"]
+    if not any(not leg["walking"] for leg in legs):
+        return None
+    # days the nightly parquet hasn't reached yet are answered live from IRIS
+    parquet_max = delays.coverage()[1]
+    covered = parquet_max is not None and filed["departure"][:10] <= parquet_max.isoformat()
+    live = not covered and live_max_day() is not None
+    if live:
+        await live_delays.warm(_leg_stops(legs))
+    await anyio.to_thread.run_sync(_attach_day_delays, legs, live)
+    verdict = {"legs": legs, "liveDay": live, "final": covered, **await _past_verdict(legs, 7, live)}
+    if covered:
+        await anyio.to_thread.run_sync(trips.store_verdict, uid, trip_id, verdict)
+    return verdict
+
+
+@app.get("/api/trips/{trip_id}/check")
+async def trips_check(trip_id: int, request: Request) -> dict:
+    """The verdict for one trip, shown in place on the trips page. A stored
+    one is free; running it costs the search budget, since a missed
+    connection can send the simulation to bahn.de for a replacement."""
+    user = await _trips_user(request)
+    stored = await anyio.to_thread.run_sync(trips.stored_verdict, user["uid"], trip_id)
+    if stored is not None:
+        return stored
+    _search_throttle(request)
+    filed = await anyio.to_thread.run_sync(trips.journey_legs, user["uid"], trip_id)
+    if filed is None:
+        raise HTTPException(404, "no such trip")
+    if filed["arrival"] > trips.berlin_now():
+        raise HTTPException(409, "journey not over yet")
+    try:
+        verdict = await _trip_verdict(user["uid"], trip_id)
+    except bahn_api.UpstreamError as e:
+        raise _upstream_http_error(e)
+    if verdict is None:
+        raise HTTPException(422, "no train legs")
+    return verdict
 
 
 class HtmlNoCacheStatic(StaticFiles):

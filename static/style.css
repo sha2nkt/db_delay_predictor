@@ -30,14 +30,8 @@ header { background: var(--brand-red); }
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .header-title { color: #fff; font-size: 18px; font-weight: 600; flex: 1; min-width: 0; }
-/* the Delay Stories wordmark is flat red on transparent: recolour it white and
-   let it sit straight on the red header instead of in the DB logo's white tile */
-.stories-header .logo {
-  background: none; padding: 0; box-shadow: none; border-radius: 0;
-  height: 48px; filter: brightness(0) invert(1);
-}
-.stories-header .header-title { font-size: 15px; }
-.header-title small { font-weight: 400; opacity: .85; }
+/* the subtitle moves down as a whole when the account corner needs the room */
+.header-title small { font-weight: 400; opacity: .85; white-space: nowrap; }
 .tagline { display: block; font-size: 12px; font-weight: 400; font-style: italic; opacity: .8; }
 
 main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
@@ -62,13 +56,34 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .field-date input::-webkit-date-and-time-value,
 .field-time input::-webkit-date-and-time-value { text-align: left; }
-.field-window select, .field-transfer select { min-width: 110px; }
-/* own line under the age select and D-Ticket switches; flex-start keeps the
-   select at its natural width instead of stretching across the row */
-.field-transfer { flex-basis: 100%; align-items: flex-start; }
-/* sized by its longest option label, not the 200px input default */
+.field-window select { min-width: 110px; }
+/* the Umstiegszeit select and the Verkehrsmittel picker read as one pair, so they
+   share a width — and it is the age select's, so the two rows line up */
+.field-transfer select, .transport-btn { min-width: 150px; }
+/* Umstiegszeit, the Verkehrsmittel picker and the stopover block share a line of
+   their own under the traveller rows; flex-start keeps each control at its
+   natural width instead of stretching across the row */
+.advanced-row {
+  flex-basis: 100%;
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px;
+}
+.field-transfer, .field-transport { align-items: flex-start; }
+/* each sized by its longest option label, not the 200px input default */
+.field-count select { min-width: 72px; }
 .field-age select { min-width: 150px; }
+.field-discount select { min-width: 190px; }
 .field input:focus, .field select:focus { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+
+/* the bahn.de mask's traveller line: count, age bracket and discount. The default
+   party is a single row, so the add button trails it on the same line; a second
+   traveller makes the rows a list and pushes the button underneath. */
+.traveller-fields {
+  flex-basis: 100%;
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;
+}
+.traveller-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.traveller-fields.multi .traveller-row { flex-basis: 100%; }
+.traveller-remove.hidden, .traveller-add.hidden { display: none; }
 
 #swap {
   background: #fff; border: 1px solid var(--gray-border); border-radius: 4px;
@@ -86,8 +101,8 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
    of width and wraps them to a line of their own, the button still sits right
    beside the switches instead of being orphaned under the fields. */
 .search-actions { display: flex; align-items: center; gap: 12px; }
-/* occasional settings (D-Ticket modes, age bracket) fold away behind a plain
-   text toggle so the card's main row keeps its shape */
+/* occasional settings (age bracket, transfer time, transport modes, stopovers)
+   fold away behind a plain text toggle so the card's main row keeps its shape */
 .advanced-toggle {
   background: none; border: none; cursor: pointer; padding: 10px 0;
   font-size: 13px; font-weight: 600; color: var(--text-muted);
@@ -103,8 +118,9 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 }
 .advanced-panel.hidden { display: none; }
 
-/* the two switches read as one choice, so they sit on a line together; the
-   padding matches the inputs' so they align with the search button beside them */
+/* the two switches read as one choice, so they sit on a line together in the
+   card's main row; the padding matches the inputs' so they align with the
+   fields and the search button beside them */
 .dticket-toggles {
   display: flex; align-items: center; flex-wrap: wrap;
   gap: 8px 18px; padding: 10px 0;
@@ -128,24 +144,78 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 .dticket-toggle input:checked + .dticket-switch::after { left: 18px; }
 .dticket-toggle input:focus-visible + .dticket-switch { outline: 2px solid var(--brand-red); outline-offset: 2px; }
 
-.return-add {
+.return-add, .stopover-add, .traveller-add {
   align-self: flex-end;
   background: #fff; border: 1px dashed var(--gray-border); border-radius: 4px;
   color: var(--brand-red); font-family: inherit; font-size: 13px; font-weight: 600;
-  padding: 11px 14px; cursor: pointer; white-space: nowrap;
+  /* 13px text sits in a shorter line box than the 15px selects these buttons
+     stand beside, so the line-height is pinned to leave every box 41px tall */
+  padding: 11px 14px; line-height: 17px; cursor: pointer; white-space: nowrap;
 }
-.return-add:hover { border-color: var(--brand-red); background: color-mix(in srgb, var(--brand-red) 4%, #fff); }
-.return-add.hidden { display: none; }
+.return-add:hover, .stopover-add:hover, .traveller-add:hover { border-color: var(--brand-red); background: color-mix(in srgb, var(--brand-red) 4%, #fff); }
+.return-add.hidden, .stopover-add.hidden { display: none; }
 
 .return-fields { display: flex; gap: 12px; align-items: flex-end; }
 .return-fields.hidden { display: none; }
-.return-remove {
+.return-remove, .stopover-remove, .traveller-remove {
   background: none; border: none; color: var(--text-muted); font-family: inherit;
   font-size: 15px; line-height: 1; cursor: pointer; padding: 11px 6px; border-radius: 4px;
 }
-.return-remove:hover { background: var(--gray-bg); color: var(--text); }
+.return-remove:hover, .stopover-remove:hover, .traveller-remove:hover { background: var(--gray-bg); color: var(--text); }
 /* stacked on mobile the bare glyph loses its context, so it gets a label there */
-.return-remove-label { display: none; }
+.return-remove-label, .stopover-remove-label, .traveller-remove-label { display: none; }
+
+/* Stopovers close the advanced-options panel's last row, beside Umstiegszeit and
+   the Verkehrsmittel picker: while the block is just its add button it is narrow
+   enough to sit there, and a revealed row — or a round trip's second group — takes
+   the width it needs by claiming a line of its own again. */
+.stopover-fields { display: flex; flex-direction: column; gap: 10px; }
+.advanced-row > .stopover-fields:has(.stopover-row:not(.hidden)),
+.advanced-row > .stopover-fields:has(#stopover-group-return:not(.hidden)) { flex-basis: 100%; }
+.stopover-group { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.stopover-group.hidden { display: none; }
+.stopover-group-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+.stopover-group-label.hidden { display: none; }
+.stopover-row { display: flex; gap: 12px; align-items: flex-end; }
+.stopover-row.hidden { display: none; }
+/* the stay is a duration, not a text field, so it reads as bahn.de's stepper:
+   both segments stay typeable and the two buttons move a quarter hour at a time */
+.stay-stepper {
+  display: flex; align-items: center; gap: 4px;
+  border: 1px solid var(--gray-border); border-radius: 4px; background: #fff;
+  padding: 1px 4px; min-width: 170px;
+}
+.stay-stepper:focus-within { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.stay-step {
+  flex: none; width: 32px; height: 35px; padding: 0;
+  background: none; border: none; border-radius: 4px; cursor: pointer;
+  color: var(--brand-red); font-family: inherit; font-size: 18px; line-height: 1;
+}
+.stay-step:hover:not(:disabled) { background: color-mix(in srgb, var(--brand-red) 8%, #fff); }
+.stay-step:disabled { color: var(--gray-border); cursor: default; }
+.stay-value { flex: 1; display: flex; align-items: baseline; justify-content: center; }
+/* the digits are text in an input like any other on the form: same size and
+   weight, and the font family left to the browser as the other inputs leave it;
+   2ch plus a hair, so a caret at the end of "45" doesn't push the unit around */
+.stay-stepper input.stay-part {
+  width: 2.4ch; min-width: 0; padding: 0; border: none; background: none;
+  font-size: 15px; font-weight: 400; color: var(--text); text-align: center;
+}
+.stay-part:focus { outline: none; color: var(--brand-red); }
+/* the units read as the field labels do */
+.stay-unit { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.stay-sep { padding: 0 4px; font-size: 15px; color: var(--text-muted); }
+/* on a phone the stay is picked the way the search form's time field is picked -
+   the native time control - so the typeable segments give way to a type=time twin
+   there; it holds the same HH:MM the segments hold, and the buttons still step it */
+.stay-stepper input.stay-time {
+  display: none; flex: 1; min-width: 0; width: auto; padding: 0; border: none;
+  background: none; font-size: 15px; color: var(--text); text-align: center;
+  -webkit-appearance: none; appearance: none;
+}
+.stay-time::-webkit-date-and-time-value { text-align: center; }
+.stay-time::-webkit-calendar-picker-indicator { display: none; }
+.stopover-add { align-self: flex-start; }
 
 .autocomplete-wrap { position: relative; }
 .autocomplete-wrap input { padding-right: 34px; }
@@ -334,6 +404,20 @@ button.badge[aria-expanded="true"] .badge-caret { transform: rotate(180deg); }
   font-size: 12px; color: var(--text-muted); margin-bottom: 4px;
 }
 .day-chart-cancel { color: var(--red); font-weight: 600; white-space: nowrap; }
+.day-chart-nudge { animation: day-chart-nudge 6s ease forwards; }
+@keyframes day-chart-nudge {
+  0%, 88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.day-chart-ping {
+  transform-box: fill-box; transform-origin: center;
+  animation: day-chart-ping 1.6s ease-out .8s 3;
+}
+@keyframes day-chart-ping {
+  from { opacity: .6; transform: scale(.35); }
+  to { opacity: 0; transform: scale(1.3); }
+}
+@media (prefers-reduced-motion: reduce) { .day-chart-nudge { display: none; } }
 .day-chart svg { display: block; width: 100%; height: auto; }
 .day-chart-bubble {
   position: absolute; z-index: 5; max-width: 260px; padding: 5px 9px;
@@ -573,6 +657,7 @@ body.past-mode .field-window { display: none; }
 /* neither prices, the D-Ticket filter nor a minimum transfer time figure in
    the compensation check, so the whole advanced panel goes */
 body.past-mode .advanced-toggle,
+body.past-mode .dticket-toggles,
 body.past-mode .advanced-panel { display: none; }
 /* the compensation check looks back at one journey that already happened */
 body.past-mode .return-add,
@@ -650,6 +735,53 @@ body.past-mode .trip-steps { display: none; }
 .claim-modal-go:hover { filter: brightness(1.12); }
 .claim-modal-alt { margin-top: 10px; text-align: center; font-size: 12.5px; color: var(--text-muted); }
 .claim-modal-alt a { color: var(--brand-red); }
+
+/* journey report: bell next to the booking button + modal (reuses the .claim-modal shell) */
+.book-row { display: flex; gap: 8px; }
+.book-row .book-btn { flex: 1; text-align: center; }
+/* the bell (report) and the bookmark (Meine Fahrten) share one look beside the booking button */
+.bell-btn, .trip-btn {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; color: var(--text-muted);
+  border: 2px solid var(--gray-border); border-radius: 4px;
+  padding: 6px 9px; cursor: pointer; line-height: 0;
+}
+.bell-btn:hover, .trip-btn:hover { color: var(--brand-red); border-color: var(--brand-red); }
+/* an ordered report / a filed journey: the icon fills in */
+.bell-btn.on, .trip-btn.on { color: var(--brand-red); border-color: var(--brand-red); background: #fff3f2; }
+.bell-btn.on svg, .trip-btn.on svg { fill: currentColor; }
+.bell-btn:focus-visible, .trip-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.trip-btn:disabled { opacity: .6; cursor: wait; }
+/* under the round-trip summary the bookmark stands beside the big button */
+.trip-summary .book-row { margin-top: 12px; }
+.trip-summary .book-row .book-btn-lg { margin-top: 0; }
+
+.report-teaser { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.report-teaser-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.report-teaser-row > span:first-child { flex: none; width: 165px; color: var(--text-muted); font-weight: 600; }
+.report-teaser-note { font-size: 12px; color: var(--text-muted); font-style: italic; }
+.report-blur { filter: blur(3px); }
+
+.report-login, .report-done { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.report-login.hidden, .report-done.hidden { display: none; }
+.report-login p { margin: 0; font-size: 13.5px; line-height: 1.45; }
+.report-submit {
+  background: var(--brand-red); color: #fff; border: none; border-radius: 4px;
+  padding: 11px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.report-submit:hover { background: var(--brand-red-dark); }
+.report-submit:disabled { opacity: .6; cursor: wait; }
+.report-done-msg { margin: 0; font-size: 14px; font-weight: 600; color: var(--green); }
+.report-note { margin: 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.45; }
+.report-note a { color: var(--brand-red); }
+.report-cancel {
+  align-self: flex-start; background: none; border: none; padding: 0;
+  font: inherit; font-size: 13px; color: var(--text-muted); text-decoration: underline; cursor: pointer;
+}
+.report-cancel:hover { color: var(--red); }
+.report-cancel:disabled { opacity: .6; cursor: wait; }
+.report-status { margin: 12px 0 0; font-size: 13px; color: var(--red); min-height: 1em; }
+.report-status.ok { color: var(--green); }
 
 .past-disclaimer { margin: 4px 0 16px; font-size: 12px; color: var(--text-muted); }
 .past-disclaimer.hidden { display: none; }
@@ -900,30 +1032,60 @@ body.nudge-on #donate-footer-item { display: none; }
 
 @media (max-width: 700px) {
   .header-inner { flex-wrap: wrap; row-gap: 8px; }
-  /* the Delay Stories wordmark is wide: logo + language on row 1, title + login on row 2 */
-  .stories-header .logo { height: 32px; }
-  .stories-header .header-title { font-size: 13px; }
-  .stories-header .header-lang { order: 1; margin-left: auto; }
-  .stories-header .header-title { order: 2; flex-basis: 60%; }
-  .stories-header .header-auth { order: 3; margin-left: auto; }
+  /* the homepage header also carries the compensation CTA: the account corner
+     stays beside the title and the CTA drops to a second, right-aligned row
+     with the language switch, instead of the pill squeezing the title into
+     single words; a long name is clipped so the corner still fits the row */
+  .header-home { justify-content: flex-end; }
+  .header-home .header-title { flex-basis: 100px; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
   /* stacked card: the toggle centers on its line, the button spans below it */
   .search-actions { flex-direction: column; align-items: stretch; gap: 4px; }
-  .advanced-toggle { justify-content: center; }
-  .field input, .field select { min-width: 0; width: 100%; }
+  /* the switch row and the toggle each carry the padding that aligns them with
+     the inputs beside them on desktop; stacked they sit on top of the card's own
+     12px gap and open a hole, so the padding moves onto the labels, where it
+     still buys a finger-sized tap target */
+  .advanced-toggle { justify-content: center; padding: 2px 0 10px; }
+  .dticket-toggles { padding: 0; }
+  .dticket-toggle { padding: 6px 0; }
+  .field input, .field select, .transport-btn { min-width: 0; width: 100%; }
+  /* stacked card: split the line evenly so the pair keeps matching boxes even
+     though their labels are different lengths */
+  .advanced-row .field { flex: 1 1 0; }
+  /* stacked card: the count keeps only the width its single digit needs, the age
+     bracket takes the rest of the line and the discount wraps under the pair */
+  .traveller-row { flex-basis: 100%; }
+  .field-count { flex: 0 0 76px; }
+  .field-age { flex: 1 1 0; }
+  .field-discount { flex: 1 1 100%; }
   #swap { align-self: center; }
-  .return-add { align-self: stretch; }
-  .return-fields { flex-direction: column; align-items: stretch; }
-  .return-remove {
+  /* stacked, the transfer/transport pair already fills the line, so the stopover
+     block goes back under them whatever it currently holds */
+  .advanced-row > .stopover-fields { flex-basis: 100%; }
+  .return-add, .stopover-add, .traveller-add { align-self: stretch; text-align: center; }
+  .return-fields, .stopover-row { flex-direction: column; align-items: stretch; }
+  .stopover-group { align-items: stretch; }
+  .stay-stepper { min-width: 0; }
+  .stay-step { width: 44px; }
+  .stay-stepper .stay-part, .stay-stepper .stay-unit, .stay-stepper .stay-sep { display: none; }
+  .stay-stepper input.stay-time { display: block; }
+  .return-remove, .stopover-remove, .traveller-remove {
     align-self: flex-end; padding: 6px 4px;
     display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
   }
-  .return-remove-label { display: inline; }
+  .return-remove-label, .stopover-remove-label, .traveller-remove-label { display: inline; }
   .trip-stepper { flex-direction: column; }
-  .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
+  /* single-row headers shrink the logo to fit; the two-row homepage header keeps it full size */
+  .header-inner:not(.header-home) .logo { height: 48px; padding: 4px 8px; border-radius: 6px; }
   .header-title { font-size: 15px; }
   .header-title small { display: none; }
+  /* the stories header carries the account corner as well: four items on one
+     line squeeze the title down to a word per line, so the title keeps the row
+     beside the logo and the account corner drops to a second, right-aligned row
+     with the language switch; a long name is clipped so the row still fits */
+  .header-stories { justify-content: flex-end; }
+  .header-stories .header-title { flex-basis: calc(100% - 100px); }
 
   .controls { flex-wrap: wrap; }
 
@@ -949,6 +1111,8 @@ body.nudge-on #donate-footer-item { display: none; }
     text-align: center;
     padding: 11px 12px;
   }
+  /* inside the flex row the button's grid-column is inert; the row spans instead */
+  .book-row { grid-column: 1 / -1; }
   .journey-head .claim-none { grid-column: 1 / -1; }
 }
 
@@ -980,15 +1144,50 @@ body.nudge-on #donate-footer-item { display: none; }
   font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; cursor: pointer;
 }
 .install-btn:hover { background: var(--brand-red-dark); }
-.install-dismiss {
+.install-dismiss, .stories-banner-dismiss {
   flex: 0 0 auto; background: none; border: none; color: var(--text-muted);
   font-size: 16px; line-height: 1; cursor: pointer; padding: 4px 6px; border-radius: 4px;
 }
-.install-dismiss:hover { background: var(--gray-bg); color: var(--text); }
+.install-dismiss:hover, .stories-banner-dismiss:hover { background: var(--gray-bg); color: var(--text); }
 @media (max-width: 700px) {
   .install-text strong { font-size: 13px; }
   .install-lead { font-size: 12px; }
 }
+
+/* delay stories banner - one thin row under the install prompt */
+.stories-banner {
+  display: flex; align-items: center; gap: 4px;
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+}
+.stories-banner.hidden { display: none; }
+.stories-banner-link {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none; color: inherit;
+}
+.stories-banner:has(.stories-banner-link:hover) { border-color: var(--brand-red); }
+.stories-banner-logo { flex: 0 0 auto; height: 20px; width: auto; }
+.stories-banner-text {
+  min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: 1px 6px; line-height: 1.35;
+}
+.stories-banner-text strong { font-size: 13px; font-weight: 600; color: var(--text); }
+.stories-banner-lead { font-size: 12.5px; color: var(--text-muted); }
+.stories-banner-go { flex: 0 0 auto; margin-left: auto; color: var(--brand-red); font-size: 15px; font-weight: 600; }
+body.past-mode .stories-banner { display: none; }
+@media (max-width: 700px) {
+  /* the row gets shorter on phones, but the side padding stays at the install
+     prompt's 12px so the two dismiss crosses line up on the same column */
+  .stories-banner { padding: 7px 12px; }
+  .stories-banner-link { gap: 8px; }
+  .stories-banner-logo { height: 18px; }
+  .stories-banner-text strong { font-size: 12.5px; }
+  .stories-banner-lead { font-size: 12px; }
+}
+/* under ~420px the two sentences would wrap to three lines: the pitch alone stays thin */
+@media (max-width: 420px) { .stories-banner-lead { display: none; } }
 
 /* iOS "add to home screen" bottom sheet */
 .ios-sheet {
@@ -1031,6 +1230,10 @@ body.nudge-on #donate-footer-item { display: none; }
 /* ---------- station stories (/stories) ---------- */
 
 .stories-main { max-width: 720px; }
+/* the Delay Stories wordmark, red on transparent, centred above the board */
+.stories-mark { display: block; width: fit-content; margin: 0 auto 20px; line-height: 0; }
+.stories-mark img { height: 56px; width: auto; max-width: 100%; }
+@media (max-width: 700px) { .stories-mark img { height: 40px; } }
 /* why voting is worth the tap; sits above the lists so readers see it too,
    not only the people already composing */
 .share-promise {
@@ -1553,7 +1756,278 @@ body.nudge-on #donate-footer-item { display: none; }
 .auth-switch .link-btn { font-weight: 600; text-decoration: none; }
 .auth-switch .link-btn:hover { text-decoration: underline; }
 
+/* The sign-in card: every way in stacked the way the big apps do it - one
+   pill per provider, a divider, and the address as the last resort. Pills
+   throughout so the provider buttons, the field and the primary button read
+   as one set; the site's own red stays the primary. */
+.auth-modal h2 { text-align: center; font-size: 22px; font-weight: 600; margin: 4px 0 8px; }
+.auth-lead { text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 18px; }
+.sso-list { display: flex; flex-direction: column; gap: 10px; }
+.sso-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 48px; padding: 0 16px;
+  border: 1px solid var(--gray-border); border-radius: 999px; background: #fff;
+  font: inherit; font-size: 15px; font-weight: 500; color: var(--text); cursor: pointer;
+}
+.sso-btn:hover { background: var(--gray-bg); }
+.sso-btn:disabled { opacity: .6; cursor: wait; }
+.sso-btn svg { width: 20px; height: 20px; flex: none; }
+.sso-btn.hidden, .auth-or.hidden { display: none; }
+.auth-or {
+  display: flex; align-items: center; gap: 12px; margin: 16px 0;
+  font-size: 12px; color: var(--text-muted); letter-spacing: .04em;
+}
+.auth-or::before, .auth-or::after { content: ""; flex: 1; border-top: 1px solid var(--gray-border); }
+.auth-form .auth-primary {
+  align-self: stretch; width: 100%; min-height: 48px; border-radius: 999px; font-size: 15px;
+}
+.auth-modal .field input { min-height: 48px; border-radius: 999px; padding: 0 18px; font-size: 15px; }
+/* The emailed code, on the modal card: full width like the button beneath it,
+   rather than the narrow pill .code-input sizes for the SMS card. The wide
+   letter-spacing is for six digits and would spell the placeholder out as
+   "C o d e", so the placeholder resets it - and the matching text-indent
+   offsets the trailing space so the digits sit optically centred. */
+.auth-modal .code-input {
+  max-width: none; width: 100%;
+  font-size: 24px; font-weight: 600; letter-spacing: 10px; text-indent: 10px;
+}
+.auth-modal .code-input::placeholder {
+  font-size: 15px; font-weight: 400; letter-spacing: normal;
+}
+/* everything else on this card is centred, so the resend line is too */
+.auth-modal .auth-resend { display: block; width: 100%; text-align: center; margin-top: 14px; }
+
+/* A control sharing one pill with its input: the border moves to the row, so
+   the "Edit" link and the reveal eye sit inside it rather than beside it -
+   the same trick .name-row uses on the username field. */
+.auth-modal .input-row {
+  display: flex; align-items: center; gap: 4px; min-height: 48px;
+  border: 1px solid var(--gray-border); border-radius: 999px;
+  background: #fff; padding-right: 14px;
+}
+.auth-modal .input-row:focus-within { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.auth-modal .input-row input {
+  flex: 1 1 auto; min-width: 0; border: none; background: none;
+  min-height: 46px; padding: 0 18px; font-size: 15px; border-radius: 999px;
+}
+.auth-modal .input-row input:focus { outline: none; }
+/* the address is settled by the time this card opens: it reads as a
+   statement of which account is being signed into, not a field to fill */
+.auth-modal .input-row input[readonly] { color: var(--text-muted); }
+.auth-modal .input-row .link-btn { flex: none; font-weight: 600; text-decoration: none; }
+.auth-modal .input-row .link-btn:hover { text-decoration: underline; }
+.pw-toggle {
+  flex: none; background: none; border: none; cursor: pointer;
+  color: var(--text-muted); padding: 6px; line-height: 0;
+}
+.pw-toggle:hover { color: var(--text); }
+.pw-toggle svg { width: 20px; height: 20px; display: block; }
+.pw-toggle .hidden { display: none; }
+/* sits under the field it belongs to, rather than among the card's footer
+   actions where it would compete with the way back to the code */
+.pw-forgot {
+  align-self: flex-start; margin: -4px 0 2px;
+  font-weight: 600; text-decoration: none;
+}
+.pw-forgot:hover { text-decoration: underline; }
+.auth-modal .auth-note { margin-top: 12px; }
+/* the two ways on from a password that did not fit: create, or reset */
+.auth-alt { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; align-items: flex-start; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
 @media (max-width: 640px) {
   .top-station { display: none; }
   .story { padding: 12px; gap: 8px; }
+}
+
+/* --- transport-mode filter: the bahn.de "Verkehrsmittel" dialog --- */
+
+/* a picker, not an action: the same box as the selects it sits beside, down to
+   the caret standing in for their native arrow */
+.transport-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: #fff; border: 1px solid var(--gray-border); border-radius: 4px;
+  color: var(--text); font-family: inherit; font-size: 15px;
+  /* a select's inner line box is taller than a button's at the same font size;
+     pinning the line-height buys back the 2px so the two boxes end up the same height */
+  padding: 10px 12px; line-height: 19px; text-align: left;
+  cursor: pointer; white-space: nowrap;
+}
+.transport-btn:hover { border-color: var(--text-muted); }
+.transport-btn:focus-visible { outline: 2px solid var(--brand-red); outline-offset: -1px; }
+.transport-caret { flex: none; color: var(--text); }
+/* the count stands in for a select's value, so a narrowed search reads at a glance */
+.transport-value.transport-filtered { color: var(--brand-red); font-weight: 600; }
+
+.tm-modal {
+  border: none; border-radius: 14px; padding: 0; margin: auto;  /* the * reset drops the UA centering */
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  box-shadow: 0 12px 40px rgba(0,0,0,.28);
+  color: var(--text);
+}
+.tm-modal::backdrop { background: rgba(20, 24, 28, .55); }
+.tm-inner { padding: 20px 22px 18px; position: relative; }
+.tm-title { font-size: 19px; margin-right: 28px; line-height: 1.3; }
+
+.tm-section { margin-top: 14px; }
+.tm-section.hidden { display: none; }
+.tm-section label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.tm-section select {
+  width: 100%; padding: 10px; font-family: inherit; font-size: 14px;
+  border: 1px solid var(--gray-border); border-radius: 4px; background: #fff; color: var(--text);
+}
+
+/* quick select: one of the three rows carries a check when the toggles match it */
+.tm-quick { margin-top: 12px; border: 1px solid var(--gray-border); border-radius: 8px; overflow: hidden; }
+.tm-quick-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: none; border-bottom: 1px solid var(--gray-border);
+  font-family: inherit; font-size: 14px; color: var(--text); text-align: left;
+  padding: 11px 12px; cursor: pointer;
+}
+.tm-quick-btn:last-child { border-bottom: none; }
+.tm-quick-btn:hover { background: var(--gray-bg); }
+.tm-quick-btn[aria-pressed="true"] { background: var(--gray-bg); }
+.tm-check { color: var(--green); font-weight: 700; width: 16px; visibility: hidden; }
+.tm-quick-btn[aria-pressed="true"] .tm-check { visibility: visible; }
+
+.tm-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.tm-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; cursor: pointer; user-select: none; }
+.tm-label { flex: 1; font-size: 14px; }
+.tm-icon {
+  flex: none; width: 34px; height: 34px; border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 17px; font-weight: 800; line-height: 1;
+}
+.tm-i-ice { background: #282d37; color: #fff; }
+.tm-i-ic { background: #646973; color: #fff; }
+.tm-i-ir { background: #afb4bb; color: #282d37; }
+.tm-i-regional { background: #d7dce1; color: #282d37; }
+.tm-i-sbahn { background: #4d9f3e; color: #fff; }
+.tm-i-bus { background: #814997; color: #fff; }
+.tm-i-boat { background: #55b9e6; color: #282d37; }
+.tm-i-ubahn { background: #1455c0; color: #fff; }
+.tm-i-tram { background: #a9455d; color: #fff; }
+.tm-i-taxi { background: #ffd800; color: #282d37; }
+
+/* same look as the D-Ticket switches, but green like on bahn.de */
+.tm-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+.tm-row input:checked + .dticket-switch { background: var(--green); }
+.tm-row input:checked + .dticket-switch::after { left: 18px; }
+.tm-row input:focus-visible + .dticket-switch { outline: 2px solid var(--brand-red); outline-offset: 2px; }
+
+.tm-none { margin: 10px 0 0; font-size: 12.5px; color: var(--red); }
+.tm-none.hidden { display: none; }
+
+.tm-actions { display: flex; gap: 10px; margin-top: 16px; }
+.tm-reset, .tm-accept {
+  flex: 1; padding: 12px; border-radius: 6px; font-family: inherit;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.tm-reset { background: #fff; border: 1px solid var(--gray-border); color: var(--text); }
+.tm-reset:hover { background: var(--gray-bg); }
+.tm-accept { background: var(--brand-red); border: 1px solid var(--brand-red); color: #fff; }
+.tm-accept:hover { background: var(--brand-red-dark); border-color: var(--brand-red-dark); }
+.tm-accept:disabled { opacity: .5; cursor: not-allowed; }
+
+/* --- Meine Fahrten (/meine-fahrten): the account's booked trips --- */
+
+/* the account's name in every header is the way to its trips */
+.auth-name { color: #fff; font-weight: 700; text-decoration: none; }
+.auth-name:hover { text-decoration: underline; }
+/* "saved under Meine Fahrten": the receipt under the ordered-report modal's booking button */
+.trip-saved {
+  display: block; margin-top: 8px; text-align: center;
+  font-size: 12px; font-weight: 600; color: var(--green); text-decoration: none;
+}
+.trip-saved:hover { text-decoration: underline; }
+.trip-saved.hidden { display: none; }
+
+.trips-main { max-width: 720px; }
+.trips-intro { font-size: 13.5px; line-height: 1.45; color: var(--text-muted); margin: 0 2px 14px; }
+.trips-login { text-align: center; padding: 22px 18px 24px; }
+.trips-login h2 { font-size: 18px; margin-bottom: 8px; }
+.trips-login .auth-lead { margin-bottom: 16px; }
+.trips-login-btn { display: inline-block; text-decoration: none; }
+.trips-login.hidden, .trips-section.hidden, .trips-empty.hidden { display: none; }
+.trips-status { font-size: 14px; color: var(--text-muted); margin: 8px 2px; min-height: 1em; }
+.trips-status.error { color: var(--red); }
+.trips-section h2 {
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); margin: 18px 2px 8px;
+}
+.trips-empty { font-size: 14px; color: var(--text-muted); margin: 4px 2px; }
+
+/* the tally on top: three tiles under a heading that shares its row with the
+   week/month/year switch (.board-span, the damage report's) */
+.trips-stats {
+  background: #fff; border-radius: 8px; padding: 12px 18px 14px; margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.trips-stats.hidden { display: none; }
+.trips-stats-head { display: flex; align-items: baseline; gap: 10px; }
+.trips-stats-head h2 {
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); margin: 0;
+}
+.trips-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px; }
+.trips-tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.trips-tile-value { font-size: 22px; font-weight: 700; white-space: nowrap; }
+.trips-tile-value.lost { color: var(--red); }
+.trips-tile-value.none { color: var(--green); }
+.trips-tile-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.trips-tile-note { font-size: 11px; color: var(--text-muted); }
+.trips-stats-note { margin-top: 8px; font-size: 11.5px; color: var(--text-muted); }
+.trips-stats-note:empty { display: none; }
+.trip-delay { flex: none; }
+/* the in-place check under a past trip: the verdict row, then the search's leg rows */
+.trip-actions button.book-btn { font-family: inherit; }
+.trip-actions button.book-btn:disabled { opacity: .6; cursor: wait; }
+.trip-check { margin-top: 12px; }
+.trip-check.hidden { display: none; }
+.trip-check-verdict { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.trip-check-status { margin-top: 8px; font-size: 13px; color: var(--text-muted); }
+.trip-check-status.error { color: var(--red); }
+/* an upcoming trip: the statistics button leads the actions row, the booking link closes it */
+.trip-book { margin-left: auto; }
+.trip .cancel-note { margin-top: 8px; }
+.trips-search-link { color: var(--brand-red); font-weight: 600; text-decoration: none; }
+.trips-search-link:hover { text-decoration: underline; }
+
+.trip {
+  background: #fff; border-radius: 8px; padding: 14px 18px; margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.trip-head { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted); }
+.trip-day { font-weight: 600; color: var(--text); }
+.trip-kind { background: var(--gray-bg); border-radius: 10px; padding: 1px 8px; font-size: 12px; font-weight: 600; }
+.trip-head .spacer { flex: 1; }
+.trip-remove {
+  background: none; border: 0; cursor: pointer; border-radius: 4px;
+  color: var(--text-muted); font-size: 15px; line-height: 1; padding: 4px 7px;
+}
+.trip-remove:hover { background: var(--gray-bg); color: var(--red); }
+.trip-remove:disabled { opacity: .5; cursor: wait; }
+.trip-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.trip-times { font-size: 20px; font-weight: 700; white-space: nowrap; }
+.trip.past .trip-times { color: var(--text-muted); }
+.trip-route { font-size: 15px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.trip-meta { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.trip-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+@media (max-width: 700px) {
+  .trip { padding: 12px 14px; }
+  .trip-times { font-size: 18px; }
+  .trips-tiles { grid-template-columns: repeat(2, 1fr); gap: 10px 8px; }
+  .trips-tile-value { font-size: 19px; }
+  .trip-actions .book-btn { flex: 1; text-align: center; }
+  /* the name is a link now: clip it like the bold name before */
+  .header-home .auth-name, .header-stories .auth-name {
+    display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;
+  }
+  .header-home .auth-name { max-width: 4em; }
+  .header-stories .auth-name { max-width: 9em; }
 }

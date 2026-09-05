@@ -65,14 +65,19 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=88">
+<link rel="stylesheet" href="/style.css?v=110">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
 <header>
-  <div class="header-inner">
+  <div class="header-inner header-home">
     <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
     <span class="header-title"><span data-i18n="headerTitle">Verbindungssuche</span> <small data-i18n="headerSubtitle">mit Verspätungsstatistik</small><span class="tagline" data-i18n="tagline">Den Zug buchen, nicht die Verspätung</span></span>
+    <!-- the Delay Stories account, shared by every page; app.js fills in the name -->
+    <span class="header-auth">
+      <a id="auth-login" class="auth-link hidden" href="/login" data-i18n="navLogin">Anmelden</a>
+      <span id="auth-user" class="auth-user hidden"><a id="auth-name" class="auth-name" href="/meine-fahrten"></a><button id="auth-logout" class="auth-logout" type="button" data-i18n="navLogout">Abmelden</button></span>
+    </span>
     <a id="refund-nav" class="refund-nav" href="/entschaedigung" data-i18n="navRefund">Entschädigung beantragen</a>
     <div class="header-lang">
       <a href="/" hreflang="de" data-lang="de" class="lang-btn active">DE</a>
@@ -90,6 +95,17 @@ try {
     </div>
     <button id="install-accept" class="install-btn hidden" type="button" data-i18n="installBtn">Installieren</button>
     <button id="install-dismiss" class="install-dismiss" type="button" data-i18n-title="installDismiss" data-i18n-aria="installDismiss">✕</button>
+  </div>
+  <div id="stories-banner" class="stories-banner">
+    <a class="stories-banner-link" href="/geschichten">
+      <img id="stories-banner-logo" class="stories-banner-logo" src="/logo_delay_stories_wide_german_transparent.png" alt="Delay Geschichten" width="132" height="20">
+      <span class="stories-banner-text">
+        <strong data-i18n="storiesBannerTitle">Schlechte Fahrt gehabt? Erzähl sie hier.</strong>
+        <span class="stories-banner-lead" data-i18n="storiesBannerLead">Wir sammeln Probleme mit deutschen Zügen.</span>
+      </span>
+      <span class="stories-banner-go" aria-hidden="true">→</span>
+    </a>
+    <button id="stories-banner-dismiss" class="stories-banner-dismiss" type="button" data-i18n-title="storiesBannerDismiss" data-i18n-aria="storiesBannerDismiss">✕</button>
   </div>
   <section class="search-card">
     <div id="past-banner" class="past-banner">
@@ -139,6 +155,18 @@ try {
         <option value="30" data-i18n="days30">30 Tage</option>
       </select>
     </div>
+    <div class="dticket-toggles">
+      <label class="dticket-toggle" data-i18n-title="dticketTooltip">
+        <input id="dticket" type="checkbox">
+        <span class="dticket-switch" aria-hidden="true"></span>
+        <span data-i18n="dticket">Nur D-Ticket</span>
+      </label>
+      <label class="dticket-toggle" data-i18n-title="dticketAllTooltip">
+        <input id="dticket-all" type="checkbox">
+        <span class="dticket-switch" aria-hidden="true"></span>
+        <span data-i18n="dticketAll">D-Ticket + alle Züge</span>
+      </label>
+    </div>
     <div class="search-actions">
       <button id="advanced-toggle" class="advanced-toggle" type="button" aria-expanded="false" aria-controls="advanced-panel">
         <span class="advanced-chevron" aria-hidden="true">&#9656;</span>
@@ -147,41 +175,167 @@ try {
       <button id="search" class="search-btn" type="button" data-i18n="search">Suchen</button>
     </div>
     <div id="advanced-panel" class="advanced-panel hidden">
-    <div class="field field-age">
-      <select id="age" aria-label="Alter" data-i18n-aria="age">
-        <option value="adult" selected data-i18n="ageAdult">Person (27-64 Jahre)</option>
-        <option value="senior" data-i18n="ageSenior">Person (ab 65 Jahre)</option>
-        <option value="young" data-i18n="ageYoung">Person (15-26 Jahre)</option>
-        <option value="child" data-i18n="ageChild">Kind (6-14 Jahre)</option>
-        <option value="toddler" data-i18n="ageToddler">Kind (0-5 Jahre)</option>
-      </select>
+    <div id="traveller-fields" class="traveller-fields">
+      <button id="traveller-add" class="traveller-add" type="button" data-i18n="travellerAdd">+ Reisende hinzufügen</button>
     </div>
-      <div class="dticket-toggles">
-        <label class="dticket-toggle" data-i18n-title="dticketTooltip">
-          <input id="dticket" type="checkbox">
-          <span class="dticket-switch" aria-hidden="true"></span>
-          <span data-i18n="dticket">Nur D-Ticket</span>
-        </label>
-        <label class="dticket-toggle" data-i18n-title="dticketAllTooltip">
-          <input id="dticket-all" type="checkbox">
-          <span class="dticket-switch" aria-hidden="true"></span>
-          <span data-i18n="dticketAll">D-Ticket + alle Züge</span>
-        </label>
+    <template id="traveller-row-template">
+      <div class="traveller-row">
+        <div class="field field-count">
+          <select class="traveller-count" aria-label="Anzahl Reisende" data-i18n-aria="travellerCount"></select>
+        </div>
+        <div class="field field-age">
+          <select class="traveller-age" aria-label="Alter" data-i18n-aria="age">
+            <option value="adult" data-i18n="ageAdult">Person (27-64 Jahre)</option>
+            <option value="senior" data-i18n="ageSenior">Person (ab 65 Jahre)</option>
+            <option value="young" data-i18n="ageYoung">Person (15-26 Jahre)</option>
+            <option value="child" data-i18n="ageChild">Kind (6-14 Jahre)</option>
+            <option value="toddler" data-i18n="ageToddler">Kind (0-5 Jahre)</option>
+          </select>
+        </div>
+        <div class="field field-discount">
+          <select class="traveller-discount" aria-label="Ermäßigung" data-i18n-aria="discount">
+            <option value="none" data-i18n="discountNone">keine Ermäßigung</option>
+            <option value="bc25-2" data-i18n="discountBc25Second">BahnCard 25, 2. Klasse</option>
+            <option value="bc25-1" data-i18n="discountBc25First">BahnCard 25, 1. Klasse</option>
+            <option value="bc50-2" data-i18n="discountBc50Second">BahnCard 50, 2. Klasse</option>
+            <option value="bc50-1" data-i18n="discountBc50First">BahnCard 50, 1. Klasse</option>
+            <option value="bc100-2" data-i18n="discountBc100Second">BahnCard 100, 2. Klasse</option>
+            <option value="bc100-1" data-i18n="discountBc100First">BahnCard 100, 1. Klasse</option>
+          </select>
+        </div>
+        <button class="traveller-remove" type="button" title="Reisende entfernen" data-i18n-title="travellerRemoveTitle">✕<span class="traveller-remove-label" data-i18n="travellerRemoveTitle">Reisende entfernen</span></button>
       </div>
-    <div class="field field-transfer">
-      <label for="transfer" data-i18n="transferTime">Umstiegszeit</label>
-      <select id="transfer">
-        <option value="0" selected data-i18n="transferNormal">Normal</option>
-        <option value="10">10 min</option>
-        <option value="15">15 min</option>
-        <option value="20">20 min</option>
-        <option value="25">25 min</option>
-        <option value="30">30 min</option>
-        <option value="35">35 min</option>
-        <option value="40">40 min</option>
-        <option value="45">45 min</option>
-      </select>
-    </div>
+    </template>
+      <div class="advanced-row">
+        <div class="field field-transfer">
+          <label for="transfer" data-i18n="transferTime">Umstiegszeit</label>
+          <select id="transfer">
+            <option value="0" selected data-i18n="transferNormal">Normal</option>
+            <option value="10">10 min</option>
+            <option value="15">15 min</option>
+            <option value="20">20 min</option>
+            <option value="25">25 min</option>
+            <option value="30">30 min</option>
+            <option value="35">35 min</option>
+            <option value="40">40 min</option>
+            <option value="45">45 min</option>
+          </select>
+        </div>
+        <div class="field field-transport">
+          <label for="transport-btn" data-i18n="transportTitle">Verkehrsmittel</label>
+          <button id="transport-btn" class="transport-btn" type="button" data-i18n-title="transportTooltip">
+            <span id="transport-value" class="transport-value">Alle</span>
+            <svg class="transport-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"
+                 fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.75 L6 8 L9 4.75"/></svg>
+          </button>
+        </div>
+        <div id="stopover-fields" class="stopover-fields">
+          <div class="stopover-group" id="stopover-group-outbound">
+            <span class="stopover-group-label hidden" data-i18n="stepOutbound">Hinfahrt</span>
+            <div class="stopover-row hidden" id="viaOut1-row">
+              <div class="field autocomplete-wrap">
+                <label for="viaOut1" data-i18n="stopover1">Zwischenhalt 1</label>
+                <input id="viaOut1" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+                <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+                <div class="dropdown" id="viaOut1-dropdown"></div>
+              </div>
+              <div class="field field-stay">
+                <label for="viaOut1StayH" data-i18n="stayLabel">Aufenthalt</label>
+                <div class="stay-stepper" data-via="viaOut1">
+                  <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+                  <span class="stay-value">
+                    <input id="viaOut1StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                    <span class="stay-unit">h</span>
+                    <span class="stay-sep">:</span>
+                    <input id="viaOut1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                    <span class="stay-unit">min</span>
+                    <input id="viaOut1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+                  </span>
+                  <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+                </div>
+              </div>
+              <button class="stopover-remove" type="button" data-via="viaOut1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+            </div>
+            <div class="stopover-row hidden" id="viaOut2-row">
+              <div class="field autocomplete-wrap">
+                <label for="viaOut2" data-i18n="stopover2">Zwischenhalt 2</label>
+                <input id="viaOut2" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+                <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+                <div class="dropdown" id="viaOut2-dropdown"></div>
+              </div>
+              <div class="field field-stay">
+                <label for="viaOut2StayH" data-i18n="stayLabel">Aufenthalt</label>
+                <div class="stay-stepper" data-via="viaOut2">
+                  <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+                  <span class="stay-value">
+                    <input id="viaOut2StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                    <span class="stay-unit">h</span>
+                    <span class="stay-sep">:</span>
+                    <input id="viaOut2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                    <span class="stay-unit">min</span>
+                    <input id="viaOut2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+                  </span>
+                  <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+                </div>
+              </div>
+              <button class="stopover-remove" type="button" data-via="viaOut2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+            </div>
+            <button class="stopover-add" id="stopover-add-outbound" type="button" data-i18n="stopoverAdd">+ Zwischenhalt hinzufügen</button>
+          </div>
+          <div class="stopover-group hidden" id="stopover-group-return">
+            <span class="stopover-group-label hidden" data-i18n="stepReturn">Rückfahrt</span>
+            <div class="stopover-row hidden" id="viaRet1-row">
+              <div class="field autocomplete-wrap">
+                <label for="viaRet1" data-i18n="stopover1">Zwischenhalt 1</label>
+                <input id="viaRet1" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+                <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+                <div class="dropdown" id="viaRet1-dropdown"></div>
+              </div>
+              <div class="field field-stay">
+                <label for="viaRet1StayH" data-i18n="stayLabel">Aufenthalt</label>
+                <div class="stay-stepper" data-via="viaRet1">
+                  <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+                  <span class="stay-value">
+                    <input id="viaRet1StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                    <span class="stay-unit">h</span>
+                    <span class="stay-sep">:</span>
+                    <input id="viaRet1StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                    <span class="stay-unit">min</span>
+                    <input id="viaRet1StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+                  </span>
+                  <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+                </div>
+              </div>
+              <button class="stopover-remove" type="button" data-via="viaRet1" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+            </div>
+            <div class="stopover-row hidden" id="viaRet2-row">
+              <div class="field autocomplete-wrap">
+                <label for="viaRet2" data-i18n="stopover2">Zwischenhalt 2</label>
+                <input id="viaRet2" type="text" placeholder="z.B. Frankfurt(Main)Hbf" data-i18n-placeholder="stopoverPlaceholder" autocomplete="off">
+                <button class="input-clear" type="button" tabindex="-1" title="Eingabe löschen" data-i18n-title="clearInput" data-i18n-aria="clearInput">✕</button>
+                <div class="dropdown" id="viaRet2-dropdown"></div>
+              </div>
+              <div class="field field-stay">
+                <label for="viaRet2StayH" data-i18n="stayLabel">Aufenthalt</label>
+                <div class="stay-stepper" data-via="viaRet2">
+                  <button class="stay-step" type="button" data-step="-1" tabindex="-1" title="Aufenthalt verkürzen" data-i18n-title="stayLess" data-i18n-aria="stayLess" aria-label="Aufenthalt verkürzen">−</button>
+                  <span class="stay-value">
+                    <input id="viaRet2StayH" class="stay-part stay-h" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Stunden" data-i18n-aria="stayHours">
+                    <span class="stay-unit">h</span>
+                    <span class="stay-sep">:</span>
+                    <input id="viaRet2StayM" class="stay-part stay-m" type="text" inputmode="numeric" maxlength="2" value="00" autocomplete="off" aria-label="Minuten" data-i18n-aria="stayMins">
+                    <span class="stay-unit">min</span>
+                    <input id="viaRet2StayT" class="stay-time" type="time" value="00:00" aria-label="Aufenthalt" data-i18n-aria="stayLabel">
+                  </span>
+                  <button class="stay-step" type="button" data-step="1" tabindex="-1" title="Aufenthalt verlängern" data-i18n-title="stayMore" data-i18n-aria="stayMore" aria-label="Aufenthalt verlängern">+</button>
+                </div>
+              </div>
+              <button class="stopover-remove" type="button" data-via="viaRet2" title="Zwischenhalt entfernen" data-i18n-title="stopoverRemoveTitle">✕<span class="stopover-remove-label" data-i18n="stopoverRemoveTitle">Zwischenhalt entfernen</span></button>
+            </div>
+            <button class="stopover-add" id="stopover-add-return" type="button" data-i18n="stopoverAdd">+ Zwischenhalt hinzufügen</button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -205,6 +359,12 @@ try {
     <img id="chart-img" alt="">
   </section>
 
+  <a id="refund-cta" class="refund-cta" href="/entschaedigung">
+    <strong data-i18n="refundCtaTitle">Über 1 Stunde Verspätung gehabt?</strong>
+    <span data-i18n="refundCtaLead">Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.</span>
+    <span data-i18n="refundCtaSub">Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks</span>
+  </a>
+
   <a id="stories-cta" class="stories-cta" href="/geschichten">
     <img id="stories-cta-logo" src="/logo_delay_stories_square_german.png" alt="Delay Geschichten" width="96" height="96">
     <span class="stories-cta-text">
@@ -212,12 +372,6 @@ try {
       <span class="stories-cta-lead" data-i18n="storiesCtaLead">Gestrandet, verspätet, überlebt? Echte Geschichten von deutschen Bahnhöfen – von Reisenden wie dir.</span>
       <span class="stories-cta-go" data-i18n="storiesCtaGo">Lesen, abstimmen oder selbst erzählen →</span>
     </span>
-  </a>
-
-  <a id="refund-cta" class="refund-cta" href="/entschaedigung">
-    <strong data-i18n="refundCtaTitle">Über 1 Stunde Verspätung gehabt?</strong>
-    <span data-i18n="refundCtaLead">Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.</span>
-    <span data-i18n="refundCtaSub">Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks</span>
   </a>
 
   <section id="trip-steps" class="trip-steps hidden"></section>
@@ -271,6 +425,147 @@ try {
     <ol id="claim-modal-steps" class="claim-steps"></ol>
     <a id="claim-modal-go" class="claim-modal-go" target="_blank" rel="noopener"></a>
     <p class="claim-modal-alt"><span id="claim-modal-alt-pre"></span> <a id="claim-modal-alt" target="_blank" rel="noopener"></a></p>
+  </div>
+</dialog>
+<dialog id="transport-modal" class="tm-modal">
+  <div class="tm-inner">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
+      <symbol id="tmg-train" viewBox="0 0 24 24">
+        <rect x="6" y="3" width="12" height="14" rx="3.2"/>
+        <path d="M6.5 8.5 L17.5 8.5"/>
+        <circle cx="9.3" cy="13.3" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="14.7" cy="13.3" r="1" fill="currentColor" stroke="none"/>
+        <path d="M8.6 17 L7 20.5 M15.4 17 L17 20.5"/>
+      </symbol>
+      <symbol id="tmg-bus" viewBox="0 0 24 24">
+        <rect x="4.5" y="3.5" width="15" height="15" rx="3"/>
+        <path d="M4.5 13 L19.5 13"/>
+        <circle cx="8.5" cy="20.5" r="1.4" fill="currentColor" stroke="none"/>
+        <circle cx="15.5" cy="20.5" r="1.4" fill="currentColor" stroke="none"/>
+      </symbol>
+      <symbol id="tmg-boat" viewBox="0 0 24 24">
+        <path d="M4 13.5 L20 13.5 L17.2 18 L6.8 18 Z"/>
+        <path d="M8.5 13.5 L8.5 9.5 L15.5 9.5 L15.5 13.5"/>
+        <path d="M12 9.5 L12 6.5"/>
+        <path d="M3.5 21 q2.1 -1.6 4.2 0 t4.2 0 t4.2 0 t4.2 0"/>
+      </symbol>
+      <symbol id="tmg-tram" viewBox="0 0 24 24">
+        <rect x="6.5" y="5" width="11" height="13" rx="2.6"/>
+        <path d="M7 10.5 L17 10.5"/>
+        <path d="M9 2.5 L15 2.5 M12 2.5 L12 5"/>
+        <path d="M9 18 L8 21 M15 18 L16 21"/>
+      </symbol>
+      <symbol id="tmg-taxi" viewBox="0 0 24 24">
+        <path d="M3.5 16.5 L3.5 13.5 L6.3 12.7 L8.3 9.5 L15.7 9.5 L17.7 12.7 L20.5 13.5 L20.5 16.5 Z"/>
+        <circle cx="8" cy="18.5" r="1.7"/>
+        <circle cx="16" cy="18.5" r="1.7"/>
+        <rect x="10" y="3.5" width="4" height="2.6" rx="0.8"/>
+      </symbol>
+    </defs></svg>
+    <button id="transport-close" class="claim-modal-close" type="button" aria-label="Schließen" data-i18n-title="claimModalClose" data-i18n-aria="claimModalClose">✕</button>
+    <h2 class="tm-title" data-i18n="transportTitle">Verkehrsmittel</h2>
+    <div id="tm-section-wrap" class="tm-section hidden">
+      <label for="tm-section" data-i18n="transportSection">Streckenabschnitt</label>
+      <select id="tm-section">
+        <option value="entire" selected data-i18n="transportEntire">Gesamte Reise</option>
+        <optgroup id="tm-og-outbound" label="Hinfahrt"><option value="outbound">Hinfahrt</option></optgroup>
+        <optgroup id="tm-og-return" label="Rückfahrt"><option value="return">Rückfahrt</option></optgroup>
+      </select>
+    </div>
+    <div class="tm-quick" role="group">
+      <button type="button" class="tm-quick-btn" data-quick="all" aria-pressed="false"><span class="tm-check" aria-hidden="true">✓</span><span data-i18n="transportAll">Alle</span></button>
+      <button type="button" class="tm-quick-btn" data-quick="local" aria-pressed="false"><span class="tm-check" aria-hidden="true">✓</span><span data-i18n="transportLocal">Nur Nahverkehr</span></button>
+      <button type="button" class="tm-quick-btn" data-quick="long" aria-pressed="false"><span class="tm-check" aria-hidden="true">✓</span><span data-i18n="transportLong">Nur Fernverkehr</span></button>
+    </div>
+    <ul class="tm-list">
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-ice" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#tmg-train"/></svg></span>
+        <span class="tm-label" data-i18n="tmIce">Hochgeschwindigkeitszüge</span>
+        <input type="checkbox" data-product="ICE" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#tmg-train"/></svg></span>
+        <span class="tm-label" data-i18n="tmIc">Intercity- und Eurocityzüge</span>
+        <input type="checkbox" data-product="EC_IC" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-ir" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#tmg-train"/></svg></span>
+        <span class="tm-label" data-i18n="tmIr">Interregio- und Schnellzüge</span>
+        <input type="checkbox" data-product="IR" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-regional" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#tmg-train"/></svg></span>
+        <span class="tm-label" data-i18n="tmRegional">Nahverkehr und sonstige Züge</span>
+        <input type="checkbox" data-product="REGIONAL" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-sbahn" aria-hidden="true">S</span>
+        <span class="tm-label" data-i18n="tmSbahn">S-Bahn</span>
+        <input type="checkbox" data-product="SBAHN" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-bus" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#tmg-bus"/></svg></span>
+        <span class="tm-label" data-i18n="tmBus">Busse</span>
+        <input type="checkbox" data-product="BUS" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-boat" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#tmg-boat"/></svg></span>
+        <span class="tm-label" data-i18n="tmBoat">Schiffe</span>
+        <input type="checkbox" data-product="SCHIFF" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-ubahn" aria-hidden="true">U</span>
+        <span class="tm-label" data-i18n="tmUbahn">U-Bahn</span>
+        <input type="checkbox" data-product="UBAHN" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-tram" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#tmg-tram"/></svg></span>
+        <span class="tm-label" data-i18n="tmTram">Straßenbahn</span>
+        <input type="checkbox" data-product="TRAM" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+      <li><label class="tm-row">
+        <span class="tm-icon tm-i-taxi" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#tmg-taxi"/></svg></span>
+        <span class="tm-label" data-i18n="tmOnCall">Anrufpflichtige Fahrten</span>
+        <input type="checkbox" data-product="ANRUFPFLICHTIG" checked>
+        <span class="dticket-switch" aria-hidden="true"></span>
+      </label></li>
+    </ul>
+    <p id="tm-none" class="tm-none hidden" data-i18n="transportNone">Mindestens ein Verkehrsmittel auswählen.</p>
+    <div class="tm-actions">
+      <button id="tm-reset" class="tm-reset" type="button" data-i18n="transportReset">Zurücksetzen</button>
+      <button id="tm-accept" class="tm-accept" type="button" data-i18n="transportAccept">Übernehmen</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="report-modal" class="claim-modal report-modal">
+  <div class="claim-modal-inner">
+    <button id="report-modal-close" class="claim-modal-close" type="button" data-i18n-title="reportModalClose" data-i18n-aria="reportModalClose">✕</button>
+    <h2 class="claim-modal-title" data-i18n="reportModalTitle">Statistik vs. Realität – dein Verspätungs-Report</h2>
+    <p class="claim-modal-lead" data-i18n="reportModalLead">Nach deiner Fahrt vergleichen wir die heute angezeigte Verspätung aus der Vergangenheit mit dem, was tatsächlich passiert ist – der Report kommt etwa zwei Tage später per E-Mail.</p>
+    <div id="report-teaser" class="report-teaser"></div>
+    <!-- signed out: the order waits on the login page and completes on return -->
+    <div id="report-login" class="report-login hidden">
+      <p data-i18n="reportLoginLead">Der Report geht an die E-Mail-Adresse deines DelayBahn-Kontos.</p>
+      <button id="report-login-btn" class="report-submit" type="button" data-i18n="reportLoginBtn">Anmelden &amp; Report bestellen</button>
+    </div>
+    <!-- signed in: the press was the order; this is the receipt -->
+    <div id="report-done" class="report-done hidden">
+      <p id="report-done-msg" class="report-done-msg"></p>
+      <a id="report-book" class="book-btn book-btn-lg" target="_blank" rel="noopener" data-i18n="book">Auf bahn.de buchen</a>
+      <a id="report-trip-saved" class="trip-saved hidden" href="/meine-fahrten" data-i18n="tripSaved">✓ Unter „Meine Fahrten“ gespeichert</a>
+      <p class="report-note"><span data-i18n="reportStoredNote">Gespeichert: diese Verbindung und deine Konto-E-Mail. Abbestellen jederzeit hier oder per Link in der E-Mail.</span> <a href="/impressum.html#datenschutz-report" target="_blank" rel="noopener" data-i18n="reportPrivacyLink">Datenschutzhinweise</a></p>
+      <button id="report-cancel" class="report-cancel" type="button" data-i18n="reportCancelBtn">Report abbestellen</button>
+    </div>
+    <p id="report-status" class="report-status" aria-live="polite"></p>
   </div>
 </dialog>
 <dialog id="ios-install-sheet" class="ios-sheet">
@@ -423,7 +718,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=105"></script>
+<script src="/app.js?v=126"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {

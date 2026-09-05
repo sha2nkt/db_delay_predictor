@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meine Fahrten – DelayBahn</title>
+<!-- an account's own list: nothing here is for a crawler -->
+<meta name="robots" content="noindex, follow">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/style.css?v=110">
+<script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
+</head>
+<body>
+<header>
+  <div class="header-inner header-stories">
+    <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
+    <span class="header-title"><span data-i18n="headerTitle">Meine Fahrten</span><span class="tagline" data-i18n="tagline">Deine Buchungen auf einen Blick</span></span>
+    <span class="header-auth">
+      <a id="auth-login" class="auth-link hidden" href="/login" data-i18n="navLogin">Anmelden</a>
+      <span id="auth-user" class="auth-user hidden"><a id="auth-name" class="auth-name" href="/meine-fahrten"></a><button id="auth-logout" class="auth-logout" type="button" data-i18n="navLogout">Abmelden</button></span>
+    </span>
+    <div class="header-lang">
+      <a href="/meine-fahrten" hreflang="de" data-lang="de" class="lang-btn active">DE</a>
+      <a href="/en/my-trips" hreflang="en" data-lang="en" class="lang-btn">EN</a>
+    </div>
+  </div>
+</header>
+
+<main class="trips-main">
+  <!-- the tally of the past trips in a window; the script fills it and hides it while there is nothing to add up -->
+  <section id="trips-stats" class="trips-stats hidden">
+    <div class="trips-stats-head">
+      <h2 data-i18n="statsHeading">Deine Bilanz</h2>
+      <div class="board-spans" role="group" aria-label="Zeitraum">
+        <button type="button" class="board-span" data-span="week" data-i18n="spanWeek">Woche</button>
+        <button type="button" class="board-span" data-span="month" data-i18n="spanMonth">Monat</button>
+        <button type="button" class="board-span active" data-span="year" data-i18n="spanYear">Jahr</button>
+      </div>
+    </div>
+    <div class="trips-tiles">
+      <div class="trips-tile">
+        <span id="stat-delay" class="trips-tile-value">–</span>
+        <span class="trips-tile-label" data-i18n="statDelay">Verloren durch Verspätung</span>
+      </div>
+      <div class="trips-tile">
+        <span id="stat-cancel" class="trips-tile-value">–</span>
+        <span class="trips-tile-label" data-i18n="statCancel">Verloren durch Ausfälle</span>
+        <span id="stat-cancel-note" class="trips-tile-note"></span>
+      </div>
+      <div class="trips-tile">
+        <span id="stat-time" class="trips-tile-value">–</span>
+        <span class="trips-tile-label" data-i18n="statTime">Zeit im Zug</span>
+      </div>
+      <div class="trips-tile">
+        <span id="stat-trips" class="trips-tile-value">–</span>
+        <span class="trips-tile-label" data-i18n="statTrips">Fahrten</span>
+      </div>
+    </div>
+    <p id="stat-note" class="trips-stats-note"></p>
+  </section>
+  <p class="trips-intro" data-i18n="intro">Verbindungen, die du dir mit dem Lesezeichen gemerkt oder über „Auf bahn.de buchen“ geöffnet hast. Nicht gebucht? Einfach entfernen.</p>
+
+  <!-- signed out: the list needs the account, so the page only offers the login -->
+  <section id="trips-login" class="login-card trips-login hidden">
+    <h2 data-i18n="loginTitle">Anmelden, um deine Fahrten zu sehen</h2>
+    <p class="auth-lead" data-i18n="loginLead">Angemeldet merkt sich DelayBahn jede Verbindung, die du dir merkst oder auf bahn.de buchst – als Liste deiner nächsten und vergangenen Fahrten.</p>
+    <a id="trips-login-btn" class="report-submit trips-login-btn" href="/login" data-i18n="loginBtn">Anmelden</a>
+  </section>
+
+  <p id="trips-status" class="trips-status" aria-live="polite"></p>
+
+  <section id="trips-next-section" class="trips-section hidden">
+    <h2 data-i18n="nextHeading">Nächste Fahrten</h2>
+    <div id="trips-next" class="trips-list"></div>
+    <p id="trips-next-empty" class="trips-empty hidden"><span data-i18n="nextEmpty">Noch keine anstehende Fahrt.</span> <a id="trips-search-link" class="trips-search-link" href="/" data-i18n="nextEmptyLink">Verbindung suchen →</a></p>
+  </section>
+
+  <section id="trips-past-section" class="trips-section hidden">
+    <h2 data-i18n="pastHeading">Vergangene Fahrten</h2>
+    <div id="trips-past" class="trips-list"></div>
+    <p id="trips-past-empty" class="trips-empty hidden" data-i18n="pastEmpty">Noch keine vergangene Fahrt.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <a href="/" data-i18n="footerBack">← Zur Verbindungssuche</a> ·
+  <a href="/geschichten" data-i18n="footerStories">Delay Geschichten</a> ·
+  <a href="/impressum.html#datenschutz-fahrten" data-i18n="footerLegal">Impressum &amp; Datenschutz</a> ·
+  <a href="mailto:kontakt@delaybahn.com?subject=DelayBahn%20Meine%20Fahrten" data-i18n="footerContact">Kontakt</a>
+</footer>
+<script src="/trips.js?v=1"></script>
+</body>
+</html>

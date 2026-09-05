@@ -75,7 +75,7 @@ async def _journeys_with_one_tight_transfer(monkeypatch, *, healthy: bool, stale
 
     calls: list[dict] = []
 
-    async def fake_if_missed(legs, tt, window):
+    async def fake_if_missed(legs, tt, window, dticket="off", products=None):
         calls.append(tt)
         return {"legs": [], "arrival": "2026-08-13T15:00:00"}
 
@@ -91,7 +91,7 @@ async def _journeys_with_one_tight_transfer(monkeypatch, *, healthy: bool, stale
     out = await main.journeys(_fake_request(), DummyResponse(),
                               "A=1@O=a@L=1@", "A=1@O=b@L=2@", "2026-08-13T10:00:00",
                               window=7, paging_ref=None, mode="future", dticket="0",
-                              age="adult", transfer=0)
+                              age="adult", travellers_raw=None, transfer=0)
     return [tt for j in out["journeys"] for tt in j["tightTransfers"]], calls
 
 
@@ -120,14 +120,15 @@ async def test_if_missed_replans_skipped_when_answer_is_stale(monkeypatch):
     assert calls == []  # a degraded answer must not trigger fresh upstream work
 
 
-async def _if_missed_over(monkeypatch, replies: list):
+async def _if_missed_over(monkeypatch, replies: list, dtickets: list[str] | None = None):
     """Runs _if_missed_connection against a scripted _replan; returns (results, calls).
-    Each reply is either a payload dict or None (upstream refused)."""
+    Each reply is either a payload dict or None (upstream refused); dtickets sets
+    the search's toggle per run (default "off")."""
     main._if_missed_cache.clear()
     calls: list[tuple] = []
 
-    async def fake_replan(origin, dest, ready, source):
-        calls.append((origin["id"], dest["id"], ready, source))
+    async def fake_replan(origin, dest, ready, source, dticket="off", products=None):
+        calls.append((origin["id"], dest["id"], ready, source, dticket, products))
         return replies[min(len(calls) - 1, len(replies) - 1)]
 
     monkeypatch.setattr(main, "_replan", fake_replan)
@@ -140,7 +141,7 @@ async def _if_missed_over(monkeypatch, replies: list):
          "destination": {"id": "8000261", "name": "München Hbf"}},
     ]
     tt = {"legIndex": 0, "depLegIndex": 1, "medianDelay": 9}
-    out = [await main._if_missed_connection(legs, tt, 7) for _ in replies]
+    out = [await main._if_missed_connection(legs, tt, 7, dticket) for dticket in dtickets or ["off"] * len(replies)]
     return out, calls
 
 
@@ -171,6 +172,17 @@ async def test_if_missed_caches_the_absence_of_a_connection(monkeypatch):
     assert len(calls) == 1  # "no connection" is an answer, not a reason to re-ask
 
 
+async def test_if_missed_keeps_the_dticket_restriction(monkeypatch):
+    payload = _replacement("2026-08-13T12:40:00", "2026-08-13T16:00:00")
+    out, calls = await _if_missed_over(monkeypatch, [payload] * 3,
+                                       dtickets=["only", "off", "all"])
+    # "only" must reach the replan (a D-Ticket passenger cannot board an ICE) and
+    # must not share a cache entry with the unrestricted answer; "all" accepts paid
+    # trains, so it folds onto "off" and reuses its entry
+    assert [c[4] for c in calls] == ["only", "off"]
+    assert out[0] is not out[1] and out[1] is out[2]
+
+
 async def test_if_missed_never_caches_an_upstream_refusal(monkeypatch):
     payload = _replacement("2026-08-13T12:40:00", "2026-08-13T16:00:00")
     out, calls = await _if_missed_over(monkeypatch, [None, payload])
@@ -183,7 +195,7 @@ async def test_if_missed_cache_evicts_oldest_past_the_cap(monkeypatch):
     main._if_missed_cache.clear()
     calls: list[str] = []
 
-    async def fake_replan(origin, dest, ready, source):
+    async def fake_replan(origin, dest, ready, source, dticket="off", products=None):
         calls.append(dest["id"])
         return _replacement("2026-08-13T12:40:00", "2026-08-13T16:00:00")
 

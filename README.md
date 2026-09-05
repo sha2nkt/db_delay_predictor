@@ -45,7 +45,7 @@ cd delay_bahn
 If you already cloned without `--recurse-submodules`:
 
 ```bash
-git submodule update --init
+git submodule update --init --recursive
 ```
 
 ### 2. Install dependencies
@@ -66,7 +66,7 @@ uv run python pipeline/build_delay_db.py --days 3   # quick smoke run
 uv run python pipeline/merge_delays.py              # write data/delays.parquet + the data/delays.duckdb the app opens
 ```
 
-This downloads raw parquet files from the HuggingFace dataset into `data/raw_data/` (~4.5 GB for the full window; `data/de/delays.parquet` adds another ~600 MB), parses each day once into the `data/de/parsed/` cache, and merges them into `data/de/delays.parquet`. Re-run it daily to stay fresh — already-downloaded days are skipped and only days with new raw files are re-parsed. No HuggingFace account or token is needed; the dataset is public. `merge_delays.py` then combines the per-country tables (DE alone is fine) into `data/delays.parquet` and materializes the sorted `data/delays.duckdb` the app serves from.
+This downloads raw parquet files from the HuggingFace dataset into `data/raw_data/` (~5.5 GB for the full window; `data/de/delays.parquet` adds another ~720 MB), parses each day once into the `data/de/parsed/` cache, and merges them into `data/de/delays.parquet`. Re-run it daily to stay fresh — already-downloaded days are skipped and only days with new raw files are re-parsed. No HuggingFace account or token is needed; the dataset is public. `merge_delays.py` then combines the per-country tables (DE alone is fine) into `data/delays.parquet` and materializes the sorted `data/delays.duckdb` the app serves from.
 
 ### 4. Run the app
 
@@ -83,6 +83,8 @@ Open http://localhost:8000, search a connection (e.g. Berlin Hbf → München Hb
 | `pipeline/build_delay_db.py` | HF download + XML parse → `data/de/delays.parquet` |
 | `pipeline/build_ch_days.py`, `pipeline/fr_poller.py`, `pipeline/consolidate_fr.py` | Swiss and French per-day producers |
 | `pipeline/at_poller.py`, `pipeline/consolidate_at.py`, `pipeline/build_at_stations.py` | Austrian per-day producer (ÖBB HAFAS board poller + curated station list) |
+| `pipeline/nl_poller.py`, `pipeline/consolidate_nl.py`, `pipeline/build_nl_stations.py`, `pipeline/seed_nl_archive.py` | Dutch per-day producer (OVapi GTFS-RT poller + station crosswalk + archive seeder) |
+| `pipeline/it_poller.py`, `pipeline/consolidate_it.py`, `pipeline/build_it_stations.py` | Italian per-day producer (ViaggiaTreno run tracking + station crosswalk) |
 | `pipeline/merge_delays.py` | unions the per-country tables → `data/delays.parquet` + `data/delays.duckdb` |
 | `app/bahn_api.py` | async client for the bahn.de web API |
 | `app/delays.py` | DuckDB delay-stats lookup (the core matching query) |
@@ -99,6 +101,7 @@ Open http://localhost:8000, search a connection (e.g. Berlin Hbf → München Hb
 - Switzerland: [opentransportdata.swiss](https://opentransportdata.swiss/) istdaten actual-data files.
 - France: SNCF GTFS-RT via [transport.data.gouv.fr](https://transport.data.gouv.fr/datasets/horaires-sncf) (ODbL).
 - Netherlands: NS train GTFS-RT via [OVapi](https://gtfs.ovapi.nl/) (community-run), and the [Rijden de Treinen](https://www.rijdendetreinen.nl/en/open-data) train archive and stations datasets (CC BY 4.0 / CC0) for historical seeding and the station crosswalk.
+- Italy: [ViaggiaTreno](http://www.viaggiatreno.it/) (Trenitalia's public train-status interface, the same access its web client uses), with the RFI-code → DB-EVA station crosswalk seeded from the [trainline-eu/stations](https://github.com/trainline-eu/stations) dataset.
 
 ## Repo context for tooling and future work
 

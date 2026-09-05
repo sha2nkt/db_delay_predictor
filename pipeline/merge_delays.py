@@ -1,7 +1,8 @@
 import argparse
 import os
 import sys
-from datetime import datetime, timedelta
+import urllib.request
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -34,6 +35,79 @@ SOURCES = [
 ]
 
 
+def _ntfy_topic() -> str | None:
+    """NTFY_TOPIC from the environment, else from .env the way app/config.py reads it -
+    the pipeline unit passes no environment, and only this key is wanted here (the
+    rest of .env configures the app's own network paths, not this script's)."""
+    if os.environ.get("NTFY_TOPIC"):
+        return os.environ["NTFY_TOPIC"]
+    env_file = PROJECT_ROOT / ".env"
+    if not env_file.exists():
+        return None
+    for line in env_file.read_text().splitlines():
+        key, _, value = line.partition("=")
+        if key.strip() == "NTFY_TOPIC":
+            return value.strip().strip("'\"") or None
+    return None
+
+
+def notify(title: str, body: str) -> None:
+    """Push one ntfy message; a warning on stderr instead of an exception if it cannot,
+    so the merge never fails because the notifier is unreachable."""
+    topic = _ntfy_topic()
+    if not topic:
+        print("NTFY_TOPIC is unset: coverage warning not pushed", file=sys.stderr)
+        return
+    base = os.environ.get("NTFY_URL", "https://ntfy.sh").rstrip("/")
+    req = urllib.request.Request(
+        f"{base}/{topic}", data=body.encode(), method="POST",
+        headers={"Title": title, "Priority": "high", "Tags": "warning"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status >= 300:
+                print(f"ntfy push failed: HTTP {resp.status}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 - any failure is a warning, never a merge failure
+        print(f"ntfy push failed: {exc}", file=sys.stderr)
+
+
+def check_coverage(out: Path, merged: list[tuple[str, str]], expected: date) -> list[str]:
+    """Warn when any merged source stops short of `expected` (yesterday: every source
+    delivers the previous day by the time the timer runs).
+
+    The per-country steps run as ExecStart=- so one failing country cannot block the
+    others, which also means a country can fail every night without the unit ever
+    failing: on 2026-08-19..25 the DE build died daily while the merge kept shipping a
+    stale DE parquet under a maxDay the other countries advanced, and every German
+    leg lost its stats for a week with /health green. This is the alert that was
+    missing. Returns the lagging lines (for the journal and for tests)."""
+    sys.stdout.flush()  # the summary table precedes the verdict in the journal (stderr is unbuffered)
+    newest = {
+        prefix: day for prefix, day in duckdb.sql(f"""
+            SELECT substr(eva, 1, 3), max(CAST(arrival_planned_time AS DATE))
+            FROM '{out}' GROUP BY 1
+        """).fetchall()
+    }
+    lagging = []
+    for name, prefix in merged:
+        day = newest.get(prefix.rstrip("%"))
+        if day is None:
+            lagging.append(f"{name}: no rows in the merged window")
+        elif day < expected:
+            lagging.append(f"{name}: newest day {day}, {(expected - day).days} day(s) behind {expected}")
+    if not lagging:
+        print(f"coverage: every source reaches {expected}")
+        return lagging
+    served = max((d for d in newest.values() if d is not None), default=None)
+    body = "\n".join(lagging) + (
+        f"\nThe app serves stats up to {served}; a lagging source has no rows in the newest"
+        " days of the window. Check: journalctl -u delaybahn-pipeline -n 300 | grep -A12 Traceback"
+    )
+    print("coverage warning:\n" + body, file=sys.stderr)
+    notify(f"delaybahn pipeline: {', '.join(line.split(':')[0] for line in lagging)} coverage lagging", body)
+    return lagging
+
+
 def main():
     parser = argparse.ArgumentParser(description="Merge per-country delay parquets into the single table the app reads")
     parser.add_argument("--data-dir", type=Path, default=PROJECT_ROOT / "data", help="base data directory")
@@ -52,6 +126,7 @@ def main():
     # /api/coverage advertises days that are empty for DE journeys
     window_start = (now - timedelta(days=args.window_days)).strftime("%Y-%m-%d 00:00:00")
     selects = []
+    merged = []  # (name, prefix) of every source that made it into the union
     for name, pattern, prefix in SOURCES:
         if not list(args.data_dir.glob(pattern)):
             print(f"{name}: no data at {args.data_dir / pattern}, skipping", file=sys.stderr)
@@ -61,6 +136,7 @@ def main():
             col if col in present else f"CAST(NULL AS {typ}) AS {col}"
             for col, typ in OPTIONAL_COLUMNS.items()
         )
+        merged.append((name, prefix))
         selects.append(
             f"SELECT {COLUMNS}, {optional} FROM read_parquet('{args.data_dir / pattern}')"
             f" WHERE eva LIKE '{prefix}'"
@@ -89,6 +165,9 @@ def main():
                count(*) AS rows_, count(DISTINCT CAST(arrival_planned_time AS DATE)) AS days_
         FROM '{out}' GROUP BY country ORDER BY country
     """).show()
+    # yesterday in Berlin: the window ends at last midnight, and every source has the
+    # previous day by the time the timer runs
+    check_coverage(out, merged, (now - timedelta(days=1)).date())
 
 
 if __name__ == "__main__":

@@ -1,18 +1,24 @@
-"""Transactional email over SMTP - currently only the magic login links for
-the stories board. Configured via SMTP_HOST/PORT/USER/PASS and SMTP_FROM; the
-defaults fit Brevo, so a deploy only needs the credentials. Without
+"""Transactional email over SMTP: the six-digit login codes for the stories
+board, and the post-journey delay reports pipeline/send_reports.py sends.
+Configured via SMTP_HOST/PORT/USER/PASS and SMTP_FROM;
+the defaults fit Brevo, so a deploy only needs the credentials. Without
 SMTP_USER/SMTP_PASS sending is a logged no-op, same contract as the ntfy
 pushes, so dev setups run without an email account.
 
-Every mail goes out as multipart/alternative: an HTML part with a real button
-and a large, selectable code, and a plain-text part carrying the same link and
-code for clients that refuse HTML. Both are rendered from one set of strings
-below, so the two halves cannot drift apart.
+Firebase has no email one-time code of its own - its codes are SMS only and
+its email flows are all clickable links - so the code is minted here, mailed
+from here, and redeemed against Firestore (see auth.issue_email_code). Only
+the sending lives on this server; the pending login itself never does.
+
+Every mail goes out as multipart/alternative: an HTML part with a large,
+selectable code, and a plain-text part carrying the same digits for clients
+that refuse HTML. Both are rendered from one set of strings below, so the two
+halves cannot drift apart.
 
 Blocking (smtplib) - run it off the event loop.
 
 Two alarms live here as well, because a silent mail outage is the one failure
-nobody notices - the site stays up, users just never get their link. A send
+nobody notices - the site stays up, users just never get their code. A send
 failure pages ntfy (once per MAIL_ALERT_COOLDOWN, with the relay's reply), and
 with BREVO_API_KEY set a background poll watches the account's remaining daily
 credits and pages before the free plan's cap is hit.
@@ -25,67 +31,69 @@ import smtplib
 import time
 from datetime import datetime, timezone
 from email.message import EmailMessage
+from email.utils import formataddr
 from html import escape
 
 import httpx
 
-from app.auth import MAGIC_LINK_HOURS, UNVERIFIED_DAYS
+from app.auth import CODE_TTL_MINUTES
 from app.config import env_int
 
 log = logging.getLogger(__name__)
 
-# "welcome" confirms a fresh registration; "login" is every later sign-in.
+# "welcome" is the first code an address ever gets, "login" every later one.
 # One mechanism, two wordings - a welcome mail talking about "your login
 # request" would read like phishing.
+#
+# The code leads the subject line, because that is the part a phone shows in
+# the notification and the inbox list: most people never have to open the mail
+# at all, and iOS/Android offer a code found there for autofill.
 _SUBJECT = {
-    ("welcome", "de"): "DelayBahn: Konto bestätigen und anmelden",
-    ("welcome", "en"): "DelayBahn: confirm your account and log in",
-    ("login", "de"): "DelayBahn: Dein Anmelde-Link",
-    ("login", "en"): "DelayBahn: your login link",
+    ("welcome", "de"): "{code} – dein DelayBahn-Bestätigungscode",
+    ("welcome", "en"): "{code} – your DelayBahn confirmation code",
+    ("login", "de"): "{code} – dein DelayBahn-Anmeldecode",
+    ("login", "en"): "{code} – your DelayBahn login code",
 }
 
 _INTRO = {
-    ("welcome", "de"): "willkommen bei Delay Geschichten! Bestätige dein Konto "
-                       "und melde dich an:",
-    ("welcome", "en"): "welcome to Delay Stories! Confirm your account and log in:",
-    ("login", "de"): "hier ist dein Anmelde-Link für Delay Geschichten:",
-    ("login", "en"): "here is your login link for Delay Stories:",
+    ("welcome", "de"): "willkommen bei Delay Geschichten! Gib diesen Code auf der "
+                       "Anmeldeseite ein, um dein Konto zu erstellen:",
+    ("welcome", "en"): "welcome to Delay Stories! Enter this code on the sign-in "
+                       "page to create your account:",
+    ("login", "de"): "gib diesen Code auf der Anmeldeseite ein, um dich anzumelden:",
+    ("login", "en"): "enter this code on the sign-in page to log in:",
 }
 
 _IGNORE = {
     ("welcome", "de"): "Du hast kein Konto erstellt? Dann ignoriere diese E-Mail "
-                       "einfach – das unbestätigte Konto samt Adresse wird nach "
-                       "{days} Tagen automatisch gelöscht.",
-    ("welcome", "en"): "Didn't create an account? Just ignore this email – the "
-                       "unconfirmed account and the address are deleted "
-                       "automatically after {days} days.",
+                       "einfach – ohne den Code passiert nichts.",
+    ("welcome", "en"): "Didn't create an account? Just ignore this email – nothing "
+                       "happens without the code.",
     ("login", "de"): "Falls du das nicht angefordert hast, kannst du diese E-Mail "
-                     "ignorieren – ohne Link und Code passiert nichts.",
+                     "ignorieren – ohne den Code passiert nichts.",
     ("login", "en"): "If you didn't request this, you can ignore this email – "
-                     "nothing happens without the link or the code.",
+                     "nothing happens without the code.",
 }
 
 _T = {
     "de": {
-        "greeting": "Hallo {name},",
-        "button": "Jetzt anmelden",
-        "code_lead": "Oder gib diesen Code auf der Anmeldeseite ein:",
-        "fallback": "Falls der Button nicht funktioniert, kopiere diesen Link in "
-                    "deinen Browser:",
-        "validity_one": "Link und Code sind eine Stunde gültig und funktionieren "
-                        "nur einmal.",
-        "validity_many": "Link und Code sind {hours} Stunden gültig und "
-                         "funktionieren nur einmal.",
+        "greeting": "Hallo,",
+        "code_lead": "Dein Code:",
+        "tap_to_copy": "Zum Kopieren antippen",
+        "validity_one": "Der Code ist eine Minute gültig und funktioniert nur einmal.",
+        "validity_many": "Der Code ist {minutes} Minuten gültig und funktioniert "
+                         "nur einmal.",
+        "never_asked": "Wir fragen dich niemals per E-Mail oder Telefon nach diesem "
+                       "Code. Gib ihn nur auf delaybahn.com ein.",
     },
     "en": {
-        "greeting": "Hi {name},",
-        "button": "Log in now",
-        "code_lead": "Or enter this code on the login page:",
-        "fallback": "If the button doesn't work, copy this link into your browser:",
-        "validity_one": "The link and the code are valid for one hour and work "
-                        "only once.",
-        "validity_many": "The link and the code are valid for {hours} hours and "
-                         "work only once.",
+        "greeting": "Hi,",
+        "code_lead": "Your code:",
+        "tap_to_copy": "Tap to copy",
+        "validity_one": "The code is valid for one minute and works only once.",
+        "validity_many": "The code is valid for {minutes} minutes and works only once.",
+        "never_asked": "We will never ask you for this code by email or phone. Only "
+                       "ever enter it on delaybahn.com.",
     },
 }
 
@@ -95,21 +103,20 @@ _FONT = "-apple-system,'Segoe UI',Helvetica,Arial,sans-serif"
 _MONO = "'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace"
 
 
-def _parts(name: str, link: str, code: str, lang: str, kind: str) -> dict:
+def _parts(code: str, lang: str, kind: str) -> dict:
     t = _T[lang]
     validity = (
-        t["validity_one"] if MAGIC_LINK_HOURS == 1
-        else t["validity_many"].format(hours=MAGIC_LINK_HOURS)
+        t["validity_one"] if CODE_TTL_MINUTES == 1
+        else t["validity_many"].format(minutes=CODE_TTL_MINUTES)
     )
     return {
-        "greeting": t["greeting"].format(name=name),
+        "greeting": t["greeting"],
         "intro": _INTRO[(kind, lang)],
-        "button": t["button"],
         "code_lead": t["code_lead"],
-        "fallback": t["fallback"],
+        "tap_to_copy": t["tap_to_copy"],
         "validity": validity,
-        "ignore": _IGNORE[(kind, lang)].format(days=UNVERIFIED_DAYS),
-        "link": link,
+        "never_asked": t["never_asked"],
+        "ignore": _IGNORE[(kind, lang)],
         "code": code,
     }
 
@@ -118,10 +125,9 @@ def _text_body(p: dict) -> str:
     return (
         f"{p['greeting']}\n\n"
         f"{p['intro']}\n\n"
-        f"{p['link']}\n\n"
-        f"{p['code_lead']}\n\n"
         f"    {p['code']}\n\n"
         f"{p['validity']}\n\n"
+        f"{p['never_asked']}\n\n"
         f"{p['ignore']}\n"
     )
 
@@ -139,9 +145,14 @@ def _html_body(p: dict, lang: str) -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
-<title>{e['greeting']}</title>
+<title>{e['code_lead']}</title>
 </head>
 <body style="margin:0;padding:0;background:{_BG};">
+<!-- preheader: the line the inbox shows next to the subject. Repeating the
+     code there means the list view alone is often enough. The zero-height
+     span after it stops the client padding the preview with body text. -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{e['code']} · {e['validity']}</div>
+<div style="display:none;max-height:0;overflow:hidden;">&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;&#8199;&#65279;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
        style="background:{_BG};padding:24px 12px;">
 <tr><td align="center">
@@ -150,25 +161,22 @@ def _html_body(p: dict, lang: str) -> str:
               padding:32px 28px;font-family:{_FONT};color:{_TEXT};">
 <tr><td style="font-size:16px;line-height:1.5;padding-bottom:14px;">{e['greeting']}</td></tr>
 <tr><td style="font-size:16px;line-height:1.5;padding-bottom:26px;">{e['intro']}</td></tr>
-<tr><td align="center" style="padding-bottom:28px;">
-  <a href="{e['link']}"
-     style="display:inline-block;background:{_RED};color:#ffffff;font-size:16px;
-            font-weight:600;text-decoration:none;padding:14px 34px;border-radius:8px;">
-    {e['button']}</a>
-</td></tr>
 <tr><td style="font-size:15px;line-height:1.5;color:{_MUTED};padding-bottom:10px;">{e['code_lead']}</td></tr>
-<tr><td align="center" style="padding-bottom:26px;">
-  <div style="font-family:{_MONO};font-size:30px;font-weight:700;letter-spacing:8px;
-              text-indent:8px;color:{_TEXT};background:{_BG};border:1px solid {_BORDER};
-              border-radius:8px;padding:16px 12px;">{e['code']}</div>
+<tr><td align="center" style="padding-bottom:8px;">
+  <!-- Selectable text, never an image: the whole point is copying it. The
+       letter-spacing is visual only, so a copy still yields bare digits, and
+       user-select:all makes one click (or one long-press on a phone) take
+       the whole code rather than a digit at a time. -->
+  <div style="font-family:{_MONO};font-size:38px;font-weight:700;letter-spacing:10px;
+              text-indent:10px;color:{_TEXT};background:{_BG};border:1px solid {_BORDER};
+              border-radius:8px;padding:20px 12px;-webkit-user-select:all;user-select:all;">{e['code']}</div>
 </td></tr>
+<tr><td align="center" style="font-size:12px;line-height:1.5;color:{_MUTED};padding-bottom:22px;">{e['tap_to_copy']}</td></tr>
 <tr><td style="font-size:13px;line-height:1.5;color:{_MUTED};padding-bottom:18px;">{e['validity']}</td></tr>
+<tr><td style="font-size:13px;line-height:1.5;color:{_TEXT};background:{_BG};
+               border-radius:6px;padding:12px 14px;">{e['never_asked']}</td></tr>
 <tr><td style="font-size:13px;line-height:1.5;color:{_MUTED};border-top:1px solid {_BORDER};
-               padding-top:18px;">{e['ignore']}</td></tr>
-<tr><td style="font-size:12px;line-height:1.5;color:{_MUTED};padding-top:14px;">
-  {e['fallback']}<br>
-  <span style="word-break:break-all;">{e['link']}</span>
-</td></tr>
+               padding-top:18px;margin-top:18px;">{e['ignore']}</td></tr>
 </table>
 </td></tr>
 </table>
@@ -185,6 +193,7 @@ MAIL_ALERT_COOLDOWN = env_int("MAIL_ALERT_COOLDOWN", 3600)
 _failures = 0
 _failures_at_alert = 0
 _last_fail_alert: float | None = None
+_last_error: str | None = None  # the relay's last reply, for /health and the report job
 
 
 def _alert(text: str, priority: str = "default") -> None:
@@ -206,51 +215,74 @@ def _alert(text: str, priority: str = "default") -> None:
         log.warning("ntfy alert failed: %s", exc)
 
 
-def _note_failure(email: str, exc: Exception) -> None:
-    global _failures, _failures_at_alert, _last_fail_alert
+def _note_failure(what: str, exc: Exception) -> None:
+    global _failures, _failures_at_alert, _last_fail_alert, _last_error
     _failures += 1
-    log.warning("magic-link email to %s failed: %s", email, exc)
+    _last_error = str(exc)[:300]
+    # the recipient is personal data and stays out of both the log and the push
+    log.warning("%s email failed: %s", what, exc)
     now = time.monotonic()
     if _last_fail_alert is not None and now - _last_fail_alert < MAIL_ALERT_COOLDOWN:
         return
     since = _failures - _failures_at_alert
     _last_fail_alert, _failures_at_alert = now, _failures
-    # the relay's reply names the cause (out of credits, bad login, ...);
-    # the recipient is personal data and stays out of the push
+    # the relay's reply names the cause (out of credits, bad login, ...)
     _alert(
-        f"Magic-link email failed ({since} failure(s) since the last alert). "
-        f"Users see 'try again later' until this clears. Relay said: {exc}",
+        f"{what} email failed ({since} failure(s) since the last alert). "
+        f"Relay said: {exc}",
         priority="high",
     )
 
 
-def send_magic_link(
-    email: str, name: str, token: str, code: str, lang: str, kind: str
-) -> bool:
+def send_login_code(email: str, code: str, lang: str, kind: str) -> bool:
     """kind is "welcome" or "login". Never raises; False when the relay
     refused or was unreachable, so the caller can tell the user instead of
-    letting them wait for a mail that will not come. An unconfigured dev setup
-    counts as sent - there is nothing to retry."""
+    letting them wait for a mail that will not come."""
+    if lang not in ("de", "en"):
+        lang = "de"
+    parts = _parts(code, lang, kind)
+    msg = EmailMessage()
+    msg["To"] = email
+    msg["Subject"] = _SUBJECT[(kind, lang)].format(code=code)
+    msg.set_content(_text_body(parts))
+    msg.add_alternative(_html_body(parts, lang), subtype="html")
+    return _deliver(msg, "login-code")
+
+
+def send_report(
+    email: str, name: str, subject: str, text: str, html: str,
+    headers: dict[str, str] | None = None,
+) -> bool:
+    """A post-journey report (rendered by app/report_email.py), addressed by
+    name when the account has one; `headers` are extra fields such as
+    List-Unsubscribe. Same contract as send_login_code."""
+    msg = EmailMessage()
+    msg["To"] = formataddr((name, email)) if name else email
+    msg["Subject"] = subject
+    for field, value in (headers or {}).items():
+        msg[field] = value
+    msg.set_content(text)
+    msg.add_alternative(html, subtype="html")
+    return _deliver(msg, "report")
+
+
+def configured() -> bool:
+    return bool(os.environ.get("SMTP_USER") and os.environ.get("SMTP_PASS"))
+
+
+def _deliver(msg: EmailMessage, what: str) -> bool:
+    """Hand one message to the relay. Never raises; False when the relay
+    refused or was unreachable (counted for /health, paged once per cooldown).
+    An unconfigured dev setup counts as sent - there is nothing to retry."""
     global _warned_unconfigured
     user = os.environ.get("SMTP_USER")
     password = os.environ.get("SMTP_PASS")
     if not user or not password:
         if not _warned_unconfigured:
             _warned_unconfigured = True
-            log.warning("SMTP_USER/SMTP_PASS unset: magic-link emails are not sent")
+            log.warning("SMTP_USER/SMTP_PASS unset: emails are not sent")
         return True
-
-    base = os.environ.get("PUBLIC_BASE_URL", "https://delaybahn.com").rstrip("/")
-    if lang not in ("de", "en"):
-        lang = "de"
-    parts = _parts(name, f"{base}/verify?token={token}", code, lang, kind)
-
-    msg = EmailMessage()
     msg["From"] = os.environ.get("SMTP_FROM", "DelayBahn <kontakt@delaybahn.com>")
-    msg["To"] = email
-    msg["Subject"] = _SUBJECT[(kind, lang)]
-    msg.set_content(_text_body(parts))
-    msg.add_alternative(_html_body(parts, lang), subtype="html")
     try:
         host = os.environ.get("SMTP_HOST", "smtp-relay.brevo.com")
         with smtplib.SMTP(host, env_int("SMTP_PORT", 587), timeout=15) as smtp:
@@ -258,7 +290,7 @@ def send_magic_link(
             smtp.login(user, password)
             smtp.send_message(msg)
     except (OSError, smtplib.SMTPException) as exc:
-        _note_failure(email, exc)
+        _note_failure(what, exc)
         return False
     return True
 
@@ -277,7 +309,8 @@ _credits_level = 0
 
 def status() -> dict:
     """In-memory only - /health calls this."""
-    return {"credits": _credits, "creditsAt": _credits_at, "sendFailures": _failures}
+    return {"credits": _credits, "creditsAt": _credits_at, "sendFailures": _failures,
+            "lastError": _last_error}
 
 
 async def _fetch_credits(client: httpx.AsyncClient, key: str) -> int | None:
@@ -305,7 +338,7 @@ def _note_credits(credits: int | None) -> str | None:
     if not crossed:
         return None
     if level == 2:
-        return ("Brevo email credits EXHAUSTED: 0 left today. Magic-link mails "
+        return ("Brevo email credits EXHAUSTED: 0 left today. Login-code mails "
                 "are failing until the daily reset (or an upgrade).")
     return (f"Brevo email credits low: {credits} left today "
             f"(warning below {BREVO_WARN_CREDITS}).")

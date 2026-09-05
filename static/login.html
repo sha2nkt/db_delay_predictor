@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, follow">
 <link rel="canonical" href="https://delaybahn.com/login">
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="/style.css?v=88">
+<link rel="stylesheet" href="/style.css?v=110">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -21,43 +21,137 @@
     </div>
   </div>
 </header>
-
 <main class="login-main">
-  <section id="code-card" class="login-card hidden">
-    <h2 data-i18n="codeHeading">Code eingeben</h2>
-    <p class="auth-sent" id="code-sent"></p>
-    <form id="code-form" class="auth-form">
+  <!-- 1. every way in, on one card; the address is the last resort -->
+  <section id="choose-card" class="login-card auth-modal">
+    <h2 data-i18n="chooseHeading">Anmelden oder registrieren</h2>
+    <p class="auth-lead" id="choose-lead" data-i18n="chooseLead">Mit einem Konto kannst du Geschichten schreiben, kommentieren und abstimmen.</p>
+    <div class="sso-list" id="sso-list">
+      <button type="button" class="sso-btn" id="sso-google" data-provider="google">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        <span data-i18n="withGoogle">Weiter mit Google</span>
+      </button>
+      <button type="button" class="sso-btn" id="sso-apple" data-provider="apple">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.7c-.02-2.35 1.92-3.48 2-3.54-1.09-1.6-2.79-1.82-3.39-1.84-1.44-.15-2.82.85-3.55.85-.73 0-1.86-.83-3.06-.81-1.57.02-3.03.92-3.84 2.33-1.64 2.84-.42 7.05 1.18 9.36.78 1.13 1.71 2.4 2.93 2.35 1.18-.05 1.62-.76 3.05-.76 1.42 0 1.82.76 3.07.74 1.27-.02 2.07-1.15 2.84-2.29.9-1.31 1.26-2.58 1.28-2.65-.03-.01-2.46-.94-2.51-3.74zM14.04 5.8c.65-.79 1.09-1.88.97-2.97-.94.04-2.07.62-2.74 1.41-.6.7-1.13 1.81-.99 2.88 1.05.08 2.11-.53 2.76-1.32z"/></svg>
+        <span data-i18n="withApple">Weiter mit Apple</span>
+      </button>
+      <button type="button" class="sso-btn" id="sso-phone" data-provider="phone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+        <span data-i18n="withPhone">Weiter mit Telefonnummer</span>
+      </button>
+    </div>
+    <div class="auth-or" id="auth-or"><span data-i18n="or">ODER</span></div>
+    <form id="email-form" class="auth-form">
       <div class="field">
-        <label for="code-input" data-i18n="codeLabel">6-stelliger Code aus der E-Mail</label>
-        <input id="code-input" class="code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" spellcheck="false">
+        <label for="email-input" class="visually-hidden" data-i18n="email">E-Mail-Adresse</label>
+        <input id="email-input" type="email" maxlength="254" required autocomplete="email" spellcheck="false" data-i18n-placeholder="email" placeholder="E-Mail-Adresse">
       </div>
-      <button type="submit" class="search-btn" data-i18n="codeBtn">Anmelden</button>
-      <p id="code-status" class="auth-status" role="status"></p>
+      <button type="submit" class="search-btn auth-primary" data-i18n="continue">Weiter</button>
+    </form>
+    <p id="choose-status" class="auth-status" role="status"></p>
+  </section>
+
+  <!-- 2. the emailed six-digit code: the default way in for an address -->
+  <section id="email-code-card" class="login-card auth-modal hidden">
+    <h2 data-i18n="inboxHeading">Sieh in dein Postfach</h2>
+    <p class="auth-lead" id="email-code-sent"></p>
+    <form id="email-code-form" class="auth-form">
+      <div class="field">
+        <label for="email-code-input" class="visually-hidden" data-i18n="codeLabel">Code</label>
+        <input id="email-code-input" class="code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" spellcheck="false" data-i18n-placeholder="codeLabel" placeholder="Code">
+      </div>
+      <button type="submit" class="search-btn auth-primary" data-i18n="continue">Weiter</button>
+      <p id="email-code-status" class="auth-status" role="status"></p>
     </form>
     <!-- label and disabled state are the countdown; login.js owns both -->
     <button type="button" id="resend-btn" class="link-btn auth-resend" disabled></button>
+    <div class="auth-or"><span data-i18n="or">ODER</span></div>
+    <button type="button" id="to-password" class="sso-btn" data-i18n="withPassword">Weiter mit Passwort</button>
+    <p class="auth-switch"><button type="button" class="link-btn to-choose" data-i18n="otherEmail">Andere E-Mail-Adresse</button></p>
   </section>
 
-  <section id="login-card" class="login-card">
-    <h2 data-i18n="loginHeading">Anmelden</h2>
-    <form id="login-form" class="auth-form">
+  <!-- 3. the password alternative, for an address that already has one.
+       Creating an account happens through the code above, so there is no
+       sign-up here - which is also what keeps every new account's address
+       proven from the start. -->
+  <section id="password-card" class="login-card auth-modal hidden">
+    <h2 data-i18n="passwordHeading">Passwort eingeben</h2>
+    <form id="password-form" class="auth-form">
       <div class="field">
-        <label for="login-email" data-i18n="email">E-Mail-Adresse</label>
-        <input id="login-email" type="email" maxlength="254" required autocomplete="email" spellcheck="false">
+        <label for="password-username" data-i18n="email">E-Mail-Adresse</label>
+        <!-- readonly rather than hidden: password managers pair a password
+             with the username field of the same form, and showing which
+             address is being signed into is the point of this row -->
+        <div class="input-row">
+          <input id="password-username" type="email" autocomplete="username" readonly>
+          <button type="button" id="change-email" class="link-btn" data-i18n="editEmail">Ändern</button>
+        </div>
       </div>
-      <p class="auth-note" data-i18n="loginNote">Kein Passwort nötig: Du bekommst einen Anmelde-Link per E-Mail.</p>
-      <button type="submit" class="search-btn" data-i18n="loginBtn">Link senden</button>
-      <p id="login-status" class="auth-status" role="status"></p>
+      <div class="field">
+        <label for="password-input" class="visually-hidden" data-i18n="password">Passwort</label>
+        <div class="input-row">
+          <input id="password-input" type="password" minlength="8" maxlength="200" required autocomplete="current-password" data-i18n-placeholder="password" placeholder="Passwort">
+          <button type="button" id="pw-toggle" class="pw-toggle" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/>
+              <circle cx="12" cy="12" r="3"/>
+              <line id="pw-slash" x1="4" y1="20" x2="20" y2="4" class="hidden"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <button type="button" id="forgot-btn" class="link-btn pw-forgot" data-i18n="forgotBtn">Passwort vergessen?</button>
+      <button type="submit" class="search-btn auth-primary" data-i18n="continue">Weiter</button>
+      <p id="password-status" class="auth-status" role="status"></p>
     </form>
-    <p class="auth-switch">
-      <span data-i18n="newHere">Neu bei DelayBahn?</span>
-      <button type="button" id="to-create" class="link-btn" data-i18n="createHeading">Konto erstellen</button>
-    </p>
+    <div class="auth-or"><span data-i18n="or">ODER</span></div>
+    <button type="button" id="back-to-code" class="sso-btn" data-i18n="withCode">Mit Einmalcode anmelden</button>
   </section>
 
-  <section id="register-card" class="login-card hidden">
-    <h2 data-i18n="createHeading">Konto erstellen</h2>
-    <form id="register-form" class="auth-form">
+  <!-- 4. a password account still has to prove its address -->
+  <section id="verify-card" class="login-card hidden">
+    <h2 data-i18n="verifyHeading">E-Mail-Adresse bestätigen</h2>
+    <p class="auth-sent" id="verify-sent"></p>
+    <form id="verify-form" class="auth-form">
+      <button type="submit" class="search-btn auth-primary" data-i18n="verifiedBtn">Ich habe bestätigt</button>
+      <p id="verify-status" class="auth-status" role="status"></p>
+    </form>
+    <button type="button" id="verify-resend-btn" class="link-btn auth-resend" disabled></button>
+    <p class="auth-switch"><button type="button" class="link-btn other-account" data-i18n="otherAccount">Mit einem anderen Konto anmelden</button></p>
+  </section>
+
+  <!-- 5. phone number, then the SMS code -->
+  <section id="phone-card" class="login-card hidden">
+    <h2 data-i18n="phoneHeading">Telefonnummer</h2>
+    <form id="phone-form" class="auth-form">
+      <div class="field">
+        <label for="phone-input" data-i18n="phoneLabel">Mobilnummer mit Ländervorwahl</label>
+        <input id="phone-input" type="tel" placeholder="+49 151 23456789" required autocomplete="tel" inputmode="tel">
+      </div>
+      <button type="submit" class="search-btn auth-primary" id="phone-send" data-i18n="sendCode">Code senden</button>
+      <p id="phone-status" class="auth-status" role="status"></p>
+    </form>
+    <p class="auth-note" data-i18n="phoneNote">Du bekommst einen 6-stelligen Code per SMS. Google prüft die Anfrage im Hintergrund per reCAPTCHA.</p>
+    <p class="auth-switch"><button type="button" class="link-btn to-choose" data-i18n="back">Zurück</button></p>
+  </section>
+  <section id="sms-card" class="login-card hidden">
+    <h2 data-i18n="smsHeading">Code aus der SMS</h2>
+    <p class="auth-sent" id="sms-sent"></p>
+    <form id="sms-form" class="auth-form">
+      <div class="field">
+        <label for="sms-input" data-i18n="smsLabel">6-stelliger Code aus der SMS</label>
+        <input id="sms-input" class="code-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" spellcheck="false">
+      </div>
+      <button type="submit" class="search-btn auth-primary" data-i18n="codeBtn">Anmelden</button>
+      <p id="sms-status" class="auth-status" role="status"></p>
+    </form>
+    <p class="auth-switch"><button type="button" class="link-btn to-choose" data-i18n="back">Zurück</button></p>
+  </section>
+
+  <!-- 6. the one thing Firebase cannot hand out: a unique public name -->
+  <section id="name-card" class="login-card hidden">
+    <h2 data-i18n="nameHeading">Benutzername wählen</h2>
+    <form id="name-form" class="auth-form">
       <div class="field">
         <label for="register-name" data-i18n="username">Benutzername</label>
         <div class="name-row">
@@ -68,25 +162,17 @@
         </div>
         <p id="name-hint" class="name-hint" role="status"></p>
       </div>
-      <div class="field">
-        <label for="register-email" data-i18n="email">E-Mail-Adresse</label>
-        <input id="register-email" type="email" maxlength="254" required autocomplete="email" spellcheck="false">
-      </div>
-      <p class="auth-note" data-i18n="createNote">Deine E-Mail-Adresse dient nur der Anmeldung per Link – sie bleibt privat, und Werbung gibt es keine. Öffentlich erscheint nur dein Benutzername. Nach der Bestätigung lässt er sich nicht mehr ändern. Gibt es zu dieser Adresse schon ein Konto, melden wir dich einfach damit an. Unbestätigte Konten werden nach 7 Tagen gelöscht.</p>
-      <button type="submit" class="search-btn" data-i18n="createBtn">Konto erstellen</button>
-      <p id="register-status" class="auth-status" role="status"></p>
+      <p class="auth-note" data-i18n="nameNote">Öffentlich erscheint nur dieser Name – an jeder Geschichte, jedem Kommentar. Nach der Wahl lässt er sich nicht mehr ändern.</p>
+      <button type="submit" class="search-btn auth-primary" data-i18n="nameBtn">Los geht’s</button>
+      <p id="name-status" class="auth-status" role="status"></p>
     </form>
-    <p class="auth-switch">
-      <span data-i18n="haveAccount">Schon ein Konto?</span>
-      <button type="button" id="to-login" class="link-btn" data-i18n="loginHeading">Anmelden</button>
-    </p>
+    <p class="auth-switch"><button type="button" class="link-btn other-account" data-i18n="otherAccount">Mit einem anderen Konto anmelden</button></p>
   </section>
 </main>
-
 <footer class="site-footer">
   <a id="footer-stories" href="/geschichten" data-i18n="footerStories">← Zu den Delay Geschichten</a> ·
   <a href="/impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a>
 </footer>
-<script src="/login.js?v=9"></script>
+<script type="module" src="/login.js?v=14"></script>
 </body>
 </html>

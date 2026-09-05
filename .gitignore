@@ -7,3 +7,12 @@ __pycache__/
 .claude/worktrees/
 .tmp
 .vscode
+
+# Firebase service-account keys. These belong OUTSIDE the repo (this one is
+# public); the guard is only for a stray copy. Deliberately narrow: it must not
+# swallow firebase.json, which is ordinary CLI config and belongs in git.
+*-firebase-adminsdk-*.json
+firebase-sa.json
+
+# scratch harnesses used to screenshot a single card; never shipped
+static/_*.html

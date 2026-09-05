@@ -13,11 +13,15 @@ const pagePath = (mode, lang = URL_LANG) => PATHS[lang][mode];
 const state = {
   from: null,   // {id, name}
   to: null,
+  viaOut1: null,  // stopover stations, {id, name} like from/to; Out = outbound
+  viaOut2: null,  // leg of the trip, Ret = return leg (round trips only)
+  viaRet1: null,
+  viaRet2: null,
   journeys: [],
   sort: "departure",
   windowUsed: 7,  // stats window that produced the current results
   dticketUsed: "off",  // D-Ticket mode of the current results: "off" | "all" | "only"
-  ageUsed: "adult",  // age bracket the current results' prices were fetched for
+  travellersUsed: [{ count: 1, age: "adult", discount: "none" }],  // party the current results' prices were fetched for
   departure: null,  // departure ISO of the current search (reused for paging)
   earlierRef: null,  // paging tokens from the API
   laterRef: null,
@@ -28,6 +32,7 @@ const state = {
   coverage: null,  // {minDay, maxDay, liveMaxDay} for the date picker, fetched on demand
   liveDay: false,  // searched day is past the local data and answered live from IRIS
   claimJourney: null,  // journey shown in the claim-steps modal
+  reportJourney: null,  // journey shown in the report-subscription modal
   returnTrip: false,  // a return journey was added in the search card
   leg: "outbound",  // step of the round trip: "outbound" | "return" | "summary"
   returnDeparture: null,  // departure ISO of the return search
@@ -36,6 +41,7 @@ const state = {
   returnJourney: null,  // journey picked on the return step
   returnResults: null,  // cached return list, so going back doesn't refetch
   returnPrefetch: null,  // {departure, data} proven answerable by the search's preflight
+  products: null,  // {outbound, return}: Sets of enabled produktgattungen, initialized below
 };
 
 // DB digital compensation flow lives in the customer account's past-trips list
@@ -72,6 +78,17 @@ const I18N = {
     returnRemoveTitle: "Rückfahrt entfernen",
     returnIncomplete: "Bitte Datum und Uhrzeit der Rückfahrt angeben.",
     returnBeforeOutbound: "Die Rückfahrt kann nicht vor der Hinfahrt liegen.",
+    stopoverAdd: "+ Zwischenhalt hinzufügen",
+    stopover1: "Zwischenhalt 1",
+    stopover2: "Zwischenhalt 2",
+    stopoverPlaceholder: "z.B. Frankfurt(Main)Hbf",
+    stayLabel: "Aufenthalt",
+    stayHours: "Stunden",
+    stayMins: "Minuten",
+    stayLess: "Aufenthalt verkürzen",
+    stayMore: "Aufenthalt verlängern",
+    stopoverRemoveTitle: "Zwischenhalt entfernen",
+    stopoverUnresolved: "Bitte wähle den Zwischenhalt aus der Vorschlagsliste.",
     stepOutbound: "Hinfahrt",
     stepReturn: "Rückfahrt",
     stepSummary: "Übersicht",
@@ -154,6 +171,41 @@ const I18N = {
     ageYoung: "Person (15-26 Jahre)",
     ageChild: "Kind (6-14 Jahre)",
     ageToddler: "Kind (0-5 Jahre)",
+    travellerCount: "Anzahl Reisende",
+    travellerAdd: "+ Reisende hinzufügen",
+    travellerRemoveTitle: "Reisende entfernen",
+    travellerMaxTooltip: (max) => `Für mehr als ${max} Reisende bietet bahn.de eine eigene Gruppenbuchung an`,
+    discount: "Ermäßigung",
+    discountNone: "keine Ermäßigung",
+    discountBc25Second: "BahnCard 25, 2. Klasse",
+    discountBc25First: "BahnCard 25, 1. Klasse",
+    discountBc50Second: "BahnCard 50, 2. Klasse",
+    discountBc50First: "BahnCard 50, 1. Klasse",
+    discountBc100Second: "BahnCard 100, 2. Klasse",
+    discountBc100First: "BahnCard 100, 1. Klasse",
+    discountNoneToddlerTooltip: "Kinder von 0-5 Jahren reisen kostenfrei – eine Ermäßigung gibt es dafür nicht",
+    transportTitle: "Verkehrsmittel",
+    transportTooltip: "Nach Verkehrsmitteln filtern",
+    transportSection: "Streckenabschnitt",
+    transportEntire: "Gesamte Reise",
+    transportOutbound: "Hinfahrt",
+    transportReturn: "Rückfahrt",
+    transportAll: "Alle",
+    transportLocal: "Nur Nahverkehr",
+    transportLong: "Nur Fernverkehr",
+    tmIce: "Hochgeschwindigkeitszüge",
+    tmIc: "Intercity- und Eurocityzüge",
+    tmIr: "Interregio- und Schnellzüge",
+    tmRegional: "Nahverkehr und sonstige Züge",
+    tmSbahn: "S-Bahn",
+    tmBus: "Busse",
+    tmBoat: "Schiffe",
+    tmUbahn: "U-Bahn",
+    tmTram: "Straßenbahn",
+    tmOnCall: "Anrufpflichtige Fahrten",
+    transportNone: "Mindestens ein Verkehrsmittel auswählen.",
+    transportReset: "Zurücksetzen",
+    transportAccept: "Übernehmen",
     book: "Auf bahn.de buchen",
     cancelNote: (win, n) => `⚠ In den letzten ${win} Tagen ${n}× (teil-)ausgefallen`,
     tightTitle: "Knapper Umstieg:",
@@ -192,12 +244,21 @@ const I18N = {
     followX: "DelayBahn auf X",
     footerDisclaimer: "DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.",
     navRefund: "Entschädigung beantragen",
+    navLogin: "Anmelden",
+    navLogout: "Abmelden",
+    navTrips: "Meine Fahrten",
+    tripSaved: "✓ Unter „Meine Fahrten“ gespeichert",
+    tripBtnTitle: "Zu Meine Fahrten hinzufügen",
+    tripBtnOnTitle: "In Meine Fahrten gespeichert – zum Entfernen klicken",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
     refundCtaLead: "Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.",
     refundCtaSub: "Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks",
     storiesCtaNew: "Neu",
     storiesCtaLead: "Gestrandet, verspätet, überlebt? Echte Geschichten von deutschen Bahnhöfen – von Reisenden wie dir.",
     storiesCtaGo: "Lesen, abstimmen oder selbst erzählen →",
+    storiesBannerTitle: "Schlechte Fahrt gehabt? Erzähl sie hier.",
+    storiesBannerLead: "Wir sammeln Probleme mit deutschen Zügen.",
+    storiesBannerDismiss: "Hinweis ausblenden",
     pastTitle: "Verspätungs-Check für vergangene Reisen",
     pastLead: "Gib deine Reise ein, um zu sehen, wie sie tatsächlich verlief – mit Verspätungen, verpassten Anschlüssen und deinem Entschädigungsanspruch.",
     pastCoverageLabel: "Daten verfügbar:",
@@ -250,6 +311,29 @@ const I18N = {
     iosSheetDone: "Verstanden",
     iosSheetClose: "Schließen",
     installDismiss: "Schließen",
+    reportBellTitle: "Verspätungs-Report nach der Fahrt erhalten",
+    reportBellOnTitle: "Report bestellt – zum Abbestellen klicken",
+    reportModalTitle: "Statistik vs. Realität – dein Verspätungs-Report",
+    reportModalLead: "Nach deiner Fahrt vergleichen wir die heute angezeigte Verspätung aus der Vergangenheit mit dem, was tatsächlich passiert ist – der Report kommt etwa zwei Tage später per E-Mail.",
+    reportTeaserSeen: "Heute angezeigte Verspätung",
+    reportTeaserUpTo: (station) => `bis ${station}`,
+    reportTeaserActual: "Tatsächliche Verspätung",
+    reportTeaserAfter: "wird nach deiner Fahrt ermittelt",
+    reportLoginLead: "Der Report geht an die E-Mail-Adresse deines DelayBahn-Kontos.",
+    reportLoginBtn: "Anmelden & Report bestellen",
+    reportBusy: "Einen Moment …",
+    reportDoneMsg: (email) => `Bestellt! Der Report geht an ${email}.`,
+    reportStoredNote: "Gespeichert: diese Verbindung und deine Konto-E-Mail. Abbestellen jederzeit hier oder per Link in der E-Mail.",
+    reportPrivacyLink: "Datenschutzhinweise",
+    reportCancelBtn: "Report abbestellen",
+    reportCancelledMsg: "Abbestellt – für diese Fahrt kommt kein Report.",
+    reportErrInvalid: "Für diese Fahrt ist kein Report möglich.",
+    reportErrTooMany: (max) =>
+      `Mehr als ${max} Reports gleichzeitig gehen nicht. Bestell einen laufenden ab `
+      + `– dazu die Glocke der Fahrt noch einmal drücken – und versuch es hier erneut.`,
+    reportErrThrottle: "Zu viele Anfragen – bitte versuch es später noch einmal.",
+    reportErrGeneric: "Das hat gerade nicht geklappt – bitte versuch es später noch einmal.",
+    reportModalClose: "Schließen",
   },
   en: {
     pageTitle: "DelayBahn – DB Connection Search with Delay Statistics",
@@ -271,6 +355,17 @@ const I18N = {
     returnRemoveTitle: "Remove return journey",
     returnIncomplete: "Please enter a date and time for the return journey.",
     returnBeforeOutbound: "The return journey can't start before the outbound one.",
+    stopoverAdd: "+ Add stopover",
+    stopover1: "Stopover 1",
+    stopover2: "Stopover 2",
+    stopoverPlaceholder: "e.g. Frankfurt(Main)Hbf",
+    stayLabel: "Stay",
+    stayHours: "Hours",
+    stayMins: "Minutes",
+    stayLess: "Shorten stay",
+    stayMore: "Extend stay",
+    stopoverRemoveTitle: "Remove stopover",
+    stopoverUnresolved: "Please pick the stopover from the suggestion list.",
     stepOutbound: "Outbound",
     stepReturn: "Return",
     stepSummary: "Summary",
@@ -353,6 +448,41 @@ const I18N = {
     ageYoung: "Person (aged 15-26)",
     ageChild: "Child (aged 6-14)",
     ageToddler: "Child (aged 0-5)",
+    travellerCount: "Number of travellers",
+    travellerAdd: "+ Add travellers",
+    travellerRemoveTitle: "Remove travellers",
+    travellerMaxTooltip: (max) => `For parties of more than ${max}, bahn.de has a group booking of its own`,
+    discount: "Discount",
+    discountNone: "no discount",
+    discountBc25Second: "BahnCard 25, 2nd class",
+    discountBc25First: "BahnCard 25, 1st class",
+    discountBc50Second: "BahnCard 50, 2nd class",
+    discountBc50First: "BahnCard 50, 1st class",
+    discountBc100Second: "BahnCard 100, 2nd class",
+    discountBc100First: "BahnCard 100, 1st class",
+    discountNoneToddlerTooltip: "Children aged 0-5 travel free of charge, so there is no discount to pick",
+    transportTitle: "Mode of transport",
+    transportTooltip: "Filter by mode of transport",
+    transportSection: "Route section",
+    transportEntire: "Entire journey",
+    transportOutbound: "Outbound journey",
+    transportReturn: "Return journey",
+    transportAll: "All",
+    transportLocal: "Local transport only",
+    transportLong: "Long-distance travel only",
+    tmIce: "High-speed trains",
+    tmIc: "Intercity and Eurocity trains",
+    tmIr: "Interregio and fast trains",
+    tmRegional: "Regional and other trains",
+    tmSbahn: "S-Bahn",
+    tmBus: "Buses",
+    tmBoat: "Boats",
+    tmUbahn: "Underground",
+    tmTram: "Tram",
+    tmOnCall: "Services requiring tel. registration",
+    transportNone: "Select at least one mode of transport.",
+    transportReset: "Reset",
+    transportAccept: "Accept",
     book: "Book on bahn.de",
     cancelNote: (win, n) => `⚠ (Partially) cancelled ${n}× in the last ${win} days`,
     tightTitle: "Tight transfer:",
@@ -390,12 +520,21 @@ const I18N = {
     followX: "DelayBahn on X",
     footerDisclaimer: "DelayBahn is an independent project and is not affiliated with Deutsche Bahn AG. “DB” and “Deutsche Bahn” are trademarks of Deutsche Bahn AG.",
     navRefund: "Apply for delay compensation",
+    navLogin: "Login",
+    navLogout: "Logout",
+    navTrips: "My trips",
+    tripSaved: "✓ Saved under “My trips”",
+    tripBtnTitle: "Add to My trips",
+    tripBtnOnTitle: "Saved in My trips – click to remove",
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
     refundCtaSub: "Get your money back from DB in 3 easy clicks",
     storiesCtaNew: "New",
     storiesCtaLead: "Stranded, delayed, survived? Real stories from German train stations – from travellers like you.",
     storiesCtaGo: "Read, vote or tell your own →",
+    storiesBannerTitle: "Had a less than ideal train experience? Report it here.",
+    storiesBannerLead: "We are crowdsourcing issues with German trains.",
+    storiesBannerDismiss: "Hide this banner",
     pastTitle: "Delay check for past journeys",
     pastLead: "Enter your journey to see the trip you actually took – including delays, missed connections and what you can claim back.",
     pastCoverageLabel: "Data available:",
@@ -448,6 +587,29 @@ const I18N = {
     iosSheetDone: "Got it",
     iosSheetClose: "Close",
     installDismiss: "Dismiss",
+    reportBellTitle: "Get a delay report after your journey",
+    reportBellOnTitle: "Report ordered – click to cancel",
+    reportModalTitle: "History vs. reality – your delay report",
+    reportModalLead: "After your journey we compare the past delay shown today with what actually happened – the report arrives by email about two days later.",
+    reportTeaserSeen: "Delay shown today",
+    reportTeaserUpTo: (station) => `up to ${station}`,
+    reportTeaserActual: "Actual delay",
+    reportTeaserAfter: "revealed after your journey",
+    reportLoginLead: "The report goes to your DelayBahn account's email address.",
+    reportLoginBtn: "Log in & order the report",
+    reportBusy: "One moment …",
+    reportDoneMsg: (email) => `Ordered! The report goes to ${email}.`,
+    reportStoredNote: "Stored: this connection and your account email. Cancel any time here or via the link in the email.",
+    reportPrivacyLink: "Privacy notice",
+    reportCancelBtn: "Cancel report",
+    reportCancelledMsg: "Cancelled – no report will be sent for this journey.",
+    reportErrInvalid: "No report is possible for this journey.",
+    reportErrTooMany: (max) =>
+      `You can follow at most ${max} journeys at a time. Cancel one of them `
+      + `– press that journey's bell again – and then order this one.`,
+    reportErrThrottle: "Too many requests – please try again later.",
+    reportErrGeneric: "That didn't work right now – please try again later.",
+    reportModalClose: "Close",
   },
 };
 
@@ -629,6 +791,15 @@ function setStatus(key, ...params) {
   statusEl.textContent = key ? t(key, ...params) : "";
 }
 
+// markup cloned from a <template> after load misses the page-wide pass in
+// applyLang, so translating takes a root: the document there, the fresh row here
+function translateSubtree(root) {
+  root.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  root.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  root.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+  root.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.ariaLabel = t(el.dataset.i18nAria); });
+}
+
 function applyLang(lang) {
   state.lang = lang;
   localStorage.setItem("lang", lang);
@@ -638,16 +809,16 @@ function applyLang(lang) {
   document.querySelectorAll(".lang-btn").forEach((b) =>
     b.classList.toggle("active", b.dataset.lang === lang));
 
-  document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
-  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
-  document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); });
-  document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.ariaLabel = t(el.dataset.i18nAria); });
+  translateSubtree(document);
 
   updateChartImg();
+  updateTransportBtn();  // its value is set from JS, so data-i18n cannot retranslate it
+  syncTravellerUI();     // same for the tooltips the traveller rows set themselves
 
   if (state.status) statusEl.textContent = t(state.status.key, ...state.status.params);
   if (state.staleSeconds) setStaleNotice(state.staleSeconds);
   if (claimModal.open) populateClaimModal();
+  if (reportModal.open) populateReportModal();
   renderTripSteps();
   render();
 }
@@ -703,7 +874,7 @@ function paintStar(button, on) {
 
 // --- autocomplete ---
 
-function setupAutocomplete(inputId, dropdownId, key) {
+function setupAutocomplete(inputId, dropdownId, key, onChange) {
   const input = document.getElementById(inputId);
   const dropdown = document.getElementById(dropdownId);
   let timer = null;
@@ -736,6 +907,7 @@ function setupAutocomplete(inputId, dropdownId, key) {
       state[key] = item;
       input.value = item.name;
       dropdown.classList.remove("open");
+      onChange?.();
     });
     return row;
   }
@@ -758,6 +930,7 @@ function setupAutocomplete(inputId, dropdownId, key) {
 
   input.addEventListener("input", () => {
     state[key] = null;
+    onChange?.();
     clearTimeout(timer);
     const q = input.value.trim();
     if (q.length < 2) {
@@ -784,11 +957,16 @@ function setupAutocomplete(inputId, dropdownId, key) {
     input.value = "";
     input.focus();
     showSaved();
+    onChange?.();
   });
 }
 
 setupAutocomplete("from", "from-dropdown", "from");
 setupAutocomplete("to", "to-dropdown", "to");
+setupAutocomplete("viaOut1", "viaOut1-dropdown", "viaOut1", syncStopoverUI);
+setupAutocomplete("viaOut2", "viaOut2-dropdown", "viaOut2", syncStopoverUI);
+setupAutocomplete("viaRet1", "viaRet1-dropdown", "viaRet1", syncStopoverUI);
+setupAutocomplete("viaRet2", "viaRet2-dropdown", "viaRet2", syncStopoverUI);
 
 document.getElementById("swap").addEventListener("click", () => {
   const fromInput = document.getElementById("from");
@@ -888,9 +1066,10 @@ for (const [id, other] of [["dticket", "dticket-all"], ["dticket-all", "dticket"
   });
 }
 
-// D-Ticket modes, the age bracket and the minimum transfer time are occasional
-// settings: they fold away behind the "advanced options" toggle. Collapsing only
-// hides them — whatever is set keeps applying to searches.
+// the age bracket, the minimum transfer time, the transport filter and the
+// stopovers are occasional settings: they fold away behind the "advanced
+// options" toggle. Collapsing only hides them — whatever is set keeps applying
+// to searches. The D-Ticket switches stay out in the main row.
 const advancedToggle = document.getElementById("advanced-toggle");
 const advancedPanel = document.getElementById("advanced-panel");
 function setAdvancedOpen(open) {
@@ -901,16 +1080,256 @@ advancedToggle.addEventListener("click", () => {
   setAdvancedOpen(advancedPanel.classList.contains("hidden"));
 });
 
-// the age bracket bahn.de prices the single traveler as, mirroring the
-// bahn.de search mask's own dropdown. Hidden in past mode, where no prices
-// are shown and a leftover selection must not fragment the lookup.
-function ageMode() {
-  if (state.mode === "past") return "adult";
-  return document.getElementById("age").value;
+// --- travellers (the bahn.de search mask's count / age / discount row) ---
+
+// bahn.de's own cap: from six travellers on, its mask hands over to a group
+// booking that prices differently, so the search mask stops there and so do we
+const MAX_TRAVELLERS = 5;
+// 0-5-year-olds ride free, so bahn.de leaves them no discount to pick
+const NO_DISCOUNT_AGES = new Set(["toddler"]);
+
+const travellerFields = document.getElementById("traveller-fields");
+const travellerAddBtn = document.getElementById("traveller-add");
+const travellerTemplate = document.getElementById("traveller-row-template");
+
+// the option lists live in the template, so the markup stays their one source
+const TRAVELLER_AGES = [...travellerTemplate.content.querySelectorAll(".traveller-age option")].map((o) => o.value);
+const TRAVELLER_DISCOUNTS = [...travellerTemplate.content.querySelectorAll(".traveller-discount option")].map((o) => o.value);
+
+function travellerRows() {
+  return [...travellerFields.querySelectorAll(".traveller-row")];
 }
 
-// pricing is server-side: refetch, but only if results are showing
-document.getElementById("age").addEventListener("change", refetchCurrentLeg);
+// a "travellers" param off a shared link; null when it carries nothing usable,
+// which leaves the default party in place rather than half-restoring one
+function parseTravellers(raw) {
+  if (!raw) return null;
+  const list = raw.split(",").map((entry) => {
+    const [age, count, discount] = entry.split(":");
+    const n = Number(count);
+    return TRAVELLER_AGES.includes(age) && TRAVELLER_DISCOUNTS.includes(discount)
+      && Number.isInteger(n) && n >= 1 && n <= MAX_TRAVELLERS ? { count: n, age, discount } : null;
+  });
+  const total = list.reduce((sum, tr) => sum + (tr?.count || 0), 0);
+  return list.every(Boolean) && total <= MAX_TRAVELLERS ? list : null;
+}
+
+// the picked party, read off the rows the way the selects beside them are read.
+// Pinned to one adult in past mode, where no prices are shown and a leftover
+// selection must not fragment the lookup.
+function travellersUsed() {
+  if (state.mode === "past") return [{ count: 1, age: "adult", discount: "none" }];
+  return travellerRows().map((row) => ({
+    count: Number(row.querySelector(".traveller-count").value),
+    age: row.querySelector(".traveller-age").value,
+    discount: row.querySelector(".traveller-discount").value,
+  }));
+}
+
+// the compact form the API and share links carry: one "<age>:<count>:<discount>"
+// per row. Null for the lone adult without a discount, which both ends default to.
+function travellersParam() {
+  const list = travellersUsed();
+  const [first] = list;
+  if (list.length === 1 && first.count === 1 && first.age === "adult" && first.discount === "none") return null;
+  return list.map((tr) => `${tr.age}:${tr.count}:${tr.discount}`).join(",");
+}
+
+// keeps the rows consistent with each other: what is left of the cap bounds every
+// count, a lone row cannot be removed, and a 0-5-year-old carries no discount
+function syncTravellerUI() {
+  const rows = travellerRows();
+  const total = travellersUsed().reduce((sum, tr) => sum + tr.count, 0);
+  for (const row of rows) {
+    const countSel = row.querySelector(".traveller-count");
+    const own = Number(countSel.value);
+    for (const opt of countSel.options) {
+      opt.disabled = total - own + Number(opt.value) > MAX_TRAVELLERS;
+    }
+    const discountSel = row.querySelector(".traveller-discount");
+    const free = NO_DISCOUNT_AGES.has(row.querySelector(".traveller-age").value);
+    if (free) discountSel.value = "none";
+    discountSel.disabled = free;
+    // the tooltip goes on the wrapper: a disabled control shows none of its own
+    discountSel.closest(".field").title = free ? t("discountNoneToddlerTooltip") : "";
+    row.querySelector(".traveller-remove").classList.toggle("hidden", rows.length === 1);
+  }
+  // a second traveller turns the line into a list, and the add button drops below it
+  travellerFields.classList.toggle("multi", rows.length > 1);
+  travellerAddBtn.classList.toggle("hidden", total >= MAX_TRAVELLERS);
+  travellerAddBtn.title = total >= MAX_TRAVELLERS ? t("travellerMaxTooltip", MAX_TRAVELLERS) : "";
+}
+
+function addTravellerRow(traveller = { count: 1, age: "adult", discount: "none" }) {
+  const row = travellerTemplate.content.firstElementChild.cloneNode(true);
+  const countSel = row.querySelector(".traveller-count");
+  for (let n = 1; n <= MAX_TRAVELLERS; n++) countSel.add(new Option(String(n), String(n)));
+  countSel.value = String(traveller.count);
+  row.querySelector(".traveller-age").value = traveller.age;
+  row.querySelector(".traveller-discount").value = traveller.discount;
+  translateSubtree(row);
+  travellerFields.insertBefore(row, travellerAddBtn);
+  return row;
+}
+
+addTravellerRow();  // the default party: one adult, no discount
+syncTravellerUI();
+
+travellerAddBtn.addEventListener("click", () => {
+  addTravellerRow();
+  syncTravellerUI();
+  track("traveller-add");
+  // the row starts as another plain adult, which prices the same as raising the
+  // count on an existing one - nothing to refetch until it is actually changed
+});
+
+travellerFields.addEventListener("change", (e) => {
+  if (!e.target.closest(".traveller-row")) return;
+  syncTravellerUI();
+  // pricing is server-side: refetch, but only if results are showing
+  refetchCurrentLeg();
+});
+
+travellerFields.addEventListener("click", (e) => {
+  const btn = e.target.closest(".traveller-remove");
+  if (!btn) return;
+  btn.closest(".traveller-row").remove();
+  syncTravellerUI();
+  refetchCurrentLeg();
+});
+
+// --- transport-mode filter (bahn.de "Verkehrsmittel") ---
+
+// order matches app/bahn_api.py ALL_PRODUCTS and the bahn.de vm= URL codes
+const PRODUCTS = ["ICE", "EC_IC", "IR", "REGIONAL", "SBAHN", "BUS", "SCHIFF", "UBAHN", "TRAM", "ANRUFPFLICHTIG"];
+const LONG_DISTANCE = ["ICE", "EC_IC", "IR"];
+const LOCAL_TRANSPORT = PRODUCTS.filter((p) => !LONG_DISTANCE.includes(p));
+// per-leg sets so a round trip can filter its two searches differently
+state.products = { outbound: new Set(PRODUCTS), return: new Set(PRODUCTS) };
+
+const transportModal = document.getElementById("transport-modal");
+const tmSectionSel = document.getElementById("tm-section");
+const tmAcceptBtn = document.getElementById("tm-accept");
+const tmInputs = [...transportModal.querySelectorAll(".tm-row input")];
+const tmQuickBtns = [...transportModal.querySelectorAll(".tm-quick-btn")];
+
+let tmDraft = null;  // edited copy of state.products; only Accept commits it
+
+function productsParam(dir) {
+  // the picker is hidden in past mode, where a leftover selection must not narrow
+  // the compensation check away from the train that was actually taken
+  if (state.mode === "past") return null;
+  const set = state.products[dir];
+  return set.size === PRODUCTS.length ? null : PRODUCTS.filter((p) => set.has(p)).join(",");
+}
+
+// a removed return must not keep a diverged filter around for a later re-add
+function syncReturnProducts() {
+  state.products.return = new Set(state.products.outbound);
+}
+
+// the button carries its own value the way the selects beside it do: "Alle"
+// until something is switched off, then the counts (two, when the legs diverge)
+function updateTransportBtn() {
+  const parts = [state.products.outbound];
+  if (state.returnTrip && productsParam("return") !== productsParam("outbound")) parts.push(state.products.return);
+  const valueEl = document.getElementById("transport-value");
+  const filtered = parts.some((s) => s.size < PRODUCTS.length);
+  valueEl.textContent = filtered
+    ? parts.map((s) => `${s.size}/${PRODUCTS.length}`).join(" · ") : t("transportAll");
+  valueEl.classList.toggle("transport-filtered", filtered);
+}
+
+// the sets the dialog is editing; "entire journey" writes through to both legs
+function tmActiveSets() {
+  const section = state.returnTrip ? tmSectionSel.value : "entire";
+  return section === "outbound" ? [tmDraft.outbound]
+    : section === "return" ? [tmDraft.return]
+    : [tmDraft.outbound, tmDraft.return];
+}
+
+function tmQuickTarget(btn) {
+  return btn.dataset.quick === "all" ? PRODUCTS
+    : btn.dataset.quick === "local" ? LOCAL_TRANSPORT : LONG_DISTANCE;
+}
+
+function renderTransportModal() {
+  const sets = tmActiveSets();
+  // a product shows as on only when every edited leg allows it
+  for (const input of tmInputs) input.checked = sets.every((s) => s.has(input.dataset.product));
+  for (const btn of tmQuickBtns) {
+    const target = tmQuickTarget(btn);
+    const match = sets.every((s) => s.size === target.length && target.every((p) => s.has(p)));
+    btn.setAttribute("aria-pressed", String(match));
+  }
+  const empty = !tmDraft.outbound.size || (state.returnTrip && !tmDraft.return.size);
+  tmAcceptBtn.disabled = empty;
+  document.getElementById("tm-none").classList.toggle("hidden", !empty);
+}
+
+function openTransportModal() {
+  tmDraft = { outbound: new Set(state.products.outbound), return: new Set(state.products.return) };
+  document.getElementById("tm-section-wrap").classList.toggle("hidden", !state.returnTrip);
+  tmSectionSel.value = "entire";
+  // the section picker names the two legs like bahn.de does
+  const ogOut = document.getElementById("tm-og-outbound");
+  const ogRet = document.getElementById("tm-og-return");
+  ogOut.label = t("transportOutbound");
+  ogRet.label = t("transportReturn");
+  const named = state.from?.name && state.to?.name;
+  ogOut.firstElementChild.textContent = named ? `${state.from.name} – ${state.to.name}` : t("transportOutbound");
+  ogRet.firstElementChild.textContent = named ? `${state.to.name} – ${state.from.name}` : t("transportReturn");
+  renderTransportModal();
+  transportModal.showModal();
+  track("transport-modal");
+}
+
+document.getElementById("transport-btn").addEventListener("click", openTransportModal);
+document.getElementById("transport-close").addEventListener("click", () => transportModal.close());
+// a click on the backdrop lands on the dialog element itself (the inner wrapper covers the rest)
+transportModal.addEventListener("click", (e) => { if (e.target === transportModal) transportModal.close(); });
+// X, Esc and backdrop all discard; Accept has already nulled the draft by the time it closes
+transportModal.addEventListener("close", () => { tmDraft = null; });
+
+tmSectionSel.addEventListener("change", renderTransportModal);
+
+for (const input of tmInputs) {
+  input.addEventListener("change", () => {
+    for (const s of tmActiveSets()) input.checked ? s.add(input.dataset.product) : s.delete(input.dataset.product);
+    renderTransportModal();
+  });
+}
+
+for (const btn of tmQuickBtns) {
+  btn.addEventListener("click", () => {
+    const target = tmQuickTarget(btn);
+    for (const s of tmActiveSets()) { s.clear(); for (const p of target) s.add(p); }
+    renderTransportModal();
+  });
+}
+
+document.getElementById("tm-reset").addEventListener("click", () => {
+  tmDraft = { outbound: new Set(PRODUCTS), return: new Set(PRODUCTS) };
+  renderTransportModal();
+});
+
+tmAcceptBtn.addEventListener("click", () => {
+  const before = [productsParam("outbound"), productsParam("return")].join("|");
+  state.products = tmDraft;
+  tmDraft = null;
+  const after = [productsParam("outbound"), productsParam("return")].join("|");
+  transportModal.close();
+  updateTransportBtn();
+  // filtering is server-side like the window and D-Ticket: refetch, but only if
+  // results are showing
+  if (after !== before) {
+    track("transport-filter", {
+      outbound: productsParam("outbound") || "all",
+      return: productsParam("return") || "all",
+    });
+    refetchCurrentLeg();
+  }
+});
 
 // --- return journey ---
 
@@ -928,8 +1347,11 @@ function returnDepartureIso() {
 function setReturnTrip(on) {
   // the compensation check looks at one journey that already happened
   state.returnTrip = on && state.mode !== "past";
+  if (!state.returnTrip) syncReturnProducts();
+  updateTransportBtn();
   returnAddBtn.classList.toggle("hidden", state.returnTrip);
   returnFieldsEl.classList.toggle("hidden", !state.returnTrip);
+  syncStopoverUI();  // the return direction's stopover group follows the trip type
   if (!state.returnTrip) return;
   returnDateEl.min = dateEl.value;
   if (!returnDateEl.value || returnDateEl.value < dateEl.value) returnDateEl.value = dateEl.value;
@@ -954,6 +1376,152 @@ document.getElementById("return-remove").addEventListener("click", () => {
 dateEl.addEventListener("change", () => {
   returnDateEl.min = dateEl.value;
   if (returnDateEl.value && returnDateEl.value < dateEl.value) returnDateEl.value = dateEl.value;
+});
+
+// --- stopovers (the last row of the advanced-options panel) ---
+
+const VIA_KEYS = { outbound: ["viaOut1", "viaOut2"], return: ["viaRet1", "viaRet2"] };
+const ALL_VIA_KEYS = [...VIA_KEYS.outbound, ...VIA_KEYS.return];
+
+const viaRow = (key) => document.getElementById(`${key}-row`);
+const viaStayEls = (key) => [
+  document.getElementById(`${key}StayH`),
+  document.getElementById(`${key}StayM`),
+];
+// the phone-only type=time twin of the two segments (see .stay-time in style.css)
+const viaStayTimeEl = (key) => document.getElementById(`${key}StayT`);
+
+const STAY_MAX = 1439;
+const STAY_STEP = 15;
+const clampStay = (minutes) => Math.max(0, Math.min(STAY_MAX, Math.round(minutes)));
+
+// a shared or older link carries the stay as bare minutes ("90"); hh:mm is read
+// too, so a hand-edited "1:30" works; anything unreadable counts as no stay
+function parseStay(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return 0;
+  const hhmm = text.match(/^(\d{1,2})\s*[:hH]\s*(\d{1,2})?$/);
+  const minutes = hhmm ? Number(hhmm[1]) * 60 + Number(hhmm[2] || 0) : Number(text);
+  return Number.isFinite(minutes) ? clampStay(minutes) : 0;
+}
+
+// the two segments are one duration, so minutes above 59 carry into the hours:
+// a typed 0h/90min settles as 1h/30min instead of being rejected
+function stayMinutes(key) {
+  const [h, m] = viaStayEls(key);
+  return clampStay((Number(h.value) || 0) * 60 + (Number(m.value) || 0));
+}
+
+function setStay(key, minutes) {
+  const total = clampStay(minutes);
+  const [h, m] = viaStayEls(key);
+  h.value = String(Math.floor(total / 60)).padStart(2, "0");
+  m.value = String(total % 60).padStart(2, "0");
+  viaStayTimeEl(key).value = `${h.value}:${m.value}`;
+  syncStayButtons(key);
+}
+
+// an exhausted direction shouldn't offer a button that does nothing
+function syncStayButtons(key) {
+  const total = stayMinutes(key);
+  document.querySelectorAll(`.stay-stepper[data-via="${key}"] .stay-step`).forEach((btn) => {
+    btn.disabled = Number(btn.dataset.step) > 0 ? total >= STAY_MAX : total <= 0;
+  });
+}
+
+// − and + move to the neighbouring quarter hour, so a typed 0:07 snaps onto the
+// grid rather than drifting along it
+function stepStay(key, direction) {
+  const total = stayMinutes(key);
+  setStay(key, direction > 0
+    ? (Math.floor(total / STAY_STEP) + 1) * STAY_STEP
+    : (Math.ceil(total / STAY_STEP) - 1) * STAY_STEP);
+}
+
+// the picked stopovers of one direction, in row order
+function viasFor(direction) {
+  if (state.mode === "past") return [];
+  return VIA_KEYS[direction].filter((k) => state[k]).map((k) => ({
+    station: state[k],
+    stay: stayMinutes(k),
+  }));
+}
+
+function clearVia(key) {
+  state[key] = null;
+  document.getElementById(key).value = "";
+  setStay(key, 0);
+}
+
+// keeps the stopover controls consistent with the state: which groups and rows
+// show, and whether each add button still has a row left to reveal
+function syncStopoverUI() {
+  for (const [direction, keys] of Object.entries(VIA_KEYS)) {
+    const returnGroup = direction === "return";
+    // dropping the return trip drops its stopovers with it
+    if (returnGroup && !state.returnTrip) {
+      keys.forEach((k) => { clearVia(k); viaRow(k).classList.add("hidden"); });
+    }
+    document.getElementById(`stopover-group-${direction}`)
+      .classList.toggle("hidden", returnGroup && !state.returnTrip);
+    const anyHidden = keys.some((k) => viaRow(k).classList.contains("hidden"));
+    document.getElementById(`stopover-add-${direction}`).classList.toggle("hidden", !anyHidden);
+  }
+  // the direction labels only mean something once there are two directions
+  document.querySelectorAll(".stopover-group-label").forEach((el) =>
+    el.classList.toggle("hidden", !state.returnTrip));
+}
+
+function revealVia(direction) {
+  const key = VIA_KEYS[direction].find((k) => viaRow(k).classList.contains("hidden"));
+  if (!key) return;
+  viaRow(key).classList.remove("hidden");
+  syncStopoverUI();
+  document.getElementById(key).focus();
+}
+
+for (const direction of ["outbound", "return"]) {
+  document.getElementById(`stopover-add-${direction}`).addEventListener("click", () => {
+    revealVia(direction);
+    track("stopover-add");
+  });
+}
+
+document.querySelectorAll(".stay-stepper").forEach((stepper) => {
+  const key = stepper.dataset.via;
+  stepper.querySelectorAll(".stay-step").forEach((btn) => {
+    btn.addEventListener("click", () => stepStay(key, Number(btn.dataset.step)));
+  });
+  // the native picker hands back HH:MM, or nothing when it was cleared
+  viaStayTimeEl(key).addEventListener("change", () =>
+    setStay(key, parseStay(viaStayTimeEl(key).value)));
+  stepper.querySelectorAll(".stay-part").forEach((el) => {
+    // focusing selects, so a segment is overwritten by typing rather than edited
+    // around, and two digits in the hours hand the caret to the minutes
+    el.addEventListener("focus", () => el.select());
+    el.addEventListener("input", () => {
+      el.value = el.value.replace(/\D/g, "");
+      if (el.classList.contains("stay-h") && el.value.length === 2) viaStayEls(key)[1].select();
+      syncStayButtons(key);
+    });
+    // what was typed only has to be readable, not well formed: it settles into
+    // padded h/min on the way out
+    el.addEventListener("change", () => setStay(key, stayMinutes(key)));
+    el.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      e.preventDefault();
+      stepStay(key, e.key === "ArrowUp" ? 1 : -1);
+    });
+  });
+  syncStayButtons(key);
+});
+
+document.querySelectorAll(".stopover-remove").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    clearVia(btn.dataset.via);
+    viaRow(btn.dataset.via).classList.add("hidden");
+    syncStopoverUI();
+  });
 });
 
 // --- past mode (compensation check) ---
@@ -1229,8 +1797,8 @@ document.querySelector("#donate-nudge a").addEventListener("click", () =>
 // the result list shows one leg at a time; the return leg runs the search backwards
 function searchLeg() {
   return state.leg === "outbound"
-    ? { from: state.from, to: state.to, departure: state.departure }
-    : { from: state.to, to: state.from, departure: state.returnDeparture };
+    ? { from: state.from, to: state.to, departure: state.departure, vias: viasFor("outbound") }
+    : { from: state.to, to: state.from, departure: state.returnDeparture, vias: viasFor("return") };
 }
 
 // bahn.de rate-limits the session all our searches share, and says how long it
@@ -1286,16 +1854,25 @@ async function fetchJourneys(pagingRef, opts = {}) {
   const retryAgainStatusKey = opts.retryAgainStatusKey ?? "overloadRetryAgainIn";
   const win = document.getElementById("window").value;
   const dticket = dticketMode();
-  const age = ageMode();
+  const travellers = travellersUsed();
   const leg = opts.leg ?? searchLeg();
+  // opts.dir names the trip half being fetched when it is not the one on screen
+  const dir = opts.dir ?? (state.leg === "return" ? "return" : "outbound");
   const params = new URLSearchParams({
     from: leg.from.id, to: leg.to.id, departure: leg.departure, window: win,
   });
   if (state.mode === "past") params.set("mode", "past");
   if (dticket !== "off") params.set("dticket", dticket);
-  if (age !== "adult") params.set("age", age);
+  const rs = travellersParam();
+  if (rs) params.set("travellers", rs);
   if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
+  const tm = productsParam(dir);
+  if (tm) params.set("products", tm);
   if (pagingRef) params.set("pagingRef", pagingRef);
+  (leg.vias || []).forEach((v, i) => {
+    params.set(`via${i + 1}`, v.station.id);
+    if (v.stay) params.set(`via${i + 1}Stay`, String(v.stay));
+  });
 
   const gen = searchGen;
   let waited = 0;
@@ -1305,7 +1882,7 @@ async function fetchJourneys(pagingRef, opts = {}) {
     if (resp.ok) {
       state.windowUsed = Number(win);
       state.dticketUsed = dticket;
-      state.ageUsed = age;
+      state.travellersUsed = travellers;
       return resp.json();
     }
     // wait out the server's own cooldown, as often as its budget allows; the
@@ -1390,24 +1967,53 @@ function syncUrl() {
     window: document.getElementById("window").value,
   });
   if (dticketMode() !== "off") params.set("dticket", dticketMode());
-  if (ageMode() !== "adult") params.set("age", ageMode());
+  if (travellersParam()) params.set("travellers", travellersParam());
   if (transferMinutes() !== "0") params.set("transfer", transferMinutes());
+  const tm = productsParam("outbound");
+  if (tm) params.set("tm", tm);
+  // "all" marks a return deliberately left unfiltered next to a filtered outbound
+  const tmr = productsParam("return");
+  if (state.returnTrip && tmr !== tm) params.set("tmr", tmr || "all");
   if (state.returnTrip && returnDateEl.value) {
     params.set("rdate", returnDateEl.value);
     params.set("rtime", returnTimeEl.value);
+  }
+  const VIA_URL_PARAMS = { viaOut1: "vo1", viaOut2: "vo2", viaRet1: "vr1", viaRet2: "vr2" };
+  for (const [direction, keys] of Object.entries(VIA_KEYS)) {
+    for (const [i, via] of viasFor(direction).entries()) {
+      // re-numbered on write, so a lone second-row pick restores as row one
+      const p = VIA_URL_PARAMS[keys[i]];
+      params.set(`${p}Id`, via.station.id);
+      params.set(p, via.station.name);
+      if (via.stay) params.set(`${p}Stay`, String(via.stay));
+    }
   }
   history.replaceState(null, "", `?${params}`);
 }
 
 async function search() {
-  await Promise.all([resolveTyped("from"), resolveTyped("to")]);
+  // stopover fields count like from/to, but only where their direction is live
+  const viaKeys = state.mode === "past" ? []
+    : [...VIA_KEYS.outbound, ...(state.returnTrip ? VIA_KEYS.return : [])]
+      .filter((k) => !viaRow(k).classList.contains("hidden"));
+  await Promise.all([resolveTyped("from"), resolveTyped("to"),
+    ...viaKeys.map((k) => resolveTyped(k))]);
   if (!state.from || !state.to) {
     setStatus("pickStations");
     statusEl.classList.add("error");
     return;
   }
+  // typed but unresolved stopover text must not silently search without it
+  if (viaKeys.some((k) => !state[k] && document.getElementById(k).value.trim())) {
+    setAdvancedOpen(true);  // the field the error is about must be visible
+    setStatus("stopoverUnresolved");
+    statusEl.classList.add("error");
+    return;
+  }
+  syncStopoverUI();  // resolveTyped may have just turned text into a pick
   saveRecent(state.from);
   saveRecent(state.to);
+  viaKeys.forEach((k) => { if (state[k]) saveRecent(state[k]); });
   if (state.mode === "past") {
     await ensureCoverage();
     const day = document.getElementById("date").value;
@@ -1456,15 +2062,20 @@ async function search() {
   state.returnResults = null;
   state.returnPrefetch = null;
   syncUrl();
+  const party = travellersUsed();
   track("search", {
     from: state.from.name,
     to: state.to.name,
     window: Number(document.getElementById("window").value),
     mode: state.mode,
     dticket: dticketMode(),
-    age: ageMode(),
+    age: party[0].age,
+    travellers: party.reduce((sum, tr) => sum + tr.count, 0),
+    discount: party.find((tr) => tr.discount !== "none")?.discount || "none",
     transfer: Number(transferMinutes()),
     returnTrip: state.returnTrip,
+    stopovers: viasFor("outbound").length + viasFor("return").length,
+    transport: productsParam("outbound") || "all",
   });
   await runSearch();
 }
@@ -1533,10 +2144,11 @@ async function runSearch() {
 // shown at all, and hand that proven answer to step 2 rather than asking twice.
 async function preflightReturn() {
   setStatus("returnChecking");
-  const leg = { from: state.to, to: state.from, departure: state.returnDeparture };
+  const leg = { from: state.to, to: state.from, departure: state.returnDeparture, vias: viasFor("return") };
   try {
     const data = await fetchJourneys(null, {
       leg,
+      dir: "return",
       maxTotal: PREFLIGHT_MAX_TOTAL_S,
       retryStatusKey: "returnRetryIn",
       retryAgainStatusKey: "returnRetryAgainIn",
@@ -2184,6 +2796,7 @@ function buildDayChart(stats, refEl) {
     document.removeEventListener("click", closeBubble);
   };
   const selectDay = (hit, title, tipY) => {
+    hint?.remove();  // the nudge has done its job after the first tap
     if (selected === hit) return closeBubble();
     if (selected) selected.setAttribute("fill", "transparent");
     else document.addEventListener("click", closeBubble);  // click-away closes
@@ -2204,6 +2817,9 @@ function buildDayChart(stats, refEl) {
     bubble.style.setProperty("--arrow-x", `${Math.max(10, Math.min(cx - left, bubble.offsetWidth - 10))}px`);
   };
 
+  let hint = null;
+  let tallest = null;
+
   slots.forEach((slot, i) => {
     const x0 = m.left + i * band;
     const cx = x0 + band / 2;
@@ -2221,6 +2837,7 @@ function buildDayChart(stats, refEl) {
       const v = rec.delay;
       title = `${fmtDay(slot.iso)} ${v >= 0 ? "+" : ""}${v} min${reason ? ` – ${reason}` : ""}`;
       const fill = v < 3 ? colors.green : v < 10 ? colors.yellow : colors.red;
+      if (v > 0 && (!tallest || v > tallest.v)) tallest = { v, cx };
       if (v !== 0) {
         svg.appendChild(svgEl("path", { d: barPath(cx - barW / 2, barW, y(0), y(v)), fill }));
       } else {
@@ -2256,10 +2873,39 @@ function buildDayChart(stats, refEl) {
     svg.appendChild(hit);
   });
 
+  // tap nudge on the tallest bar: gesture icon + a few ripple pulses at its
+  // fingertip, self-fading after ~6s (or gone on the first tap)
+  if (tallest) {
+    const midY = (y(tallest.v) + y(0)) / 2;
+    hint = svgEl("g", { class: "day-chart-nudge", "pointer-events": "none", "aria-hidden": "true" });
+    hint.appendChild(svgEl("circle", {
+      cx: tallest.cx, cy: midY, r: 9,
+      fill: "none", stroke: "#fff", "stroke-width": 1.5, opacity: 0, class: "day-chart-ping",
+    }));
+    const size = 20;
+    // the icon's fingertip sits at ~(23%, 39%) of its canvas; anchor it there
+    hint.appendChild(svgEl("image", {
+      href: "/icons/click_gesture.png",
+      x: Math.min(tallest.cx - size * 0.23, W - m.right - size),
+      y: midY - size * 0.39, width: size, height: size,
+    }));
+    svg.appendChild(hint);
+  }
+
   panel.appendChild(svg);
   panel.appendChild(bubble);
   return panel;
 }
+
+// the traveller ids of bahn.de's angebote/stammdaten, as the search-mask URL
+// spells them out in its r= param: age bracket, then discount and its class
+const AGE_CODES = { adult: 13, senior: 12, young: 9, child: 11, toddler: 8 };
+const DISCOUNT_CODES = {
+  "none": [16, "KLASSENLOS"],
+  "bc25-2": [17, "KLASSE_2"], "bc25-1": [17, "KLASSE_1"],
+  "bc50-2": [23, "KLASSE_2"], "bc50-1": [23, "KLASSE_1"],
+  "bc100-2": [24, "KLASSE_2"], "bc100-1": [24, "KLASSE_1"],
+};
 
 // `outbound` is set only on the return step of a round trip: the mask is then
 // built from the outbound journey and `journey` supplies the return date
@@ -2276,17 +2922,29 @@ function bahnDeUrl(journey, outbound) {
   // Verbindungen" / "Deutschland-Ticket vorhanden") so the filter carries over
   const dt = state.dticketUsed === "only" ? "&dlt=true&dltv=true"
     : state.dticketUsed === "all" ? "&dltv=true" : "";
-  // r pins who the mask prices for — <type>:<discount>:<class>:<count>, ids from
-  // bahn.de's angebote/stammdaten (16 = no discount). bahn.de already defaults
-  // to one adult, so r only has to be sent for the other brackets.
-  const ageCode = { senior: 12, young: 9, child: 11, toddler: 8 }[state.ageUsed];
-  const r = ageCode ? `&r=${ageCode}:16:KLASSENLOS:1` : "";
+  // r pins who the mask prices for — one <type>:<discount>:<class>:<count> per
+  // traveller, comma-separated, with the ids of bahn.de's angebote/stammdaten.
+  // bahn.de already defaults to a single adult without a discount, so r only has
+  // to be sent for any other party.
+  const travs = state.travellersUsed;
+  const plain = travs.length === 1 && travs[0].age === "adult"
+    && travs[0].count === 1 && travs[0].discount === "none";
+  const r = plain ? "" : `&r=${travs.map((tr) =>
+    `${AGE_CODES[tr.age]}:${DISCOUNT_CODES[tr.discount].join(":")}:${tr.count}`).join(",")}`;
   // rd switches the mask to "Hin- und Rückfahrt"; hza/rza pin both dates to a
   // departure time rather than an arrival time
   const returnDep = outbound ? ((journey.legs || [])[0]?.plannedDeparture || "").slice(0, 19) : "";
   const rt = returnDep ? `&hza=D&rd=${returnDep}&rza=D` : "";
+  // vm carries the Verkehrsmittel toggles over as bahn.de's two-digit codes
+  // (indices into PRODUCTS); the mask has one list, so a round trip gets the
+  // union of both legs' filters. Omitted when nothing is filtered.
+  const used = new Set(outbound
+    ? [...state.products.outbound, ...state.products.return]
+    : state.products[state.leg === "return" ? "return" : "outbound"]);
+  const vm = state.mode === "past" || used.size === PRODUCTS.length ? ""
+    : `&vm=${PRODUCTS.flatMap((p, i) => used.has(p) ? [String(i).padStart(2, "0")] : []).join(",")}`;
   return `https://www.bahn.de/buchung/fahrplan/suche#sts=true&so=${encodeURIComponent(fromName)}` +
-    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}${rt}&kl=2${dt}${r}`;
+    `&zo=${encodeURIComponent(toName)}&soid=${soid}&zoid=${zoid}&hd=${hd}${rt}&kl=2${dt}${r}${vm}`;
 }
 
 // --- claim modal: walks through the steps on bahn.de instead of a bare redirect ---
@@ -2388,6 +3046,488 @@ document.getElementById("claim-modal-go").addEventListener("click", () => {
   });
 });
 
+// --- journey report: the bell orders a forecast-vs-actual email after the trip ---
+// The order belongs to the Delay Stories account, whose Firebase session is
+// shared by every page of the site: a bell pressed by a signed-in visitor is
+// the whole order, a signed-out one is sent to /login and the order completes
+// on return. The SDK is only downloaded when a bell is pressed or the login
+// page left its "account" hint behind, so anonymous visitors never pay for it.
+
+const reportModal = document.getElementById("report-modal");
+const reportLoginEl = document.getElementById("report-login");
+const reportDoneEl = document.getElementById("report-done");
+const reportDoneMsgEl = document.getElementById("report-done-msg");
+const reportBookEl = document.getElementById("report-book");
+const reportTripSavedEl = document.getElementById("report-trip-saved");
+const reportStatusEl = document.getElementById("report-status");
+const reportCancelBtn = document.getElementById("report-cancel");
+// sessionStorage: the order that waits for the login page to hand the visitor back
+const REPORT_PENDING_KEY = "reportPending";
+const REPORT_PENDING_MAX_AGE = 60 * 60 * 1000;
+
+let fb = null;               // firebase.js module, imported on demand
+let reportSubs = new Map();  // journey key -> order id, for the signed-in account
+let reportEmail = "";        // where the account's reports go
+let reportView = "busy";     // "busy" | "login" | "done" | "cancelled" | "error"
+let reportError = "reportErrGeneric";
+let reportErrorArgs = [];   // what that message interpolates, e.g. the open-order cap
+// mirrors MAX_OPEN_PER_ACCOUNT in app/reports.py; only a fallback, the refusal
+// itself carries the server's live number
+const REPORT_MAX_OPEN = 3;
+
+// a leg is resolvable after the trip iff normalize_leg attached a delayStats key
+// (even a null one); walks and untracked products never carry it
+function lastTrackedArrival(journey) {
+  const tracked = (journey.legs || []).filter((l) => "delayStats" in l);
+  return tracked.length ? tracked[tracked.length - 1].plannedArrival : null;
+}
+
+function reportEligible(journey) {
+  const arrival = lastTrackedArrival(journey);
+  return !!arrival && new Date(arrival) > new Date();
+}
+
+// the historic median for the teaser: the destination's, or - when the last
+// legs have no history of their own - the last stop on the way that does have
+// one, named so the number is not read as the destination's
+function teaserStats(journey) {
+  const tracked = (journey.legs || []).filter((l) => "delayStats" in l);
+  for (let i = tracked.length - 1; i >= 0; i--) {
+    const median = tracked[i].delayStats?.medianDelay;
+    if (median != null) {
+      return { median, upTo: i < tracked.length - 1 ? tracked[i].destination?.name || "" : "" };
+    }
+  }
+  return null;
+}
+
+// the same string reports.journey_key builds server-side, from the same fields
+function reportKey(journey) {
+  return (journey.legs || [])
+    .filter((l) => "delayStats" in l)
+    .map((l) => `${l.line?.fahrtNr ?? ""}|${l.destination?.id ?? ""}|${l.plannedArrival ?? ""}`)
+    .sort()
+    .join("\n");
+}
+
+const BELL_SVG =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"'
+  + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>'
+  + '<path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+
+function paintBell(bell, on) {
+  bell.classList.toggle("on", on);
+  bell.setAttribute("aria-pressed", String(on));
+  const label = t(on ? "reportBellOnTitle" : "reportBellTitle");
+  bell.title = label;
+  bell.setAttribute("aria-label", label);
+}
+
+function refreshBells() {
+  document.querySelectorAll(".bell-btn[data-report-key]").forEach((bell) => {
+    paintBell(bell, reportSubs.has(bell.dataset.reportKey));
+  });
+}
+
+/* The account this browser holds, or null. `verified` is whether the sign-in
+   proved the address - the server insists on that before it mails anything. */
+async function currentAccount() {
+  if (!fb) fb = await import("/firebase.js?v=1");
+  if (!fb.auth) return null;
+  await fb.auth.authStateReady();
+  const user = fb.auth.currentUser;
+  if (!user) return null;
+  const who = await fb.identity(user);
+  return {
+    user,
+    email: user.email || "",
+    verified: who.verified && !!user.email,
+    // the finished account's public name, which the header greets by; a visitor
+    // still short of a step (address unproven, name unclaimed) has none yet
+    name: who.verified ? who.name : null,
+  };
+}
+
+async function reportApi(user, path, opts = {}) {
+  const token = await user.getIdToken();
+  const resp = await fetch(path, {
+    ...opts,
+    headers: { ...(opts.headers || {}), "Authorization": "Bearer " + token },
+  });
+  if (!resp.ok) {
+    const err = new Error("http " + resp.status);
+    err.status = resp.status;
+    // refusals that the page has something to say about send a detail object
+    err.detail = await resp.json().then((b) => b.detail).catch(() => null);
+    throw err;
+  }
+  return resp.status === 204 ? null : resp.json();
+}
+
+function populateReportModal() {
+  const j = state.reportJourney;
+  if (!j) return;
+  const teaser = document.getElementById("report-teaser");
+  teaser.innerHTML = "";
+
+  const seen = document.createElement("div");
+  seen.className = "report-teaser-row";
+  const seenLabel = document.createElement("span");
+  seenLabel.textContent = t("reportTeaserSeen");
+  const seenStats = teaserStats(j);
+  let seenChip;
+  if (seenStats) {
+    seenChip = delayValueBadge(seenStats.median);
+  } else {
+    seenChip = document.createElement("span");
+    seenChip.className = "badge gray";
+    seenChip.textContent = t("noData");
+  }
+  seen.append(seenLabel, seenChip);
+  if (seenStats?.upTo) {
+    const upTo = document.createElement("span");
+    upTo.className = "report-teaser-note";
+    upTo.textContent = t("reportTeaserUpTo", seenStats.upTo);
+    seen.append(upTo);
+  }
+
+  const actual = document.createElement("div");
+  actual.className = "report-teaser-row";
+  const actualLabel = document.createElement("span");
+  actualLabel.textContent = t("reportTeaserActual");
+  const actualChip = document.createElement("span");
+  actualChip.className = "badge gray report-blur";
+  actualChip.textContent = "+? min";
+  const note = document.createElement("span");
+  note.className = "report-teaser-note";
+  note.textContent = t("reportTeaserAfter");
+  actual.append(actualLabel, actualChip, note);
+
+  teaser.append(seen, actual);
+
+  reportLoginEl.classList.toggle("hidden", reportView !== "login");
+  reportDoneEl.classList.toggle("hidden", reportView !== "done");
+  if (reportView === "done") {
+    reportDoneMsgEl.textContent = t("reportDoneMsg", reportEmail);
+    // the bell only rides on one-way, future journeys, so the mask never needs
+    // an outbound leg here - the same link the card's book button carries
+    reportBookEl.href = bahnDeUrl(j, null);
+  }
+  reportStatusEl.classList.toggle("ok", reportView === "cancelled");
+  reportStatusEl.textContent = reportView === "busy" ? t("reportBusy")
+    : reportView === "cancelled" ? t("reportCancelledMsg")
+    : reportView === "error" ? t(reportError, ...reportErrorArgs)
+    : "";
+}
+
+function setReportView(view, errorKey, ...args) {
+  reportView = view;
+  if (errorKey) { reportError = errorKey; reportErrorArgs = args; }
+  populateReportModal();
+}
+
+function openReportModal(journey) {
+  state.reportJourney = journey;
+  // the receipt belongs to the last journey's booking press, not this one
+  reportTripSavedEl.classList.add("hidden");
+  setReportView("busy");
+  if (!reportModal.open) reportModal.showModal();
+}
+
+document.getElementById("report-modal-close").addEventListener("click", () => reportModal.close());
+// a click on the backdrop lands on the dialog element itself (the inner wrapper covers the rest)
+reportModal.addEventListener("click", (e) => { if (e.target === reportModal) reportModal.close(); });
+// the close event is queued, so a bell pressed right after closing may already
+// have reopened the modal for its journey - which must not be forgotten then
+reportModal.addEventListener("close", () => { if (!reportModal.open) state.reportJourney = null; });
+
+const reportSearchMeta = () =>
+  ({ fromName: state.from?.name, toName: state.to?.name, window: state.windowUsed });
+
+async function orderReport(account, journey, search) {
+  setReportView("busy");
+  try {
+    const res = await reportApi(account.user, "/api/reports/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lang: state.lang, journey, search }),
+    });
+    reportSubs.set(res.key, res.id);
+    reportEmail = res.email;
+    refreshBells();
+    track("report-subscribe", { created: res.created });
+    setReportView("done");
+  } catch (e) {
+    // no account after all, or one short of a proven address: the login page knows which
+    if (e.status === 401 || e.status === 403) { setReportView("login"); return; }
+    // the account already follows as many journeys as it may at once
+    if (e.status === 409) {
+      setReportView("error", "reportErrTooMany", e.detail?.limit ?? REPORT_MAX_OPEN);
+      return;
+    }
+    setReportView("error", e.status === 422 ? "reportErrInvalid"
+      : e.status === 429 ? "reportErrThrottle" : "reportErrGeneric");
+  }
+}
+
+async function onBellClick(journey) {
+  openReportModal(journey);
+  track("report-modal", { from: state.from?.name, to: state.to?.name });
+  if (reportSubs.has(reportKey(journey))) { setReportView("done"); return; }
+  let account = null;
+  try { account = await currentAccount(); } catch (e) { /* SDK unreachable: same as signed out */ }
+  if (!account || !account.verified) { setReportView("login"); return; }
+  await orderReport(account, journey, reportSearchMeta());
+}
+
+document.getElementById("report-login-btn").addEventListener("click", () => {
+  try {
+    sessionStorage.setItem(REPORT_PENDING_KEY, JSON.stringify({
+      journey: state.reportJourney, search: reportSearchMeta(), ts: Date.now(),
+    }));
+  } catch (e) { /* no storage: the bell has to be pressed again after the login */ }
+  track("report-login");
+  const next = location.pathname + location.search;
+  location.assign("/login?next=" + encodeURIComponent(next) + "&reason=report");
+});
+
+reportBookEl.addEventListener("click", () => {
+  const j = state.reportJourney;
+  track("book-bahn", {
+    from: state.from?.name,
+    to: state.to?.name,
+    price: j?.dticketCovered ? 0 : j?.price ?? "na",
+    trip: "oneway",
+    via: "report-modal",
+  });
+  if (!j) return;
+  saveTrip([{ kind: "oneway", journey: j }], reportBookEl.href, "report-modal")
+    .then((ok) => { if (ok) reportTripSavedEl.classList.remove("hidden"); });
+});
+
+reportCancelBtn.addEventListener("click", async () => {
+  const journey = state.reportJourney;
+  const id = journey ? reportSubs.get(reportKey(journey)) : undefined;
+  if (id === undefined) return;
+  reportCancelBtn.disabled = true;
+  try {
+    const account = await currentAccount();
+    if (!account) throw new Error("signed out");
+    await reportApi(account.user, "/api/reports/" + id, { method: "DELETE" });
+    reportSubs.delete(reportKey(journey));
+    refreshBells();
+    track("report-cancel");
+    setReportView("cancelled");
+  } catch (e) {
+    setReportView("error", "reportErrGeneric");
+  } finally {
+    reportCancelBtn.disabled = false;
+  }
+});
+
+// --- booked trips: Meine Fahrten ---
+// Two ways in. The bookmark beside a booking button files the journey, and
+// pressed again withdraws it; a signed-in press on the booking button itself
+// files it as well - that press opens bahn.de in a new tab and this tab stays,
+// so the write goes out after the click. Nothing comes back from bahn.de, so
+// an entry is a press, and the trips page drops what was not booked. Same
+// account plumbing as the bells: a signed-out bookmark press parks the
+// journey, sends the visitor to /login, and completes on return.
+
+const tripsPath = () => (state.lang === "en" ? "/en/my-trips" : "/meine-fahrten");
+// sessionStorage: the bookmark press that waits for the login page to hand the visitor back
+const TRIP_PENDING_KEY = "tripPending";
+
+let tripSaves = new Map();  // journey key -> trip id, for the signed-in account
+
+function accountHinted() {
+  try { return localStorage.getItem("account") === "1"; } catch (e) { return false; }
+}
+
+// the same string trips.journey_key builds server-side, from the same fields
+function tripKey(journey) {
+  return (journey.legs || [])
+    .map((l) => [l.line?.fahrtNr, l.origin?.id, l.destination?.id, l.plannedDeparture, l.plannedArrival]
+      .map((v) => v ?? "").join("|"))
+    .join("\n");
+}
+
+const TRIP_SVG =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"'
+  + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>';
+
+function paintTripBtn(btn, on) {
+  btn.classList.toggle("on", on);
+  btn.setAttribute("aria-pressed", String(on));
+  const label = t(on ? "tripBtnOnTitle" : "tripBtnTitle");
+  btn.title = label;
+  btn.setAttribute("aria-label", label);
+}
+
+// a bookmark is lit once every journey it stands for is filed (both legs of a round trip)
+const tripBtnOn = (btn) => JSON.parse(btn.dataset.tripKeys).every((k) => tripSaves.has(k));
+
+function refreshTripBtns() {
+  document.querySelectorAll(".trip-btn[data-trip-keys]").forEach((btn) => paintTripBtn(btn, tripBtnOn(btn)));
+}
+
+// the bookmark beside a booking button; `journeys` ([{kind, journey}]) is what a press files
+function tripButton(journeys, url) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "trip-btn";
+  btn.dataset.tripKeys = JSON.stringify(journeys.map((j) => tripKey(j.journey)));
+  btn.innerHTML = TRIP_SVG;
+  paintTripBtn(btn, tripBtnOn(btn));
+  btn.addEventListener("click", () => onTripClick(journeys, url, btn));
+  return btn;
+}
+
+// the search the press came from: the ids let the trips page rebuild the
+// past-mode search for the trip once its day has passed
+function tripSearchMeta() {
+  return {
+    fromId: state.from?.id, fromName: state.from?.name,
+    toId: state.to?.id, toName: state.to?.name,
+    date: document.getElementById("date").value,
+    time: document.getElementById("time").value,
+    window: state.windowUsed,
+  };
+}
+
+/* Files `journeys` ([{kind, journey}]) under the signed-in account and lights
+   their bookmarks; resolves to whether they were saved. A caller that already
+   looked the account up passes it; without one, and without the login page's
+   hint, there is no account to file under and the SDK stays undownloaded. */
+async function saveTrip(journeys, url, via, search = tripSearchMeta(), account = null) {
+  if (!account) {
+    if (!accountHinted()) return false;
+    try { account = await currentAccount(); } catch (e) { return false; }
+  }
+  if (!account || !account.verified) return false;
+  try {
+    const res = await reportApi(account.user, "/api/trips", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lang: state.lang, via, url, journeys, search }),
+    });
+    res.trips.forEach((tr) => tripSaves.set(tr.key, tr.id));
+  } catch (e) { return false; }
+  refreshTripBtns();
+  track("trip-save", { via });
+  return true;
+}
+
+// the bookmark pressed again: the journeys leave the list
+async function removeTrips(journeys, account) {
+  const ids = journeys.map((j) => tripSaves.get(tripKey(j.journey))).filter((id) => id !== undefined);
+  try {
+    await Promise.all(ids.map((id) => reportApi(account.user, "/api/trips/" + id, { method: "DELETE" })));
+  } catch (e) { /* a 404 means it was gone already: forgotten either way */ }
+  journeys.forEach((j) => tripSaves.delete(tripKey(j.journey)));
+  refreshTripBtns();
+  track("trip-remove", { via: "add" });
+}
+
+async function onTripClick(journeys, url, btn) {
+  btn.disabled = true;
+  try {
+    let account = null;
+    try { account = await currentAccount(); } catch (e) { /* SDK unreachable: same as signed out */ }
+    if (!account || !account.verified) {
+      // park the press for the return from the login page, like a bell's order
+      try {
+        sessionStorage.setItem(TRIP_PENDING_KEY, JSON.stringify({
+          journeys, url, search: tripSearchMeta(), ts: Date.now(),
+        }));
+      } catch (e) { /* no storage: the bookmark has to be pressed again after the login */ }
+      track("trip-login");
+      const next = location.pathname + location.search;
+      location.assign("/login?next=" + encodeURIComponent(next) + "&reason=trips");
+      return;
+    }
+    if (tripBtnOn(btn)) await removeTrips(journeys, account);
+    else await saveTrip(journeys, url, "add", tripSearchMeta(), account);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* The header's account corner: the name of the signed-in account - a link to
+   its trips - or the link to sign in, which brings the visitor back to this
+   page rather than to the stories board. Filled from the same lookup that
+   lights the bells. */
+const authLoginEl = document.getElementById("auth-login");
+
+function renderAuth(account) {
+  const name = account ? account.name : null;
+  authLoginEl.classList.toggle("hidden", !!name);
+  document.getElementById("auth-user").classList.toggle("hidden", !name);
+  const nameEl = document.getElementById("auth-name");
+  nameEl.textContent = name || "";
+  nameEl.href = tripsPath();
+  nameEl.title = t("navTrips");
+}
+
+authLoginEl.addEventListener("click", () => {
+  // a search rewrites the URL as it goes, so the way back is set on the way out
+  authLoginEl.search = "?next=" + encodeURIComponent(location.pathname + location.search);
+  track("login-nav");
+});
+
+document.getElementById("auth-logout").addEventListener("click", async () => {
+  try {
+    await fb.signOut(fb.auth);
+  } catch (e) { /* the SDK may still hold the user; the reload sorts it out */ }
+  fb.remember(false);
+  // reload rather than patch state: the lit bells belong to the account that just left
+  location.reload();
+});
+
+/* On load: fill the account corner, complete an order that waited for the
+   login, and light the bells of journeys this account already ordered a report
+   for. All need the account, which is only looked up when there is a reason
+   to - a parked order, or the hint the login page leaves behind; without one
+   the corner simply offers the login. */
+async function initReports() {
+  let pending = null;
+  try {
+    pending = JSON.parse(sessionStorage.getItem(REPORT_PENDING_KEY));
+    sessionStorage.removeItem(REPORT_PENDING_KEY);
+  } catch (e) { /* no storage */ }
+  if (pending && !(pending.journey && Date.now() - pending.ts < REPORT_PENDING_MAX_AGE)) pending = null;
+  // a bookmark press that waited for the login, on the same terms
+  let tripPending = null;
+  try {
+    tripPending = JSON.parse(sessionStorage.getItem(TRIP_PENDING_KEY));
+    sessionStorage.removeItem(TRIP_PENDING_KEY);
+  } catch (e) { /* no storage */ }
+  if (tripPending && !(tripPending.journeys && Date.now() - tripPending.ts < REPORT_PENDING_MAX_AGE)) tripPending = null;
+  if (!pending && !tripPending && !accountHinted()) { renderAuth(null); return; }
+  let account = null;
+  try { account = await currentAccount(); } catch (e) { /* SDK unreachable: same as signed out */ }
+  renderAuth(account);
+  if (!account || !account.verified) return;  // the login was abandoned: nothing is ordered
+  if (pending) {
+    openReportModal(pending.journey);
+    await orderReport(account, pending.journey, pending.search || reportSearchMeta());
+  }
+  if (tripPending) await saveTrip(tripPending.journeys, tripPending.url, "add", tripPending.search, account);
+  try {
+    const res = await reportApi(account.user, "/api/reports/mine");
+    reportSubs = new Map(res.subscriptions.map((sub) => [sub.key, sub.id]));
+    reportEmail = res.email;
+    refreshBells();
+  } catch (e) { /* the bells simply start unlit */ }
+  try {
+    const res = await reportApi(account.user, "/api/trips");
+    res.trips.forEach((tr) => tripSaves.set(tr.key, tr.id));
+    refreshTripBtns();
+  } catch (e) { /* the bookmarks simply start unlit */ }
+}
+
 // price slot: the D-Ticket label when the connection is covered by the ticket,
 // an offer price, or a pointer to bahn.de when the search turned up no price.
 // `journey` is the row the price belongs to; the trip total passes the combined
@@ -2408,8 +3548,8 @@ function priceNode(value, journey) {
     price.classList.add("price-dticket");
     price.textContent = t("dticketIncluded");
     price.title = t("dticketIncludedTooltip");
-  } else if (state.ageUsed === "toddler") {
-    // a lone 0-5-year-old never needs a ticket, so no offer price comes back
+  } else if (state.travellersUsed.every((tr) => tr.age === "toddler")) {
+    // 0-5-year-olds never need a ticket, so no offer price comes back for them
     price.classList.add("price-dticket");
     price.textContent = t("priceFree");
     price.title = t("priceFreeTooltip");
@@ -2571,15 +3711,37 @@ function render() {
         action.href = bahnDeUrl(journey, null);
         action.target = "_blank";
         action.rel = "noopener";
-        action.addEventListener("click", () =>
+        action.addEventListener("click", () => {
           track("book-bahn", {
             from: state.from?.name,
             to: state.to?.name,
             // covered by the D-Ticket costs nothing extra: 0, not "no price known"
             price: journey.dticketCovered ? 0 : journey.price ?? "na",
             trip: "oneway",
-          })
-        );
+          });
+          saveTrip([{ kind: "oneway", journey }], action.href, "card");
+        });
+      }
+
+      // beside the booking button: the bell orders a post-journey forecast-vs-
+      // actual report email (only where a tracked leg can still be resolved
+      // after the trip), the bookmark files the journey under Meine Fahrten
+      let bookSlot = action;
+      if (!state.returnTrip) {
+        bookSlot = document.createElement("div");
+        bookSlot.className = "book-row";
+        bookSlot.appendChild(action);
+        if (reportEligible(journey)) {
+          const bell = document.createElement("button");
+          bell.type = "button";
+          bell.className = "bell-btn";
+          bell.dataset.reportKey = reportKey(journey);
+          bell.innerHTML = BELL_SVG;
+          paintBell(bell, reportSubs.has(bell.dataset.reportKey));
+          bell.addEventListener("click", () => onBellClick(journey));
+          bookSlot.appendChild(bell);
+        }
+        bookSlot.appendChild(tripButton([{ kind: "oneway", journey }], action.href));
       }
 
       // badges, price and booking button wrap together as one right-aligned block
@@ -2587,7 +3749,7 @@ function render() {
       cta.className = "journey-cta";
       // next to a tight-transfer warning the delay badge is only worth the space when red
       const showDelayBadge = !tightBadge || badge.classList.contains("red");
-      cta.append(...(tightBadge ? [tightBadge] : []), ...(showDelayBadge ? [badge] : []), price, action);
+      cta.append(...(tightBadge ? [tightBadge] : []), ...(showDelayBadge ? [badge] : []), price, bookSlot);
       head.append(times, meta, spacer, cta);
     }
     card.appendChild(head);
@@ -2804,20 +3966,53 @@ function renderSummary() {
   book.className = "book-btn book-btn-lg";
   book.textContent = t("bookBoth");
   book.href = bahnDeUrl(ret, out);
+  const legs = [{ kind: "outbound", journey: out }, { kind: "return", journey: ret }];
   book.target = "_blank";
   book.rel = "noopener";
-  book.addEventListener("click", () =>
+  book.addEventListener("click", () => {
     track("book-bahn", {
       from: state.from?.name,
       to: state.to?.name,
       price: tripTotal() ?? "na",
       trip: "roundtrip",
-    })
-  );
+    });
+    saveTrip(legs, book.href, "summary");
+  });
 
-  panel.append(total, book);
+  // the bookmark files both legs at once, and lights only once both are filed
+  const bookRow = document.createElement("div");
+  bookRow.className = "book-row";
+  bookRow.append(book, tripButton(legs, book.href));
+  panel.append(total, bookRow);
   resultsEl.appendChild(panel);
 }
+
+// --- delay stories banner ---
+// Same dismiss contract as the install prompt below — the cross hides the row and
+// keeps it hidden for DISMISS_DAYS — but on a shorter timer: the board gains new
+// stories, so the nudge is worth repeating sooner than the one-off install offer.
+
+(function initStoriesBanner() {
+  const banner = document.getElementById("stories-banner");
+  if (!banner) return;
+
+  const DISMISS_KEY = "storiesBannerDismissed";
+  const DISMISS_DAYS = 15;
+
+  const dismissedTs = Number(localStorage.getItem(DISMISS_KEY) || 0);
+  if (dismissedTs > 0 && Date.now() - dismissedTs < DISMISS_DAYS * 864e5) {
+    banner.classList.add("hidden");
+    return;
+  }
+
+  banner.querySelector(".stories-banner-link")
+    .addEventListener("click", () => track("stories-banner"));
+  document.getElementById("stories-banner-dismiss").addEventListener("click", () => {
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    banner.classList.add("hidden");
+    track("stories-banner", { step: "dismiss" });
+  });
+})();
 
 // --- install prompt (PWA awareness) ---
 // The manifest + service worker make the site installable, but browsers surface
@@ -2835,7 +4030,7 @@ function renderSummary() {
   const iosSheet = document.getElementById("ios-install-sheet");
 
   const DISMISS_KEY = "installPromptDismissed";
-  const DISMISS_DAYS = 60;
+  const DISMISS_DAYS = 30;
 
   const standalone = window.matchMedia("(display-mode: standalone)").matches
     || window.navigator.standalone === true;
@@ -2966,13 +4161,29 @@ const qp = new URLSearchParams(location.search);
     // "1" is the legacy value from before the "all trains" mode existed
     document.getElementById("dticket").checked = ["1", "only"].includes(qp.get("dticket"));
     document.getElementById("dticket-all").checked = qp.get("dticket") === "all";
-    if (["senior", "young", "child", "toddler"].includes(qp.get("age"))) {
-      document.getElementById("age").value = qp.get("age");
+    // "age" is the legacy single-traveller form, from before the party was a list
+    const restored = parseTravellers(qp.get("travellers"))
+      || (["senior", "young", "child", "toddler"].includes(qp.get("age"))
+        ? [{ count: 1, age: qp.get("age"), discount: "none" }] : null);
+    if (restored) {
+      travellerRows().forEach((row) => row.remove());
+      restored.forEach((tr) => addTravellerRow(tr));
+      syncTravellerUI();
     }
     if (["10", "15", "20", "25", "30", "35", "40", "45"].includes(qp.get("transfer"))) {
       document.getElementById("transfer").value = qp.get("transfer");
     }
-    if (dticketMode() !== "off" || ageMode() !== "adult" || transferMinutes() !== "0") setAdvancedOpen(true);
+    const parseProducts = (raw) => {
+      const names = (raw || "").split(",").filter((p) => PRODUCTS.includes(p));
+      return names.length ? new Set(names) : null;
+    };
+    const tm = parseProducts(qp.get("tm"));
+    if (tm) state.products.outbound = tm;
+    // no tmr means the legs were filtered alike; "all" is a deliberately open return
+    state.products.return = qp.get("tmr") === "all" ? new Set(PRODUCTS)
+      : parseProducts(qp.get("tmr")) || new Set(state.products.outbound);
+    updateTransportBtn();
+    if (travellersParam() || transferMinutes() !== "0" || productsParam("outbound") || productsParam("return")) setAdvancedOpen(true);
     if (!PAST_PAGE && qp.get("rdate")) {
       // the picked outbound isn't in the URL, so a restored round trip
       // starts over at step 1
@@ -2980,6 +4191,25 @@ const qp = new URLSearchParams(location.search);
       returnDateEl.value = qp.get("rdate");
       if (qp.get("rtime")) returnTimeEl.value = qp.get("rtime");
     }
+    if (!PAST_PAGE) {
+      const restoreVia = (param, key) => {
+        if (!qp.get(`${param}Id`)) return;
+        state[key] = { id: qp.get(`${param}Id`), name: qp.get(param) || "" };
+        document.getElementById(key).value = state[key].name;
+        setStay(key, parseStay(qp.get(`${param}Stay`)));
+        viaRow(key).classList.remove("hidden");
+      };
+      restoreVia("vo1", "viaOut1");
+      restoreVia("vo2", "viaOut2");
+      if (state.returnTrip) {
+        restoreVia("vr1", "viaRet1");
+        restoreVia("vr2", "viaRet2");
+      }
+      if (ALL_VIA_KEYS.some((k) => state[k])) setAdvancedOpen(true);
+      syncStopoverUI();
+    }
     search();
   }
 })();
+
+initReports();

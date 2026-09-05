@@ -25,9 +25,9 @@ git worktree list
 git status --short
 ```
 
-Feature work lives in a worktree — `.claude/worktrees/<slug>` on `feature/<slug>`
-when it was made with `EnterWorktree`, which is the preferred route, or
-`../db_delay_predictor-<slug>` when it came from the fallback `git worktree add`.
+Feature work lives in a worktree under `.claude/worktrees/<slug>` — both
+`EnterWorktree` and the fallback `git worktree add` put it there. A few older
+worktrees still sit at `../db_delay_predictor-<slug>`.
 Take the path from `git worktree list` rather than assuming either. Small fixes are
 often straight on `main` in the primary checkout. Everything below happens in
 whichever checkout holds the changes. If the work is already on `main`, skip
