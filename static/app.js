@@ -250,8 +250,11 @@ const I18N = {
     tripSaved: "✓ Unter „Meine Fahrten“ gespeichert",
     tripBtnTitle: "Zu Meine Fahrten hinzufügen",
     tripModalTitle: "Fahrt merken",
-    tripModalLead: "Gemerkte Fahrten sammelt DelayBahn unter „Meine Fahrten“: mit der Verspätungsstatistik von heute und – nach der Fahrt – der tatsächlichen Verspätung und deinem Entschädigungsanspruch.",
+    tripModalLead: "Unter „Meine Fahrten“ siehst du nach der Fahrt die tatsächliche Verspätung, deinen Entschädigungsanspruch und deine Bilanz: wie viel Zeit dich Verspätungen und Ausfälle gekostet haben.",
     tripLoginBtn: "Anmelden & Fahrt merken",
+    tripSavedTitle: "Fahrt gespeichert",
+    tripSavedLead: "Du findest sie unter „Meine Fahrten“ – nach der Fahrt mit der tatsächlichen Verspätung, deinem Entschädigungsanspruch und deiner Bilanz: wie viel Zeit dich Verspätungen und Ausfälle gekostet haben.",
+    tripSavedLink: "Zu Meine Fahrten",
     tripBtnOnTitle: "In Meine Fahrten gespeichert – zum Entfernen klicken",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
     refundCtaLead: "Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.",
@@ -529,8 +532,11 @@ const I18N = {
     tripSaved: "✓ Saved under “My trips”",
     tripBtnTitle: "Add to My trips",
     tripModalTitle: "Save this trip",
-    tripModalLead: "Saved trips collect under “My trips”: with today's delay statistics and, after the journey, what the delay actually was and what you can claim.",
+    tripModalLead: "Under “My trips” you'll see, after the journey, the actual delay, what you can claim and your tally: how much time delays and cancellations have cost you.",
     tripLoginBtn: "Log in & save this trip",
+    tripSavedTitle: "Trip saved",
+    tripSavedLead: "Find it under “My trips” – after the journey with the actual delay, what you can claim and your tally: how much time delays and cancellations have cost you.",
+    tripSavedLink: "Go to My trips",
     tripBtnOnTitle: "Saved in My trips – click to remove",
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
@@ -825,7 +831,7 @@ function applyLang(lang) {
   if (state.staleSeconds) setStaleNotice(state.staleSeconds);
   if (claimModal.open) populateClaimModal();
   if (reportModal.open) populateReportModal();
-  if (tripModal.open && tripPending) openTripModal(tripPending.journeys, tripPending.url);
+  if (tripModal.open && tripPending) openTripModal(tripPending.journeys, tripPending.url, tripModalMode);
   renderTripSteps();
   render();
 }
@@ -3438,15 +3444,25 @@ async function removeTrips(journeys, account) {
   track("trip-remove", { via: "add" });
 }
 
-/* Signed out, the press opens this instead of jumping straight to the login:
-   the bookmark is unlabelled, so what it does has to be said once before the
-   visitor is sent away for an account. The login button then parks the press
-   exactly as the bell's does. */
+/* The bookmark is unlabelled, so what it does has to be said. Signed out, the
+   press opens this instead of jumping straight to the login, and the login
+   button then parks the press exactly as the bell's does. Signed in, the same
+   modal is the receipt: the trip is filed, and the list is where the delay
+   tally lives. */
 const tripModal = document.getElementById("trip-modal");
 let tripPending = null;   // {journeys, url} the modal's login button files on return
+let tripModalMode = "login";  // "login" or "saved": which of the two the modal shows
 
-function openTripModal(journeys, url) {
+function openTripModal(journeys, url, mode = "login") {
   tripPending = { journeys, url };
+  tripModalMode = mode;
+  const saved = mode === "saved";
+  document.getElementById("trip-modal-title").textContent = t(saved ? "tripSavedTitle" : "tripModalTitle");
+  document.getElementById("trip-modal-lead").textContent = t(saved ? "tripSavedLead" : "tripModalLead");
+  document.getElementById("trip-login-btn").classList.toggle("hidden", saved);
+  const link = document.getElementById("trip-saved-link");
+  link.classList.toggle("hidden", !saved);
+  link.href = tripsPath();
   const j = journeys[0]?.journey;
   const legs = j?.legs || [];
   const from = legs[0]?.origin?.name || state.from?.name || "";
@@ -3484,7 +3500,7 @@ async function onTripClick(journeys, url, btn) {
       return;
     }
     if (tripBtnOn(btn)) await removeTrips(journeys, account);
-    else await saveTrip(journeys, url, "add", tripSearchMeta(), account);
+    else if (await saveTrip(journeys, url, "add", tripSearchMeta(), account)) openTripModal(journeys, url, "saved");
   } finally {
     btn.disabled = false;
   }
@@ -3549,7 +3565,9 @@ async function initReports() {
     openReportModal(pending.journey);
     await orderReport(account, pending.journey, pending.search || reportSearchMeta());
   }
-  if (tripPending) await saveTrip(tripPending.journeys, tripPending.url, "add", tripPending.search, account);
+  if (tripPending && await saveTrip(tripPending.journeys, tripPending.url, "add", tripPending.search, account)) {
+    openTripModal(tripPending.journeys, tripPending.url, "saved");
+  }
   try {
     const res = await reportApi(account.user, "/api/reports/mine");
     reportSubs = new Map(res.subscriptions.map((sub) => [sub.key, sub.id]));

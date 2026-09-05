@@ -1954,6 +1954,10 @@ body.past-mode .stories-banner { display: none; }
 }
 .trip-modal-journey:empty { display: none; }
 #trip-modal .report-submit { margin-top: 14px; margin-bottom: 4px; }
+/* the receipt after a signed-in press: the way to the list, styled like the login button */
+.trip-saved-link { display: inline-block; text-decoration: none; }
+.trip-saved-link:hover { color: #fff; }
+#trip-modal .report-submit.hidden { display: none; }
 
 .trips-main { max-width: 720px; }
 .trips-intro { font-size: 13.5px; line-height: 1.45; color: var(--text-muted); margin: 0 2px 14px; }

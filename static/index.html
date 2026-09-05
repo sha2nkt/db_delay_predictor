@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=112">
+<link rel="stylesheet" href="/style.css?v=113">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -568,14 +568,15 @@ try {
     <p id="report-status" class="report-status" aria-live="polite"></p>
   </div>
 </dialog>
-<!-- the bookmark pressed while signed out: what it does, then the login -->
+<!-- the bookmark pressed: signed out, what it does and then the login; signed in, the receipt -->
 <dialog id="trip-modal" class="claim-modal report-modal">
   <div class="claim-modal-inner">
     <button id="trip-modal-close" class="claim-modal-close" type="button" data-i18n-title="reportModalClose" data-i18n-aria="reportModalClose">✕</button>
-    <h2 class="claim-modal-title" data-i18n="tripModalTitle">Fahrt merken</h2>
-    <p class="claim-modal-lead" data-i18n="tripModalLead">Gemerkte Fahrten sammelt DelayBahn unter „Meine Fahrten“: mit der Verspätungsstatistik von heute und – nach der Fahrt – der tatsächlichen Verspätung und deinem Entschädigungsanspruch.</p>
+    <h2 id="trip-modal-title" class="claim-modal-title" data-i18n="tripModalTitle">Fahrt merken</h2>
+    <p id="trip-modal-lead" class="claim-modal-lead" data-i18n="tripModalLead">Unter „Meine Fahrten“ siehst du nach der Fahrt die tatsächliche Verspätung, deinen Entschädigungsanspruch und deine Bilanz: wie viel Zeit dich Verspätungen und Ausfälle gekostet haben.</p>
     <p id="trip-modal-journey" class="trip-modal-journey"></p>
     <button id="trip-login-btn" class="report-submit" type="button" data-i18n="tripLoginBtn">Anmelden &amp; Fahrt merken</button>
+    <a id="trip-saved-link" class="report-submit trip-saved-link hidden" href="/meine-fahrten" data-i18n="tripSavedLink">Zu Meine Fahrten</a>
   </div>
 </dialog>
 <dialog id="ios-install-sheet" class="ios-sheet">
@@ -728,7 +729,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=129"></script>
+<script src="/app.js?v=130"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
