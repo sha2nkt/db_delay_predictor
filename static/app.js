@@ -243,7 +243,7 @@ const I18N = {
     followLinkedIn: "DelayBahn auf LinkedIn",
     followX: "DelayBahn auf X",
     footerDisclaimer: "DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.",
-    navRefund: "Entschädigung beantragen",
+    navRefund: "Entschädigung",
     navLogin: "Anmelden",
     navLogout: "Abmelden",
     navTrips: "Meine Fahrten",
@@ -525,7 +525,7 @@ const I18N = {
     followLinkedIn: "DelayBahn on LinkedIn",
     followX: "DelayBahn on X",
     footerDisclaimer: "DelayBahn is an independent project and is not affiliated with Deutsche Bahn AG. “DB” and “Deutsche Bahn” are trademarks of Deutsche Bahn AG.",
-    navRefund: "Apply for delay compensation",
+    navRefund: "Delay Compensation",
     navLogin: "Login",
     navLogout: "Logout",
     navTrips: "My trips",
@@ -1801,6 +1801,7 @@ async function initPastPage() {
 document.getElementById("refund-cta").addEventListener("click", () => track("refund-cta"));
 document.getElementById("stories-cta").addEventListener("click", () => track("stories-cta"));
 document.getElementById("refund-nav").addEventListener("click", () => track("refund-nav"));
+document.getElementById("trips-nav").addEventListener("click", () => track("trips-nav"));
 document.getElementById("donate-footer-item").hidden = !DONATE_ENABLED;
 document.getElementById("donate-footer").addEventListener("click", () =>
   track("donate", { placement: "footer" }));

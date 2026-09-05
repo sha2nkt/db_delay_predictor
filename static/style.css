@@ -289,14 +289,16 @@ main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
 @starting-style { .hero-chart.chart-open img { opacity: 0; } }
 body.past-mode .hero-chart { display: none; }
 
+/* the two header pills wrap as one unit, so they never split across rows */
+.header-pills { display: flex; gap: 12px; margin-left: auto; flex-shrink: 0; }
 .refund-nav {
-  margin-left: auto; flex-shrink: 0;
+  flex-shrink: 0;
   background: #fff; border: none; border-radius: 18px; text-decoration: none;
   padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--brand-red);
   box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
 .refund-nav:hover { background: color-mix(in srgb, var(--brand-red) 8%, #fff); }
-body.past-mode .refund-nav {
+body.past-mode #refund-nav {
   background: color-mix(in srgb, var(--brand-red) 12%, #fff);
   box-shadow: inset 0 1px 3px rgba(0,0,0,.25); cursor: default; pointer-events: none;
 }
@@ -1038,6 +1040,8 @@ body.nudge-on #donate-footer-item { display: none; }
      single words; a long name is clipped so the corner still fits the row */
   .header-home { justify-content: flex-end; }
   .header-home .header-title { flex-basis: 100px; }
+  /* both pills and the language switch share the second row down to 360px */
+  .header-home .refund-nav { padding: 7px 12px; font-size: 12px; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
   /* stacked card: the toggle centers on its line, the button spans below it */

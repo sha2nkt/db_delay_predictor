@@ -1062,6 +1062,7 @@ def _page_html(mode: str, lang: str) -> str:
         # in-page navigation must stay inside the current language
         (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{home}"),
         (r'(<a id="refund-nav" class="refund-nav" href=")[^"]*', rf"\g<1>{past}"),
+        (r'(<a id="trips-nav" class="refund-nav trips-nav" href=")[^"]*', rf"\g<1>{TRIPS_PATHS[lang]}"),
         (r'(<a id="refund-cta" class="refund-cta" href=")[^"]*', rf"\g<1>{past}"),
         (r'(<a id="past-exit" class="past-exit" href=")[^"]*', rf"\g<1>{home}"),
         (r'(<a href=")[^"]*(" data-i18n="footerStories")', rf"\g<1>{STORIES_PATHS[lang]}\g<2>"),

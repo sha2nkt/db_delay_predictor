@@ -65,7 +65,7 @@ try {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="DelayBahn">
-<link rel="stylesheet" href="/style.css?v=116">
+<link rel="stylesheet" href="/style.css?v=117">
 <script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
 </head>
 <body>
@@ -78,7 +78,10 @@ try {
       <a id="auth-login" class="auth-link hidden" href="/login" data-i18n="navLogin">Anmelden</a>
       <span id="auth-user" class="auth-user hidden"><a id="auth-name" class="auth-name" href="/meine-fahrten"><svg class="auth-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.31 0-8 1.66-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-3.34-4.69-5-8-5Z"/></svg><span id="auth-name-text" class="auth-name-text"></span></a><button id="auth-logout" class="auth-logout" type="button" data-i18n="navLogout">Abmelden</button></span>
     </span>
-    <a id="refund-nav" class="refund-nav" href="/entschaedigung" data-i18n="navRefund">Entschädigung beantragen</a>
+    <nav class="header-pills">
+      <a id="refund-nav" class="refund-nav" href="/entschaedigung" data-i18n="navRefund">Entschädigung</a>
+      <a id="trips-nav" class="refund-nav trips-nav" href="/meine-fahrten" data-i18n="navTrips">Meine Fahrten</a>
+    </nav>
     <div class="header-lang">
       <a href="/" hreflang="de" data-lang="de" class="lang-btn active">DE</a>
       <a href="/en/" hreflang="en" data-lang="en" class="lang-btn">EN</a>
@@ -729,7 +732,7 @@ try {
   <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
   <p class="footer-copyright">Copyright © 2026 Shashank Tripathi</p>
 </footer>
-<script src="/app.js?v=131"></script>
+<script src="/app.js?v=132"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
