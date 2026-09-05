@@ -2032,7 +2032,6 @@ body.past-mode .stories-banner { display: none; }
 .trip-check-status { margin-top: 8px; font-size: 13px; color: var(--text-muted); }
 .trip-check-status.error { color: var(--red); }
 /* an upcoming trip: the statistics button leads the actions row, the booking link closes it */
-.trip-book { margin-left: auto; }
 .trip .cancel-note { margin-top: 8px; }
 .trips-search-link { color: var(--brand-red); font-weight: 600; text-decoration: none; }
 .trips-search-link:hover { text-decoration: underline; }

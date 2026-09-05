@@ -35,7 +35,6 @@ const I18N = {
     canceled: "Ausgefallen",
     kindOutbound: "Hinfahrt",
     kindReturn: "Rückfahrt",
-    open: "Auf bahn.de öffnen",
     check: "Verspätung & Entschädigung prüfen",
     reportBtn: "Störung melden",
     storyBtn: "Geschichte erzählen",
@@ -125,7 +124,6 @@ const I18N = {
     canceled: "Cancelled",
     kindOutbound: "Outbound",
     kindReturn: "Return",
-    open: "Open on bahn.de",
     check: "Check delay & compensation",
     reportBtn: "Report train issues",
     storyBtn: "Share delay story",
@@ -787,16 +785,6 @@ function tripCard(trip, past) {
     show.setAttribute("aria-expanded", "false");
     show.addEventListener("click", () => { togglePanel(panel, show); track("trip-plan"); });
     actions.appendChild(show);
-    if (trip.bahnUrl) {
-      const link = document.createElement("a");
-      link.className = "book-btn trip-book";
-      link.href = trip.bahnUrl;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = t("open");
-      link.addEventListener("click", () => track("book-bahn", { via: "my-trips" }));
-      actions.appendChild(link);
-    }
     card.append(head, row, meta, actions, panel);
     return card;
   }
