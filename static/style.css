@@ -2069,8 +2069,13 @@ body.past-mode .stories-banner { display: none; }
     display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;
   }
   .header-stories .auth-name { max-width: 9em; }
-  /* home header: the barely-readable clipped name becomes the account icon */
-  .header-home .auth-name { display: inline-flex; align-items: center; }
+  /* home header: the barely-readable clipped name becomes a circled account icon */
+  .header-home .auth-user { align-items: center; }
+  .header-home .auth-name {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border: 2px solid #fff; border-radius: 50%;
+  }
+  .header-home .auth-name:hover { background: rgba(255,255,255,.15); text-decoration: none; }
   .header-home .auth-name .auth-icon { display: block; }
   .header-home .auth-name .auth-name-text { display: none; }
 }
