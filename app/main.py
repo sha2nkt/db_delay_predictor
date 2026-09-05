@@ -20,7 +20,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, StringConstraints
 
 from app import (
-    auth, bahn_api, delays, feedback, live_delays, mailer, ratelimit, reports, stories, trips,
+    auth, bahn_api, delays, feedback, leaderboard, live_delays, mailer, ratelimit, reports,
+    stories, trips,
 )
 from app.config import env_int
 
@@ -99,12 +100,22 @@ def _row_count() -> int:
     return _rows
 
 
+async def _warm_leaderboard() -> None:
+    try:
+        await asyncio.to_thread(leaderboard.get)
+    except Exception:
+        log.exception("leaderboard warm-up failed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _rows
     delays.init()
     # counted once here: COUNT(*) over 19.7M rows must not run per /health call
     _rows = delays.row_count()
+    # the leaderboard's one pass over the table runs off the loop: the first
+    # visitor never waits for it, and startup stays sub-second
+    asyncio.create_task(_warm_leaderboard())
     credits_watch = asyncio.create_task(mailer.watch_credits())
     yield
     credits_watch.cancel()
@@ -889,6 +900,17 @@ async def coverage():
     }
 
 
+@app.get("/api/leaderboard")
+async def leaderboard_api(response: Response):
+    """Country punctuality ranking over the last day / 7 / 30 days of the data
+    window, plus the per-day series behind it. Computed once per data version
+    (app/leaderboard.py): a hit is a dict lookup, a miss a ~0.2 s scan run off
+    the event loop. The data only moves with the nightly restart, so the edge
+    may hold it for a while."""
+    response.headers["Cache-Control"] = "public, max-age=600"
+    return await asyncio.to_thread(leaderboard.get)
+
+
 # Every (mode, language) pair is its own indexable URL, so Google can rank the
 # German and English versions separately instead of seeing one page whose text a
 # JS toggle rewrites. German keeps the existing URLs; English lives under /en/.
@@ -906,6 +928,7 @@ PAGE_PATHS = {
 }
 
 STORIES_PATHS = {"de": "/geschichten", "en": "/stories"}
+LEADERBOARD_PATHS = {"de": "/rangliste", "en": "/leaderboard"}
 STORIES_LOGO = {"de": "/logo_delay_stories_square_german.png",
                 "en": "/logo_delay_stories_square.png"}
 STORIES_WORDMARK = {"de": "/logo_delay_stories_wide_german_transparent.png",
@@ -1042,6 +1065,7 @@ def _page_html(mode: str, lang: str) -> str:
         (r'(<a id="refund-cta" class="refund-cta" href=")[^"]*', rf"\g<1>{past}"),
         (r'(<a id="past-exit" class="past-exit" href=")[^"]*', rf"\g<1>{home}"),
         (r'(<a href=")[^"]*(" data-i18n="footerStories")', rf"\g<1>{STORIES_PATHS[lang]}\g<2>"),
+        (r'(<a href=")[^"]*(" data-i18n="footerLeaderboard")', rf"\g<1>{LEADERBOARD_PATHS[lang]}\g<2>"),
         (r'(<a id="stories-cta" class="stories-cta" href=")[^"]*', rf"\g<1>{STORIES_PATHS[lang]}"),
         (r'(<img id="stories-cta-logo" src=")[^"]*(" alt=")[^"]*',
          rf"\g<1>{STORIES_LOGO[lang]}\g<2>{STORIES_ALT[lang]}"),
@@ -1314,6 +1338,83 @@ async def story_embed_de(story_id: int) -> HTMLResponse:
 @app.get("/embed/stories/{story_id:int}")
 async def story_embed_en(story_id: int) -> HTMLResponse:
     return await _story_embed(story_id, "en")
+
+
+# (title, description) per language; og:description reuses the description
+LEADERBOARD_META = {
+    "de": (
+        "Europas Bahn-Rangliste – welches Land fährt am pünktlichsten? | DelayBahn",
+        "Deutschland, Österreich, Schweiz, Frankreich, Niederlande und Italien im "
+        "Pünktlichkeits-Vergleich – täglich, wöchentlich, monatlich, mit Verspätungs-"
+        "Karte. Jeden Morgen automatisch neu berechnet.",
+    ),
+    "en": (
+        "Europe's rail leaderboard – which country runs the most punctual trains? | DelayBahn",
+        "Germany, Austria, Switzerland, France, the Netherlands and Italy compared on "
+        "punctuality – daily, weekly, monthly, with a delay map. Recomputed "
+        "automatically every morning.",
+    ),
+}
+
+
+def _leaderboard_html(lang: str) -> str:
+    """Render one language of the country leaderboard from leaderboard.html:
+    the same page at /rangliste and /leaderboard, only the text language differs."""
+    html = (STATIC_DIR / "leaderboard.html").read_text(encoding="utf-8")
+    other = "de" if lang == "en" else "en"
+    title, description = LEADERBOARD_META[lang]
+    url = SITE + LEADERBOARD_PATHS[lang]
+    home = PAGE_PATHS[("future", lang)]
+    subs = [
+        (r'<html lang="[^"]*"', f'<html lang="{lang}"'),
+        (r"<title>[^<]*</title>", f"<title>{title}</title>"),
+        (r'(<meta name="description" content=")[^"]*', rf"\g<1>{description}"),
+        (r'(<link rel="canonical" href=")[^"]*', rf"\g<1>{url}"),
+        (r'(<link rel="alternate" hreflang="de" href=")[^"]*', rf"\g<1>{SITE}{LEADERBOARD_PATHS['de']}"),
+        (r'(<link rel="alternate" hreflang="en" href=")[^"]*', rf"\g<1>{SITE}{LEADERBOARD_PATHS['en']}"),
+        (r'(<link rel="alternate" hreflang="x-default" href=")[^"]*', rf"\g<1>{SITE}{LEADERBOARD_PATHS['de']}"),
+        (r'(<meta property="og:url" content=")[^"]*', rf"\g<1>{url}"),
+        (r'(<meta property="og:title" content=")[^"]*', rf"\g<1>{title}"),
+        (r'(<meta property="og:description" content=")[^"]*', rf"\g<1>{description}"),
+        (r'(<meta property="og:locale" content=")[^"]*', rf"\g<1>{OG_LOCALE[lang]}"),
+        (r'(<meta property="og:locale:alternate" content=")[^"]*', rf"\g<1>{OG_LOCALE[other]}"),
+        (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{LEADERBOARD_PATHS['de']}\g<2>"),
+        (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{LEADERBOARD_PATHS['en']}\g<2>"),
+        # in-page navigation stays inside the current language
+        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{home}"),
+        (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{home}\g<2>"),
+        (r'(<a href=")[^"]*(" data-i18n="footerStories")', rf"\g<1>{STORIES_PATHS[lang]}\g<2>"),
+    ]
+    for pattern, repl in subs:
+        html = re.sub(pattern, repl, html, count=1)
+    if lang == "en":
+        html = html.replace('data-lang="en" class="lang-btn"', 'data-lang="en" class="lang-btn active"')
+        html = html.replace('data-lang="de" class="lang-btn active"', 'data-lang="de" class="lang-btn"')
+        html = _translate(html, "leaderboard.js")
+    return html
+
+
+@app.get("/rangliste")
+async def leaderboard_page_de() -> HTMLResponse:
+    # no-cache like the other HTML documents (no ?v= buster on the document)
+    return HTMLResponse(_leaderboard_html("de"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/leaderboard")
+async def leaderboard_page_en() -> HTMLResponse:
+    return HTMLResponse(_leaderboard_html("en"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/rangliste/")
+@app.get("/rangliste.html")
+async def leaderboard_alias_de() -> RedirectResponse:
+    return RedirectResponse("/rangliste", status_code=301)
+
+
+@app.get("/leaderboard/")
+@app.get("/leaderboard.html")
+async def leaderboard_alias_en() -> RedirectResponse:
+    return RedirectResponse("/leaderboard", status_code=301)
 
 
 @app.get("/login")

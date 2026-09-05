@@ -127,6 +127,12 @@ def coverage() -> tuple[date | None, date | None]:
     return _min_day, _max_day
 
 
+def cursor() -> duckdb.DuckDBPyConnection:
+    """A second connection onto the loaded table, for work done off the event-loop
+    thread (a DuckDB connection is not safe to share across threads)."""
+    return _conn.cursor()
+
+
 def row_count() -> int:
     return _conn.execute("SELECT count(*) FROM delays").fetchone()[0] if _conn else 0
 

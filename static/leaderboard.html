@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Europas Bahn-Rangliste – welches Land fährt am pünktlichsten? | DelayBahn</title>
+<meta name="description" content="Deutschland, Österreich, Schweiz, Frankreich, Niederlande und Italien im Pünktlichkeits-Vergleich – täglich, wöchentlich, monatlich, mit Verspätungs-Karte. Jeden Morgen automatisch neu berechnet.">
+<link rel="canonical" href="https://delaybahn.com/rangliste">
+<link rel="alternate" hreflang="de" href="https://delaybahn.com/rangliste">
+<link rel="alternate" hreflang="en" href="https://delaybahn.com/leaderboard">
+<link rel="alternate" hreflang="x-default" href="https://delaybahn.com/rangliste">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://delaybahn.com/rangliste">
+<meta property="og:site_name" content="DelayBahn">
+<meta property="og:title" content="Europas Bahn-Rangliste – welches Land fährt am pünktlichsten? | DelayBahn">
+<meta property="og:description" content="Deutschland, Österreich, Schweiz, Frankreich, Niederlande und Italien im Pünktlichkeits-Vergleich – täglich, wöchentlich, monatlich, mit Verspätungs-Karte. Jeden Morgen automatisch neu berechnet.">
+<meta property="og:image" content="https://delaybahn.com/logo.png">
+<meta property="og:locale" content="de_DE">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/style.css?v=111">
+<link rel="stylesheet" href="/leaderboard.css?v=1">
+<script defer src="/stats/script.js" data-website-id="399cef62-4667-4458-a173-06435e9d76aa" data-host-url="https://delaybahn.com/stats"></script>
+</head>
+<body class="lb-body">
+<header>
+  <div class="header-inner">
+    <a class="logo-link" href="/"><img class="logo" src="/logo.png?v=3" alt="DelayBahn"></a>
+    <span class="header-title"><span data-i18n="headerTitle">Länder-Rangliste</span><span class="tagline" data-i18n="tagline">Welches Land bringt seine Züge pünktlich ans Ziel?</span></span>
+    <div class="header-lang">
+      <a href="/rangliste" hreflang="de" data-lang="de" class="lang-btn active">DE</a>
+      <a href="/leaderboard" hreflang="en" data-lang="en" class="lang-btn">EN</a>
+    </div>
+  </div>
+</header>
+
+<main class="lb-main">
+  <section class="lb-hero">
+    <h1 data-i18n="heroTitle">Europas Bahn-Rangliste</h1>
+    <p class="lb-lead" data-i18n="heroLead">Sechs Bahnländer, ein Maßstab: der Anteil der Halte, an denen der Zug weniger als 6 Minuten verspätet ankam. Jeden Morgen aus den Verspätungsdaten des Vortags neu berechnet.</p>
+    <div class="lb-controls">
+      <div class="lb-periods" role="group" aria-label="Zeitraum">
+        <button type="button" class="lb-period" data-period="day" data-i18n="periodDay">Tag</button>
+        <button type="button" class="lb-period" data-period="week" data-i18n="periodWeek">Woche</button>
+        <button type="button" class="lb-period active" data-period="month" data-i18n="periodMonth">Monat</button>
+      </div>
+      <p id="lb-range" class="lb-range"></p>
+    </div>
+  </section>
+
+  <section class="lb-podium-section">
+    <h2 data-i18n="podiumHeading">Das Podium</h2>
+    <ol id="lb-podium" class="lb-podium"></ol>
+  </section>
+
+  <section class="lb-map-card">
+    <div id="lb-map" class="lb-map"></div>
+    <div class="lb-legend" aria-hidden="true">
+      <span class="lb-legend-title" data-i18n="legendTitle">Anteil verspäteter Halte</span>
+      <span class="lb-legend-scale">
+        <span data-i18n="legendLow">0 %</span>
+        <span class="lb-legend-ramp"></span>
+        <span data-i18n="legendHigh">25 %+</span>
+      </span>
+    </div>
+    <div id="lb-tip" class="lb-tip hidden" role="tooltip"></div>
+  </section>
+
+  <p class="lb-live"><span id="lb-asof"></span></p>
+
+  <section class="lb-table-section">
+    <h2 data-i18n="tableHeading">Die ganze Tabelle</h2>
+    <div class="lb-table-wrap">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th class="lb-col-rank" scope="col">#</th>
+            <th scope="col" data-i18n="colCountry">Land</th>
+            <th scope="col"><button type="button" class="lb-sort" data-sort="punctuality"><span data-i18n="colPunctuality">Pünktlich (&lt; 6 min)</span></button></th>
+            <th class="lb-col-num" scope="col"><button type="button" class="lb-sort" data-sort="avgDelay"><span data-i18n="colAvgDelay">Ø Verspätung</span></button></th>
+            <th class="lb-col-num" scope="col"><button type="button" class="lb-sort" data-sort="cancelled"><span data-i18n="colCancelled">Ausfälle</span></button></th>
+            <th class="lb-col-num lb-col-stops" scope="col"><button type="button" class="lb-sort" data-sort="stops"><span data-i18n="colStops">Halte</span></button></th>
+            <th class="lb-col-trend" scope="col" data-i18n="colTrend" data-i18n-title="colTrendTitle" title="Anteil pünktlicher Halte pro Tag in den letzten 30 Tagen, links der älteste Tag, der Punkt ist der neueste. Jede Linie hat ihre eigene Skala.">Letzte 30 Tage</th>
+          </tr>
+        </thead>
+        <tbody id="lb-rows"></tbody>
+      </table>
+    </div>
+    <p id="lb-status" class="lb-status" role="status"></p>
+  </section>
+
+  <details class="lb-method">
+    <summary><h2 data-i18n="methodHeading">So wird gezählt</h2></summary>
+    <p data-i18n="methodText">Für jedes Land zählen alle aufgezeichneten Zughalte mit Echtzeit-Ankunft. Pünktlich ist ein Halt nach der Definition der Deutschen Bahn, wenn der Zug weniger als 6 Minuten nach Plan ankommt, derselbe Maßstab für alle Länder. Ø Verspätung ist die mittlere Ankunftsverspätung über alle nicht ausgefallenen Halte, zu früh zählt als 0. Die Rangfolge richtet sich nach dem Pünktlichkeitsanteil; bei Gleichstand entscheidet die geringere Ø Verspätung. Länder mit zu wenigen Halten im Zeitraum werden gezeigt, aber nicht gewertet. Die Daten stammen aus den offenen Echtzeit-Quellen der Bahnen (DB IRIS, ÖBB Scotty, opentransportdata.swiss, SNCF GTFS-RT, OVapi, ViaggiaTreno); ihre Abdeckung unterscheidet sich, zum Beispiel erfasst die österreichische Quelle nur die 200 größten Bahnhöfe.</p>
+  </details>
+</main>
+
+<footer class="site-footer">
+  <a href="/" data-i18n="footerBack">← Zur Verbindungssuche</a> ·
+  <a href="/geschichten" data-i18n="footerStories">Delay Geschichten</a> ·
+  <a href="/impressum.html" data-i18n="footerLegal">Impressum &amp; Datenschutz</a> ·
+  <a href="mailto:kontakt@delaybahn.com?subject=DelayBahn%20Rangliste" data-i18n="footerContact">Kontakt</a>
+  <p class="footer-data">
+    <span data-i18n="footerData">Verspätungsdaten:</span>
+    <a href="https://github.com/piebro/deutsche-bahn-data" target="_blank" rel="noopener">Deutsche Bahn (IRIS)</a> ·
+    <a href="https://fahrplan.oebb.at" target="_blank" rel="noopener">ÖBB (Scotty)</a> ·
+    <a href="https://opentransportdata.swiss" target="_blank" rel="noopener">opentransportdata.swiss</a> ·
+    <a href="https://transport.data.gouv.fr/datasets/horaires-sncf" target="_blank" rel="noopener">SNCF via transport.data.gouv.fr (ODbL)</a> ·
+    <a href="https://gtfs.ovapi.nl" target="_blank" rel="noopener">NS (OVapi)</a> ·
+    <a href="http://www.viaggiatreno.it" target="_blank" rel="noopener">RFI/Trenitalia (ViaggiaTreno)</a> ·
+    <a href="https://www.naturalearthdata.com" target="_blank" rel="noopener" data-i18n="footerMap">Karte: Natural Earth</a>
+  </p>
+  <p class="footer-disclaimer"><span data-nosnippet data-i18n="footerDisclaimer">DelayBahn ist ein unabhängiges Projekt und steht in keiner Verbindung zur Deutsche Bahn AG. „DB“ und „Deutsche Bahn“ sind Marken der Deutsche Bahn AG.</span></p>
+</footer>
+<script src="/europe-map.js?v=1"></script>
+<script src="/leaderboard.js?v=1"></script>
+</body>
+</html>
