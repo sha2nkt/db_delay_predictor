@@ -69,6 +69,13 @@
 
   <p id="trips-status" class="trips-status" aria-live="polite"></p>
 
+  <!-- fresh account, no trips at all: the pitch for saving the first one -->
+  <section id="trips-onboard" class="login-card trips-login hidden">
+    <h2 data-i18n="onboardTitle">Noch keine Fahrten gespeichert</h2>
+    <p class="auth-lead" data-i18n="onboardLead">Merk dir deine Verbindungen über das Lesezeichen neben jedem Buchen-Button – DelayBahn zeigt dir dann, wie viel Zeit dich Verspätungen und Ausfälle wirklich gekostet haben.</p>
+    <a id="trips-onboard-btn" class="report-submit trips-login-btn" href="/" data-i18n="onboardBtn">Verbindung suchen</a>
+  </section>
+
   <section id="trips-next-section" class="trips-section hidden">
     <h2 data-i18n="nextHeading">Nächste Fahrten</h2>
     <div id="trips-next" class="trips-list"></div>
@@ -88,6 +95,6 @@
   <a href="/impressum.html#datenschutz-fahrten" data-i18n="footerLegal">Impressum &amp; Datenschutz</a> ·
   <a href="mailto:kontakt@delaybahn.com?subject=DelayBahn%20Meine%20Fahrten" data-i18n="footerContact">Kontakt</a>
 </footer>
-<script src="/trips.js?v=3"></script>
+<script src="/trips.js?v=4"></script>
 </body>
 </html>
