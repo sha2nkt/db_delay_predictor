@@ -245,6 +245,10 @@ const I18N = {
     navRefund: "Entschädigung beantragen",
     navLogin: "Anmelden",
     navLogout: "Abmelden",
+    navTrips: "Meine Fahrten",
+    tripSaved: "✓ Unter „Meine Fahrten“ gespeichert",
+    tripBtnTitle: "Zu Meine Fahrten hinzufügen",
+    tripBtnOnTitle: "In Meine Fahrten gespeichert – zum Entfernen klicken",
     refundCtaTitle: "Über 1 Stunde Verspätung gehabt?",
     refundCtaLead: "Sieh die Reise, die du tatsächlich hattest – mit Verspätungen und verpassten Anschlüssen.",
     refundCtaSub: "Hol dir dein Geld von der DB zurück – in 3 einfachen Klicks",
@@ -516,6 +520,10 @@ const I18N = {
     navRefund: "Apply for delay compensation",
     navLogin: "Login",
     navLogout: "Logout",
+    navTrips: "My trips",
+    tripSaved: "✓ Saved under “My trips”",
+    tripBtnTitle: "Add to My trips",
+    tripBtnOnTitle: "Saved in My trips – click to remove",
     refundCtaTitle: "Hit by over 1 hour of delay?",
     refundCtaLead: "See the journey you actually took, including delays and missed connections.",
     refundCtaSub: "Get your money back from DB in 3 easy clicks",
@@ -3048,6 +3056,7 @@ const reportLoginEl = document.getElementById("report-login");
 const reportDoneEl = document.getElementById("report-done");
 const reportDoneMsgEl = document.getElementById("report-done-msg");
 const reportBookEl = document.getElementById("report-book");
+const reportTripSavedEl = document.getElementById("report-trip-saved");
 const reportStatusEl = document.getElementById("report-status");
 const reportCancelBtn = document.getElementById("report-cancel");
 // sessionStorage: the order that waits for the login page to hand the visitor back
@@ -3218,6 +3227,8 @@ function setReportView(view, errorKey, ...args) {
 
 function openReportModal(journey) {
   state.reportJourney = journey;
+  // the receipt belongs to the last journey's booking press, not this one
+  reportTripSavedEl.classList.add("hidden");
   setReportView("busy");
   if (!reportModal.open) reportModal.showModal();
 }
@@ -3288,6 +3299,9 @@ reportBookEl.addEventListener("click", () => {
     trip: "oneway",
     via: "report-modal",
   });
+  if (!j) return;
+  saveTrip([{ kind: "oneway", journey: j }], reportBookEl.href, "report-modal")
+    .then((ok) => { if (ok) reportTripSavedEl.classList.remove("hidden"); });
 });
 
 reportCancelBtn.addEventListener("click", async () => {
@@ -3310,16 +3324,149 @@ reportCancelBtn.addEventListener("click", async () => {
   }
 });
 
-/* The header's account corner: the name of the signed-in account, or the link
-   to sign in - which brings the visitor back to this page rather than to the
-   stories board. Filled from the same lookup that lights the bells. */
+// --- booked trips: Meine Fahrten ---
+// Two ways in. The bookmark beside a booking button files the journey, and
+// pressed again withdraws it; a signed-in press on the booking button itself
+// files it as well - that press opens bahn.de in a new tab and this tab stays,
+// so the write goes out after the click. Nothing comes back from bahn.de, so
+// an entry is a press, and the trips page drops what was not booked. Same
+// account plumbing as the bells: a signed-out bookmark press parks the
+// journey, sends the visitor to /login, and completes on return.
+
+const tripsPath = () => (state.lang === "en" ? "/en/my-trips" : "/meine-fahrten");
+// sessionStorage: the bookmark press that waits for the login page to hand the visitor back
+const TRIP_PENDING_KEY = "tripPending";
+
+let tripSaves = new Map();  // journey key -> trip id, for the signed-in account
+
+function accountHinted() {
+  try { return localStorage.getItem("account") === "1"; } catch (e) { return false; }
+}
+
+// the same string trips.journey_key builds server-side, from the same fields
+function tripKey(journey) {
+  return (journey.legs || [])
+    .map((l) => [l.line?.fahrtNr, l.origin?.id, l.destination?.id, l.plannedDeparture, l.plannedArrival]
+      .map((v) => v ?? "").join("|"))
+    .join("\n");
+}
+
+const TRIP_SVG =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"'
+  + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>';
+
+function paintTripBtn(btn, on) {
+  btn.classList.toggle("on", on);
+  btn.setAttribute("aria-pressed", String(on));
+  const label = t(on ? "tripBtnOnTitle" : "tripBtnTitle");
+  btn.title = label;
+  btn.setAttribute("aria-label", label);
+}
+
+// a bookmark is lit once every journey it stands for is filed (both legs of a round trip)
+const tripBtnOn = (btn) => JSON.parse(btn.dataset.tripKeys).every((k) => tripSaves.has(k));
+
+function refreshTripBtns() {
+  document.querySelectorAll(".trip-btn[data-trip-keys]").forEach((btn) => paintTripBtn(btn, tripBtnOn(btn)));
+}
+
+// the bookmark beside a booking button; `journeys` ([{kind, journey}]) is what a press files
+function tripButton(journeys, url) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "trip-btn";
+  btn.dataset.tripKeys = JSON.stringify(journeys.map((j) => tripKey(j.journey)));
+  btn.innerHTML = TRIP_SVG;
+  paintTripBtn(btn, tripBtnOn(btn));
+  btn.addEventListener("click", () => onTripClick(journeys, url, btn));
+  return btn;
+}
+
+// the search the press came from: the ids let the trips page rebuild the
+// past-mode search for the trip once its day has passed
+function tripSearchMeta() {
+  return {
+    fromId: state.from?.id, fromName: state.from?.name,
+    toId: state.to?.id, toName: state.to?.name,
+    date: document.getElementById("date").value,
+    time: document.getElementById("time").value,
+    window: state.windowUsed,
+  };
+}
+
+/* Files `journeys` ([{kind, journey}]) under the signed-in account and lights
+   their bookmarks; resolves to whether they were saved. A caller that already
+   looked the account up passes it; without one, and without the login page's
+   hint, there is no account to file under and the SDK stays undownloaded. */
+async function saveTrip(journeys, url, via, search = tripSearchMeta(), account = null) {
+  if (!account) {
+    if (!accountHinted()) return false;
+    try { account = await currentAccount(); } catch (e) { return false; }
+  }
+  if (!account || !account.verified) return false;
+  try {
+    const res = await reportApi(account.user, "/api/trips", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lang: state.lang, via, url, journeys, search }),
+    });
+    res.trips.forEach((tr) => tripSaves.set(tr.key, tr.id));
+  } catch (e) { return false; }
+  refreshTripBtns();
+  track("trip-save", { via });
+  return true;
+}
+
+// the bookmark pressed again: the journeys leave the list
+async function removeTrips(journeys, account) {
+  const ids = journeys.map((j) => tripSaves.get(tripKey(j.journey))).filter((id) => id !== undefined);
+  try {
+    await Promise.all(ids.map((id) => reportApi(account.user, "/api/trips/" + id, { method: "DELETE" })));
+  } catch (e) { /* a 404 means it was gone already: forgotten either way */ }
+  journeys.forEach((j) => tripSaves.delete(tripKey(j.journey)));
+  refreshTripBtns();
+  track("trip-remove", { via: "add" });
+}
+
+async function onTripClick(journeys, url, btn) {
+  btn.disabled = true;
+  try {
+    let account = null;
+    try { account = await currentAccount(); } catch (e) { /* SDK unreachable: same as signed out */ }
+    if (!account || !account.verified) {
+      // park the press for the return from the login page, like a bell's order
+      try {
+        sessionStorage.setItem(TRIP_PENDING_KEY, JSON.stringify({
+          journeys, url, search: tripSearchMeta(), ts: Date.now(),
+        }));
+      } catch (e) { /* no storage: the bookmark has to be pressed again after the login */ }
+      track("trip-login");
+      const next = location.pathname + location.search;
+      location.assign("/login?next=" + encodeURIComponent(next) + "&reason=trips");
+      return;
+    }
+    if (tripBtnOn(btn)) await removeTrips(journeys, account);
+    else await saveTrip(journeys, url, "add", tripSearchMeta(), account);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* The header's account corner: the name of the signed-in account - a link to
+   its trips - or the link to sign in, which brings the visitor back to this
+   page rather than to the stories board. Filled from the same lookup that
+   lights the bells. */
 const authLoginEl = document.getElementById("auth-login");
 
 function renderAuth(account) {
   const name = account ? account.name : null;
   authLoginEl.classList.toggle("hidden", !!name);
   document.getElementById("auth-user").classList.toggle("hidden", !name);
-  document.getElementById("auth-name").textContent = name || "";
+  const nameEl = document.getElementById("auth-name");
+  nameEl.textContent = name || "";
+  nameEl.href = tripsPath();
+  nameEl.title = t("navTrips");
 }
 
 authLoginEl.addEventListener("click", () => {
@@ -3349,9 +3496,14 @@ async function initReports() {
     sessionStorage.removeItem(REPORT_PENDING_KEY);
   } catch (e) { /* no storage */ }
   if (pending && !(pending.journey && Date.now() - pending.ts < REPORT_PENDING_MAX_AGE)) pending = null;
-  let hinted = false;
-  try { hinted = localStorage.getItem("account") === "1"; } catch (e) {}
-  if (!pending && !hinted) { renderAuth(null); return; }
+  // a bookmark press that waited for the login, on the same terms
+  let tripPending = null;
+  try {
+    tripPending = JSON.parse(sessionStorage.getItem(TRIP_PENDING_KEY));
+    sessionStorage.removeItem(TRIP_PENDING_KEY);
+  } catch (e) { /* no storage */ }
+  if (tripPending && !(tripPending.journeys && Date.now() - tripPending.ts < REPORT_PENDING_MAX_AGE)) tripPending = null;
+  if (!pending && !tripPending && !accountHinted()) { renderAuth(null); return; }
   let account = null;
   try { account = await currentAccount(); } catch (e) { /* SDK unreachable: same as signed out */ }
   renderAuth(account);
@@ -3360,12 +3512,18 @@ async function initReports() {
     openReportModal(pending.journey);
     await orderReport(account, pending.journey, pending.search || reportSearchMeta());
   }
+  if (tripPending) await saveTrip(tripPending.journeys, tripPending.url, "add", tripPending.search, account);
   try {
     const res = await reportApi(account.user, "/api/reports/mine");
     reportSubs = new Map(res.subscriptions.map((sub) => [sub.key, sub.id]));
     reportEmail = res.email;
     refreshBells();
   } catch (e) { /* the bells simply start unlit */ }
+  try {
+    const res = await reportApi(account.user, "/api/trips");
+    res.trips.forEach((tr) => tripSaves.set(tr.key, tr.id));
+    refreshTripBtns();
+  } catch (e) { /* the bookmarks simply start unlit */ }
 }
 
 // price slot: the D-Ticket label when the connection is covered by the ticket,
@@ -3551,31 +3709,37 @@ function render() {
         action.href = bahnDeUrl(journey, null);
         action.target = "_blank";
         action.rel = "noopener";
-        action.addEventListener("click", () =>
+        action.addEventListener("click", () => {
           track("book-bahn", {
             from: state.from?.name,
             to: state.to?.name,
             // covered by the D-Ticket costs nothing extra: 0, not "no price known"
             price: journey.dticketCovered ? 0 : journey.price ?? "na",
             trip: "oneway",
-          })
-        );
+          });
+          saveTrip([{ kind: "oneway", journey }], action.href, "card");
+        });
       }
 
-      // the bell orders a post-journey forecast-vs-actual report email; only
-      // where a tracked leg can still be resolved after the trip
+      // beside the booking button: the bell orders a post-journey forecast-vs-
+      // actual report email (only where a tracked leg can still be resolved
+      // after the trip), the bookmark files the journey under Meine Fahrten
       let bookSlot = action;
-      if (!state.returnTrip && reportEligible(journey)) {
-        const bell = document.createElement("button");
-        bell.type = "button";
-        bell.className = "bell-btn";
-        bell.dataset.reportKey = reportKey(journey);
-        bell.innerHTML = BELL_SVG;
-        paintBell(bell, reportSubs.has(bell.dataset.reportKey));
-        bell.addEventListener("click", () => onBellClick(journey));
+      if (!state.returnTrip) {
         bookSlot = document.createElement("div");
         bookSlot.className = "book-row";
-        bookSlot.append(action, bell);
+        bookSlot.appendChild(action);
+        if (reportEligible(journey)) {
+          const bell = document.createElement("button");
+          bell.type = "button";
+          bell.className = "bell-btn";
+          bell.dataset.reportKey = reportKey(journey);
+          bell.innerHTML = BELL_SVG;
+          paintBell(bell, reportSubs.has(bell.dataset.reportKey));
+          bell.addEventListener("click", () => onBellClick(journey));
+          bookSlot.appendChild(bell);
+        }
+        bookSlot.appendChild(tripButton([{ kind: "oneway", journey }], action.href));
       }
 
       // badges, price and booking button wrap together as one right-aligned block
@@ -3800,18 +3964,24 @@ function renderSummary() {
   book.className = "book-btn book-btn-lg";
   book.textContent = t("bookBoth");
   book.href = bahnDeUrl(ret, out);
+  const legs = [{ kind: "outbound", journey: out }, { kind: "return", journey: ret }];
   book.target = "_blank";
   book.rel = "noopener";
-  book.addEventListener("click", () =>
+  book.addEventListener("click", () => {
     track("book-bahn", {
       from: state.from?.name,
       to: state.to?.name,
       price: tripTotal() ?? "na",
       trip: "roundtrip",
-    })
-  );
+    });
+    saveTrip(legs, book.href, "summary");
+  });
 
-  panel.append(total, book);
+  // the bookmark files both legs at once, and lights only once both are filed
+  const bookRow = document.createElement("div");
+  bookRow.className = "book-row";
+  bookRow.append(book, tripButton(legs, book.href));
+  panel.append(total, bookRow);
   resultsEl.appendChild(panel);
 }
 

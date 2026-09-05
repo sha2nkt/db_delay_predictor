@@ -6,7 +6,7 @@
 <title>Impressum & Datenschutz – DelayBahn</title>
 <meta name="robots" content="noindex, follow">
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=109">
+<link rel="stylesheet" href="style.css?v=110">
 </head>
 <body>
 <header>
@@ -113,9 +113,11 @@
     <p>Auf dem Server dieser Website selbst werden keine Anmeldedaten gespeichert: Er prüft bei
     jeder Anfrage nur die Signatur des von Firebase ausgestellten Anmelde-Tokens. Gespeichert
     werden hier lediglich die zufällige Konto-Kennung, damit Stimmen und Meldungen pro Konto
-    einmal zählen, sowie der Benutzername an veröffentlichten Beiträgen. Eine Ausnahme ist der
-    Verspätungs-Report (siehe unten): Bestellen Sie einen, wird dafür auch Ihre E-Mail-Adresse
-    auf unserem Server gespeichert, bis der Report versandt oder die Bestellung storniert ist.
+    einmal zählen, sowie der Benutzername an veröffentlichten Beiträgen. Ausnahmen sind „Meine
+    Fahrten“ und der Verspätungs-Report (beide siehe unten): Öffnen Sie angemeldet eine Verbindung
+    auf bahn.de, wird sie Ihrer Konto-Kennung zugeordnet gespeichert; bestellen Sie einen Report,
+    wird dafür auch Ihre E-Mail-Adresse auf unserem Server gespeichert, bis der Report versandt
+    oder die Bestellung storniert ist.
     Damit ein Benutzername nur einmal vergeben wird, wird die Zuordnung
     Benutzername&nbsp;→&nbsp;Konto-Kennung samt dem Zeitpunkt der Vergabe in Cloud Firestore
     (ebenfalls Google, Speicherort Frankfurt am Main) abgelegt.</p>
@@ -144,9 +146,24 @@
     nur im Arbeitsspeicher mitgezählt. Sie können Ihr Konto jederzeit löschen lassen: eine
     formlose E-Mail an <a href="mailto:kontakt@delaybahn.com">kontakt@delaybahn.com</a> genügt.
     Dabei werden das Firebase-Konto samt Anmeldedaten, der vergebene Benutzername sowie
-    abgegebene Stimmen und Meldungen gelöscht, offene Verspätungs-Reports storniert und Ihre
-    Daten aus deren Einträgen entfernt; bereits veröffentlichte Beiträge werden anonymisiert
-    (der Benutzername wird entfernt) oder auf Wunsch ebenfalls gelöscht.</p>
+    abgegebene Stimmen und Meldungen gelöscht, die unter „Meine Fahrten“ gespeicherten
+    Verbindungen gelöscht, offene Verspätungs-Reports storniert und Ihre Daten aus deren
+    Einträgen entfernt; bereits veröffentlichte Beiträge werden anonymisiert (der Benutzername
+    wird entfernt) oder auf Wunsch ebenfalls gelöscht.</p>
+    <h2 id="datenschutz-fahrten">Meine Fahrten</h2>
+    <p>Sind Sie angemeldet und klicken bei einer Verbindung auf das Lesezeichen-Symbol („Zu Meine
+    Fahrten hinzufügen“) oder auf „Auf bahn.de buchen“, wird diese Verbindung Ihrem Konto
+    zugeordnet gespeichert und unter „Meine Fahrten“
+    (delaybahn.com/meine-fahrten) als nächste oder vergangene Fahrt angezeigt. Gespeichert werden
+    dafür auf unserem Server die Konto-Kennung, die gewählte Sprache, die Verbindung (Start, Ziel,
+    Abschnitte, Sollzeiten, angezeigter Preis und die dazu angezeigte Verspätungsstatistik), die
+    Suchanfrage, aus der sie stammt, der Link zur Buchungsmaske auf bahn.de sowie der Zeitpunkt
+    des Klicks. Ob Sie die Fahrt auf bahn.de tatsächlich gebucht haben, erfahren wir nicht; die
+    Liste bildet nur Ihre Klicks ab. Ohne Anmeldung wird nichts gespeichert. Rechtsgrundlage ist
+    Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung dieser Funktion Ihres Nutzerkontos). Jeden Eintrag
+    können Sie auf der Seite „Meine Fahrten“ jederzeit endgültig löschen; pro Konto werden
+    höchstens 200 Einträge aufbewahrt, darüber hinaus werden die ältesten automatisch gelöscht.
+    Mit der Löschung Ihres Kontos werden alle Einträge gelöscht.</p>
     <h2 id="datenschutz-report">Verspätungs-Report per E-Mail</h2>
     <p>Über das Glocken-Symbol an einer Verbindung können Sie mit Ihrem Nutzerkonto (siehe oben)
     einen Verspätungs-Report bestellen: Nach der Fahrt vergleichen wir einmalig die angezeigte
@@ -170,8 +187,9 @@
     die zuletzt von Ihnen gesuchten sowie die von Ihnen mit einem Stern markierten Bahnhöfe zur
     schnelleren Eingabe, der Hinweis, dass Sie die Einblendung zum Installieren der App
     weggeklickt haben, sowie nach einer Anmeldung ein Hinweis, dass ein Konto vorhanden ist;
-    bestellen Sie einen Verspätungs-Report vor der Anmeldung, wird die gewählte Verbindung bis
-    zur Rückkehr von der Anmeldeseite im sessionStorage zwischengespeichert. Diese
+    bestellen Sie einen Verspätungs-Report oder merken Sie sich eine Fahrt vor der Anmeldung, wird
+    die gewählte Verbindung bis zur Rückkehr von der Anmeldeseite im sessionStorage
+    zwischengespeichert. Diese
     Speicherung ist für die jeweils gewünschte Funktion erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG) und
     bedarf keiner Einwilligung. Die Daten verbleiben in Ihrem Browser und werden nicht an den Server
     übertragen; Sie können sie jederzeit über die Einstellungen Ihres Browsers löschen. Wenn

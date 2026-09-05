@@ -71,6 +71,7 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 | Feature | Status | Notes |
 |---|---|---|
 | Deep-link to bahn.de booking | done | pre-filled origin/destination/time, opens in new tab |
+| Bookmark a journey | done | 2026-09-05; beside the booking button, files it under Meine Fahrten (see below) |
 | Real in-app booking | not possible | no public booking API exists |
 
 ## Compensation checker (past journeys, 2026-07-23)
@@ -122,6 +123,17 @@ Status: done = implemented and verified end-to-end; partial = works with caveats
 - Snapshot of the exact `/api/journeys` object is stored in `data/reports/reports.db`; the daily job (`pipeline/send_reports.py`, systemd timer 07:45 Berlin) resolves each tracked leg via `delays.leg_delay_on_date` once the data covers a day past the travel date (≈ D+2, so late revisions are in; 10-day timeout sends whatever resolved) and freezes the actuals into the row — the delay table only keeps ~30 rolling days.
 - Report email: stacked cards ("Typische Verspätung bei deiner Buchung" / "So lief es wirklich"), site chip colours and thresholds, cancellation note, final-leg summary line, plain-text part, `List-Unsubscribe` + one-click POST, postal address; de/en follows the language at order time; the greeting uses the account's username. Sent by `mailer.send_report` over the same Brevo SMTP relay as the login codes.
 - Limitations: no bell on round-trip cards (v1); no page listing an account's open reports, so the cap message can only point at the journey's own lit bell for cancelling, and orders that predate the cap of 3 are not pruned; untracked legs (bus/tram/U-Bahn/ferry, uncovered foreign trains) stay gray in the report; the Brevo free tier's 300 mails/day are shared with login codes (`--limit 100` guards); a brand-new account still picks a username on the login page before it is sent back (one shared account model, no report-only accounts).
+
+## Meine Fahrten (2026-09-05)
+
+- `/meine-fahrten` and `/en/my-trips`: an account's journeys, split into next and past against the server's Berlin clock (`now` travels with the list, so a visitor abroad is not off by a day). `noindex`; signed out the page only offers the login. Reached from the account name in every header, which is now a link.
+- Filed by the bookmark button beside "Auf bahn.de buchen" (and beside "Beide Fahrten buchen" on the round-trip summary, where one press files both legs and it lights only once both are filed), or by a signed-in press on the booking button itself. A signed-out bookmark press parks the journey in `sessionStorage` and completes after `/login?next=…&reason=trips`. Lit bookmarks are restored from `GET /api/trips` via a `journey_key` the server and the page build identically.
+- `app/trips.py` + `data/trips/trips.db`: one row per (account, itinerary) — a repeat press refreshes it — capped at `MAX_PER_ACCOUNT = 200` (earliest departures evicted). `DELETE /api/trips/{id}` is a hard delete; `auth.delete_account` drops every row. A press is not a confirmed booking (nothing comes back from bahn.de), which the page says and the cross lets the account act on.
+- Upcoming trip: the search's own card behind "Verspätungsstatistik anzeigen" — head badges, legs with the `delayStats` they showed **at order time** (from the snapshot, not a fresh lookup), tight-transfer strips, cancellation note.
+- Past trip: "Verspätung & Entschädigung prüfen" renders the compensation verdict **in place**, no redirect — per-leg delays, missed connections, the onward journey the simulation rides, the claim line. Shared with the past-mode search via `main._past_verdict`, IRIS live path included; a run costs the per-client search budget, a stored one does not.
+- Tally on top: lost to delays, lost to cancellations, time on trains, trips — per week/month/year, default year. Splitting by cause needs the whole verdict (after a cancellation the loss is the wait for the replacement), so each past trip's verdict is stored in a `verdict` column once the parquet covers its day; live days are recomputed, and the list resolves up to `TRIP_VERDICTS_PER_LOAD = 5` missing ones per load.
+- Not shown by choice: prices (stored, but off the page) and train numbers in the summary line (they are in the leg rows).
+- Limitations: a round trip is two independent rows, so removing one leaves the other; a long-absent account resolves its verdict backlog over several page loads; the tally covers only journeys filed here, not all travel; no bookmark on past-mode cards.
 
 ## Known limitations
 

@@ -19,7 +19,9 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, StringConstraints
 
-from app import auth, bahn_api, delays, feedback, live_delays, mailer, ratelimit, reports, stories
+from app import (
+    auth, bahn_api, delays, feedback, live_delays, mailer, ratelimit, reports, stories, trips,
+)
 from app.config import env_int
 
 log = logging.getLogger(__name__)
@@ -612,6 +614,58 @@ def compensation_pct(arrival_delay: int | None) -> int | None:
     return 50 if arrival_delay >= 120 else 25 if arrival_delay >= 60 else 0
 
 
+async def _past_verdict(legs: list[dict], window: int, live: bool) -> dict:
+    """What a journey's actual day adds to it once every leg carries its
+    delayOnDate: the arrival delay at the destination (ridden through missed
+    connections and their replacements by _simulate_walk), the compensation
+    it amounts to, and on a live day whether some leg is still unreported.
+    Shared by the past-mode search and the trips page's in-place check."""
+    train_legs = [leg for leg in legs if not leg["walking"]]
+    final_d = train_legs[-1].get("delayOnDate")
+    sim = await _simulate_walk(legs, window, MAX_REPLANS, live)
+    out = {}
+    if live:
+        # on a live day a missing observation means "not reported yet",
+        # which is a different message than "we have no data for this train";
+        # untracked products (tram, bus, ...) never report, so they must not
+        # hold the journey pending forever
+        out["pending"] = any(
+            leg.get("delayOnDate") is None
+            for leg in train_legs
+            if leg["line"]["product"] not in UNTRACKED_PRODUCTS
+        )
+    if sim["missedAtLegIndex"] is not None:
+        # a connection was missed: the realistic arrival comes from the
+        # simulated continuation, not the booked itinerary's final leg
+        planned_final = _planned_dt(train_legs[-1], "plannedArrival")
+        arrival_delay = None
+        if sim["arrival"] and planned_final:
+            arrival_delay = round((sim["arrival"] - planned_final).total_seconds() / 60)
+        out.update({
+            "arrivalDelay": arrival_delay,
+            "arrivalCanceled": bool(final_d and final_d["canceled"]),
+            "missedTransfers": [sim["missed"]] if sim["missed"] else [],
+            "compensationPct": compensation_pct(arrival_delay),
+            "simulation": {
+                "missedAtLegIndex": sim["missedAtLegIndex"],
+                "legs": sim["extra"],
+                "actualArrival": sim["arrival"].isoformat() if sim["arrival"] else None,
+                "incomplete": sim["incomplete"],
+                "uncertain": sim["uncertain"],
+            },
+        })
+    else:
+        # every connection was made: exact arrival delay of the final leg
+        arrival_delay = final_d["delayMin"] if final_d else None
+        out.update({
+            "arrivalDelay": arrival_delay,
+            "arrivalCanceled": bool(final_d and final_d["canceled"]),
+            "missedTransfers": [],
+            "compensationPct": compensation_pct(arrival_delay),
+        })
+    return out
+
+
 def _parse_travellers(raw: str | None, age: str) -> tuple[tuple[str, int, str], ...]:
     """The search mask's traveler list: "<age>:<count>:<discount>" per entry,
     comma-separated, e.g. "adult:2:bc25-2,child:1:none". Links and cached
@@ -637,6 +691,16 @@ def _parse_travellers(raw: str | None, age: str) -> tuple[tuple[str, int, str], 
     if sum(merged.values()) > bahn_api.MAX_TRAVELLERS:
         raise HTTPException(422, f"at most {bahn_api.MAX_TRAVELLERS} travellers")
     return tuple((t_age, count, discount) for (t_age, discount), count in merged.items())
+
+
+def _search_throttle(request: Request) -> None:
+    wait = _search_limiter.retry_after(client_ip(request))
+    if wait is not None:
+        bahn_api.metrics["client_rate_limited"] += 1
+        raise HTTPException(
+            429, "too many searches; please slow down",
+            headers={"Retry-After": str(wait)},
+        )
 
 
 @app.get("/api/journeys")
@@ -683,13 +747,7 @@ async def journeys(
     # and cached frontends still send it
     dticket = {"1": "only", "only": "only", "all": "all"}.get(dticket, "off")
     # our own limit on this client, distinct from bahn.de throttling us (503)
-    wait = _search_limiter.retry_after(client_ip(request))
-    if wait is not None:
-        bahn_api.metrics["client_rate_limited"] += 1
-        raise HTTPException(
-            429, "too many searches; please slow down",
-            headers={"Retry-After": str(wait)},
-        )
+    _search_throttle(request)
     response.headers["Cache-Control"] = "public, max-age=120"
     past = mode == "past"
     # the D-Ticket is excluded from Fahrgastrechte compensation, so the filter
@@ -747,47 +805,7 @@ async def journeys(
         if ez_duration and ez_duration != journey["durationSeconds"]:
             journey["ezDurationSeconds"] = ez_duration
         if past:
-            final_d = train_legs[-1].get("delayOnDate")
-            sim = await _simulate_walk(legs, window, MAX_REPLANS, live)
-            if live:
-                # on a live day a missing observation means "not reported yet",
-                # which is a different message than "we have no data for this train";
-                # untracked products (tram, bus, ...) never report, so they must not
-                # hold the journey pending forever
-                journey["pending"] = any(
-                    leg.get("delayOnDate") is None
-                    for leg in train_legs
-                    if leg["line"]["product"] not in UNTRACKED_PRODUCTS
-                )
-            if sim["missedAtLegIndex"] is not None:
-                # a connection was missed: the realistic arrival comes from the
-                # simulated continuation, not the booked itinerary's final leg
-                planned_final = _planned_dt(train_legs[-1], "plannedArrival")
-                arrival_delay = None
-                if sim["arrival"] and planned_final:
-                    arrival_delay = round((sim["arrival"] - planned_final).total_seconds() / 60)
-                journey.update({
-                    "arrivalDelay": arrival_delay,
-                    "arrivalCanceled": bool(final_d and final_d["canceled"]),
-                    "missedTransfers": [sim["missed"]] if sim["missed"] else [],
-                    "compensationPct": compensation_pct(arrival_delay),
-                    "simulation": {
-                        "missedAtLegIndex": sim["missedAtLegIndex"],
-                        "legs": sim["extra"],
-                        "actualArrival": sim["arrival"].isoformat() if sim["arrival"] else None,
-                        "incomplete": sim["incomplete"],
-                        "uncertain": sim["uncertain"],
-                    },
-                })
-            else:
-                # every connection was made: exact arrival delay of the final leg
-                arrival_delay = final_d["delayMin"] if final_d else None
-                journey.update({
-                    "arrivalDelay": arrival_delay,
-                    "arrivalCanceled": bool(final_d and final_d["canceled"]),
-                    "missedTransfers": [],
-                    "compensationPct": compensation_pct(arrival_delay),
-                })
+            journey.update(await _past_verdict(legs, window, live))
         else:
             final_stats = train_legs[-1].get("delayStats")
             leg_medians = [
@@ -893,6 +911,9 @@ STORIES_LOGO = {"de": "/logo_delay_stories_square_german.png",
 STORIES_WORDMARK = {"de": "/logo_delay_stories_wide_german_transparent.png",
                     "en": "/logo_delay_stories_wide_transparent.png"}
 STORIES_ALT = {"de": "Delay Geschichten", "en": "Delay Stories"}
+# the account's booked trips; private, so no meta beyond the title
+TRIPS_PATHS = {"de": "/meine-fahrten", "en": "/en/my-trips"}
+TRIPS_TITLE = {"de": "Meine Fahrten – DelayBahn", "en": "My Trips – DelayBahn"}
 
 OG_LOCALE = {"de": "de_DE", "en": "en_US"}
 
@@ -1028,6 +1049,10 @@ def _page_html(mode: str, lang: str) -> str:
          rf"\g<1>{STORIES_PATHS[lang]}"),
         (r'(<img id="stories-banner-logo" class="stories-banner-logo" src=")[^"]*(" alt=")[^"]*',
          rf"\g<1>{STORIES_WORDMARK[lang]}\g<2>{STORIES_ALT[lang]}"),
+        # the account corner and the ordered-report receipt both point at the trips page
+        (r'(<a id="auth-name" class="auth-name" href=")[^"]*', rf"\g<1>{TRIPS_PATHS[lang]}"),
+        (r'(<a id="report-trip-saved" class="trip-saved hidden" href=")[^"]*',
+         rf"\g<1>{TRIPS_PATHS[lang]}"),
     ]
     if lang == "en":
         subs += [
@@ -1174,6 +1199,7 @@ def _stories_html(lang: str, story: dict | None = None) -> str:
         (r'(<img id="site-logo" src=")[^"]*(" alt=")[^"]*',
          rf"\g<1>{STORIES_WORDMARK[lang]}\g<2>{STORIES_ALT[lang]}"),
         (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{PAGE_PATHS[('future', lang)]}\g<2>"),
+        (r'(<a id="auth-name" class="auth-name" href=")[^"]*', rf"\g<1>{TRIPS_PATHS[lang]}"),
     ]
     if story:
         subs.append((r'(<meta property="og:type" content=")[^"]*', r"\g<1>article"))
@@ -1301,6 +1327,55 @@ async def login_page() -> FileResponse:
 @app.get("/login.html")
 async def login_alias() -> RedirectResponse:
     return RedirectResponse("/login", status_code=301)
+
+
+def _trips_html(lang: str) -> str:
+    """Render one language of the trips page from trips.html: the same page
+    at /meine-fahrten and /en/my-trips. The list itself is fetched by the
+    script with the account's token, so nothing personal is in the markup."""
+    html = (STATIC_DIR / "trips.html").read_text(encoding="utf-8")
+    home = PAGE_PATHS[("future", lang)]
+    subs = [
+        (r'<html lang="[^"]*"', f'<html lang="{lang}"'),
+        (r"<title>[^<]*</title>", f"<title>{TRIPS_TITLE[lang]}</title>"),
+        (r'(<a href=")[^"]*(" hreflang="de")', rf"\g<1>{TRIPS_PATHS['de']}\g<2>"),
+        (r'(<a href=")[^"]*(" hreflang="en")', rf"\g<1>{TRIPS_PATHS['en']}\g<2>"),
+        # in-page navigation stays inside the current language
+        (r'(<a class="logo-link" href=")[^"]*', rf"\g<1>{home}"),
+        (r'(<a id="auth-name" class="auth-name" href=")[^"]*', rf"\g<1>{TRIPS_PATHS[lang]}"),
+        (r'(<a id="trips-search-link" class="trips-search-link" href=")[^"]*',
+         rf"\g<1>{home}"),
+        (r'(<a href=")[^"]*(" data-i18n="footerBack")', rf"\g<1>{home}\g<2>"),
+        (r'(<a href=")[^"]*(" data-i18n="footerStories")', rf"\g<1>{STORIES_PATHS[lang]}\g<2>"),
+    ]
+    for pattern, repl in subs:
+        html = re.sub(pattern, repl, html, count=1)
+    if lang == "en":
+        html = html.replace('data-lang="en" class="lang-btn"', 'data-lang="en" class="lang-btn active"')
+        html = html.replace('data-lang="de" class="lang-btn active"', 'data-lang="de" class="lang-btn"')
+        html = _translate(html, "trips.js")
+    return html
+
+
+@app.get("/meine-fahrten")
+async def trips_page_de() -> HTMLResponse:
+    return HTMLResponse(_trips_html("de"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/en/my-trips")
+async def trips_page_en() -> HTMLResponse:
+    return HTMLResponse(_trips_html("en"), headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/meine-fahrten/")
+@app.get("/meine-fahrten.html")
+async def trips_alias_de() -> RedirectResponse:
+    return RedirectResponse(TRIPS_PATHS["de"], status_code=301)
+
+
+@app.get("/en/my-trips/")
+async def trips_alias_en() -> RedirectResponse:
+    return RedirectResponse(TRIPS_PATHS["en"], status_code=301)
 
 
 @app.get("/en/manifest.json")
@@ -2025,6 +2100,168 @@ async def report_unsubscribe_submit(token: str = Query("")) -> HTMLResponse:
         return _r_dead_page()
     s = _R_STRINGS[lang]
     return _r_page(lang, s["unsubbedTitle"], s["unsubbedLead"])
+
+
+# --- booked trips: the "Meine Fahrten" page ------------------------------------
+# The bookmark beside a booking button files the journey, and so does a
+# signed-in press on the booking button itself; the page lists them and lets
+# the account drop what it did not book.
+
+
+class TripPress(BaseModel):
+    lang: Literal["de", "en"] = "de"
+    via: Literal["card", "summary", "report-modal", "add"] = "card"
+    url: str
+    journeys: list[dict] = Field(min_length=1, max_length=trips.MAX_JOURNEYS_PER_PRESS)
+    search: dict = Field(default_factory=dict)
+
+
+async def _trips_user(request: Request) -> dict:
+    """An account with a proven contact; no username or email address is
+    needed to keep a list of one's own trips."""
+    user = await _optional_user(request)
+    if user is None:
+        raise HTTPException(401, "login required")
+    if not user["verified"]:
+        raise HTTPException(403, "unverified")
+    return user
+
+
+@app.post("/api/trips")
+async def trips_record(press: TripPress, request: Request) -> dict:
+    user = await _trips_user(request)
+    _stories_throttle(trips.record_limiter, request)
+    try:
+        saved = await anyio.to_thread.run_sync(
+            trips.record, user["uid"], press.lang, press.via, press.url,
+            press.journeys, press.search,
+        )
+    except trips.TripError as exc:
+        raise HTTPException(422, str(exc))
+    return {"trips": saved}
+
+
+# how many past trips one list load may still run the check for; the rest
+# follow on later loads or when their button is pressed
+TRIP_VERDICTS_PER_LOAD = 5
+
+
+@app.get("/api/trips")
+async def trips_mine(request: Request) -> dict:
+    """Every trip of the account plus the Berlin clock the page splits them
+    on, so a visitor abroad still sees today's trip under "next". Past trips
+    whose check has not run yet get it here, a few per load, so the tally
+    counts what a cancellation really cost rather than the final leg alone."""
+    user = await _trips_user(request)
+    mine = await anyio.to_thread.run_sync(trips.mine, user["uid"])
+    now = trips.berlin_now()
+    todo = [t for t in mine if t["arrival"] <= now and not t["resolved"]]
+    for t in todo[:TRIP_VERDICTS_PER_LOAD]:
+        try:
+            verdict = await _trip_verdict(user["uid"], t["id"])
+        except bahn_api.UpstreamError:
+            break  # bahn.de is the missing piece: leave the rest for a later load
+        if verdict is None:
+            continue
+        t["delay"], t["canceled"] = trips.verdict_outcome(verdict)
+        t["resolved"] = verdict["final"]
+    return {"now": now, "trips": mine}
+
+
+@app.delete("/api/trips/{trip_id}", status_code=204)
+async def trips_remove(trip_id: int, request: Request) -> Response:
+    user = await _trips_user(request)
+    if not await anyio.to_thread.run_sync(trips.remove, user["uid"], trip_id):
+        raise HTTPException(404, "no such trip")
+    return Response(status_code=204)
+
+
+def _tracked_train(leg: dict) -> bool:
+    line = leg["line"]
+    return (not leg["walking"] and line["product"] not in UNTRACKED_PRODUCTS
+            and bool(line["fahrtNr"]) and bool(leg["destination"]["id"]))
+
+
+def _leg_stops(legs: list[dict]) -> set[tuple[str, datetime]]:
+    """Every (station, planned time) a stored itinerary touches - _live_stops
+    over normalized legs rather than bahn.de's raw sections."""
+    stops = set()
+    for leg in legs:
+        if not _tracked_train(leg):
+            continue
+        for stop, key in ((leg["origin"], "plannedDeparture"), (leg["destination"], "plannedArrival")):
+            if stop["id"] and leg.get(key):
+                stops.add((delays.pad_eva(str(stop["id"])), delays.to_berlin_naive(leg[key])))
+    return stops
+
+
+def _attach_day_delays(legs: list[dict], live: bool) -> None:
+    """Give stored legs the day's actual arrival delay, exactly as normalize_leg
+    does for a past search: IRIS on a day the nightly parquet has not reached,
+    the parquet everywhere else. Blocking - run it off the event loop."""
+    for leg in legs:
+        if not _tracked_train(leg) or not leg.get("plannedArrival"):
+            continue
+        train = str(leg["line"]["fahrtNr"]).replace(" ", "")
+        eva = delays.pad_eva(str(leg["destination"]["id"]))
+        arrival = delays.to_berlin_naive(leg["plannedArrival"])
+        hit = live_delays.leg_delay_on_date(train, eva, arrival) if live else None
+        leg["delayOnDate"] = hit if hit is not None else delays.leg_delay_on_date(train, eva, arrival)
+
+
+async def _trip_verdict(uid: str, trip_id: int) -> dict | None:
+    """The compensation page's verdict for one filed trip: each leg's delay
+    on the day, missed connections and the onward journey the simulation
+    rides instead, and what that adds up to - the same lookups and the same
+    simulation as a past-mode search, on the itinerary on file. `final` says
+    the day is in the nightly data, so the answer cannot change: only then is
+    it stored with the trip; a live day, or one nobody has data for yet, is
+    answered fresh each time. None when the trip is not this account's, not
+    over yet, or has no train leg. Raises bahn_api.UpstreamError."""
+    stored = await anyio.to_thread.run_sync(trips.stored_verdict, uid, trip_id)
+    if stored is not None:
+        return stored
+    filed = await anyio.to_thread.run_sync(trips.journey_legs, uid, trip_id)
+    if filed is None or filed["arrival"] > trips.berlin_now():
+        return None
+    legs = filed["legs"]
+    if not any(not leg["walking"] for leg in legs):
+        return None
+    # days the nightly parquet hasn't reached yet are answered live from IRIS
+    parquet_max = delays.coverage()[1]
+    covered = parquet_max is not None and filed["departure"][:10] <= parquet_max.isoformat()
+    live = not covered and live_max_day() is not None
+    if live:
+        await live_delays.warm(_leg_stops(legs))
+    await anyio.to_thread.run_sync(_attach_day_delays, legs, live)
+    verdict = {"legs": legs, "liveDay": live, "final": covered, **await _past_verdict(legs, 7, live)}
+    if covered:
+        await anyio.to_thread.run_sync(trips.store_verdict, uid, trip_id, verdict)
+    return verdict
+
+
+@app.get("/api/trips/{trip_id}/check")
+async def trips_check(trip_id: int, request: Request) -> dict:
+    """The verdict for one trip, shown in place on the trips page. A stored
+    one is free; running it costs the search budget, since a missed
+    connection can send the simulation to bahn.de for a replacement."""
+    user = await _trips_user(request)
+    stored = await anyio.to_thread.run_sync(trips.stored_verdict, user["uid"], trip_id)
+    if stored is not None:
+        return stored
+    _search_throttle(request)
+    filed = await anyio.to_thread.run_sync(trips.journey_legs, user["uid"], trip_id)
+    if filed is None:
+        raise HTTPException(404, "no such trip")
+    if filed["arrival"] > trips.berlin_now():
+        raise HTTPException(409, "journey not over yet")
+    try:
+        verdict = await _trip_verdict(user["uid"], trip_id)
+    except bahn_api.UpstreamError as e:
+        raise _upstream_http_error(e)
+    if verdict is None:
+        raise HTTPException(422, "no train legs")
+    return verdict
 
 
 class HtmlNoCacheStatic(StaticFiles):

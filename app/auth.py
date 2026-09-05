@@ -27,7 +27,7 @@ import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from app import reports, stories
+from app import reports, stories, trips
 from app.ratelimit import SlidingWindowLimiter
 
 log = logging.getLogger(__name__)
@@ -486,6 +486,7 @@ def delete_account(uid: str) -> bool:
     name = _registry().release(uid)
     stories.forget_account(uid, name)
     reports.forget_account(uid)
+    trips.forget_account(uid)
     return True
 
 

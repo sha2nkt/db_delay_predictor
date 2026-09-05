@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app import auth, bahn_api, stories
+from app import auth, bahn_api, stories, trips
 
 
 class FakeAdmin:
@@ -157,8 +157,9 @@ def firebase(monkeypatch, tmp_path):
     verifier accepts to their claims, `registry` holds the usernames, and
     `stamped` records what would have become a custom claim - which the
     test then has to put on a fresh token itself, exactly as the SDK does
-    only on refresh. The stories DB is a temp file."""
+    only on refresh. The stories and trips DBs are temp files."""
     monkeypatch.setattr(stories, "DB_PATH", tmp_path / "stories.db")
+    monkeypatch.setattr(trips, "DB_PATH", tmp_path / "trips.db")
     tokens: dict[str, dict] = {}
     now = SimpleNamespace(value=datetime(2026, 8, 26, 12, 0, tzinfo=timezone.utc))
     registry = FakeRegistry(clock=lambda: now.value)

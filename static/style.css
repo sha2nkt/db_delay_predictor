@@ -739,16 +739,22 @@ body.past-mode .trip-steps { display: none; }
 /* journey report: bell next to the booking button + modal (reuses the .claim-modal shell) */
 .book-row { display: flex; gap: 8px; }
 .book-row .book-btn { flex: 1; text-align: center; }
-.bell-btn {
-  flex: none; background: #fff; color: var(--text-muted);
+/* the bell (report) and the bookmark (Meine Fahrten) share one look beside the booking button */
+.bell-btn, .trip-btn {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; color: var(--text-muted);
   border: 2px solid var(--gray-border); border-radius: 4px;
   padding: 6px 9px; cursor: pointer; line-height: 0;
 }
-.bell-btn:hover { color: var(--brand-red); border-color: var(--brand-red); }
-/* an ordered report: the bell fills in */
-.bell-btn.on { color: var(--brand-red); border-color: var(--brand-red); background: #fff3f2; }
-.bell-btn.on svg { fill: currentColor; }
-.bell-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.bell-btn:hover, .trip-btn:hover { color: var(--brand-red); border-color: var(--brand-red); }
+/* an ordered report / a filed journey: the icon fills in */
+.bell-btn.on, .trip-btn.on { color: var(--brand-red); border-color: var(--brand-red); background: #fff3f2; }
+.bell-btn.on svg, .trip-btn.on svg { fill: currentColor; }
+.bell-btn:focus-visible, .trip-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.trip-btn:disabled { opacity: .6; cursor: wait; }
+/* under the round-trip summary the bookmark stands beside the big button */
+.trip-summary .book-row { margin-top: 12px; }
+.trip-summary .book-row .book-btn-lg { margin-top: 0; }
 
 .report-teaser { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
 .report-teaser-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
@@ -1032,7 +1038,6 @@ body.nudge-on #donate-footer-item { display: none; }
      single words; a long name is clipped so the corner still fits the row */
   .header-home { justify-content: flex-end; }
   .header-home .header-title { flex-basis: 100px; }
-  .header-home .auth-user strong { max-width: 4em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .hero-chart { padding: 24px 16px 20px; }
   .search-card { flex-direction: column; align-items: stretch; }
   /* stacked card: the toggle centers on its line, the button spans below it */
@@ -1081,7 +1086,6 @@ body.nudge-on #donate-footer-item { display: none; }
      with the language switch; a long name is clipped so the row still fits */
   .header-stories { justify-content: flex-end; }
   .header-stories .header-title { flex-basis: calc(100% - 100px); }
-  .header-stories .auth-user strong { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .controls { flex-wrap: wrap; }
 
@@ -1929,3 +1933,101 @@ body.past-mode .stories-banner { display: none; }
 .tm-accept { background: var(--brand-red); border: 1px solid var(--brand-red); color: #fff; }
 .tm-accept:hover { background: var(--brand-red-dark); border-color: var(--brand-red-dark); }
 .tm-accept:disabled { opacity: .5; cursor: not-allowed; }
+
+/* --- Meine Fahrten (/meine-fahrten): the account's booked trips --- */
+
+/* the account's name in every header is the way to its trips */
+.auth-name { color: #fff; font-weight: 700; text-decoration: none; }
+.auth-name:hover { text-decoration: underline; }
+/* "saved under Meine Fahrten": the receipt under the ordered-report modal's booking button */
+.trip-saved {
+  display: block; margin-top: 8px; text-align: center;
+  font-size: 12px; font-weight: 600; color: var(--green); text-decoration: none;
+}
+.trip-saved:hover { text-decoration: underline; }
+.trip-saved.hidden { display: none; }
+
+.trips-main { max-width: 720px; }
+.trips-intro { font-size: 13.5px; line-height: 1.45; color: var(--text-muted); margin: 0 2px 14px; }
+.trips-login { text-align: center; padding: 22px 18px 24px; }
+.trips-login h2 { font-size: 18px; margin-bottom: 8px; }
+.trips-login .auth-lead { margin-bottom: 16px; }
+.trips-login-btn { display: inline-block; text-decoration: none; }
+.trips-login.hidden, .trips-section.hidden, .trips-empty.hidden { display: none; }
+.trips-status { font-size: 14px; color: var(--text-muted); margin: 8px 2px; min-height: 1em; }
+.trips-status.error { color: var(--red); }
+.trips-section h2 {
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); margin: 18px 2px 8px;
+}
+.trips-empty { font-size: 14px; color: var(--text-muted); margin: 4px 2px; }
+
+/* the tally on top: three tiles under a heading that shares its row with the
+   week/month/year switch (.board-span, the damage report's) */
+.trips-stats {
+  background: #fff; border-radius: 8px; padding: 12px 18px 14px; margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.trips-stats.hidden { display: none; }
+.trips-stats-head { display: flex; align-items: baseline; gap: 10px; }
+.trips-stats-head h2 {
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted); margin: 0;
+}
+.trips-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px; }
+.trips-tile { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.trips-tile-value { font-size: 22px; font-weight: 700; white-space: nowrap; }
+.trips-tile-value.lost { color: var(--red); }
+.trips-tile-value.none { color: var(--green); }
+.trips-tile-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.trips-tile-note { font-size: 11px; color: var(--text-muted); }
+.trips-stats-note { margin-top: 8px; font-size: 11.5px; color: var(--text-muted); }
+.trips-stats-note:empty { display: none; }
+.trip-delay { flex: none; }
+/* the in-place check under a past trip: the verdict row, then the search's leg rows */
+.trip-actions button.book-btn { font-family: inherit; }
+.trip-actions button.book-btn:disabled { opacity: .6; cursor: wait; }
+.trip-check { margin-top: 12px; }
+.trip-check.hidden { display: none; }
+.trip-check-verdict { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.trip-check-status { margin-top: 8px; font-size: 13px; color: var(--text-muted); }
+.trip-check-status.error { color: var(--red); }
+/* an upcoming trip: the statistics button leads the actions row, the booking link closes it */
+.trip-book { margin-left: auto; }
+.trip .cancel-note { margin-top: 8px; }
+.trips-search-link { color: var(--brand-red); font-weight: 600; text-decoration: none; }
+.trips-search-link:hover { text-decoration: underline; }
+
+.trip {
+  background: #fff; border-radius: 8px; padding: 14px 18px; margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.trip-head { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted); }
+.trip-day { font-weight: 600; color: var(--text); }
+.trip-kind { background: var(--gray-bg); border-radius: 10px; padding: 1px 8px; font-size: 12px; font-weight: 600; }
+.trip-head .spacer { flex: 1; }
+.trip-remove {
+  background: none; border: 0; cursor: pointer; border-radius: 4px;
+  color: var(--text-muted); font-size: 15px; line-height: 1; padding: 4px 7px;
+}
+.trip-remove:hover { background: var(--gray-bg); color: var(--red); }
+.trip-remove:disabled { opacity: .5; cursor: wait; }
+.trip-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.trip-times { font-size: 20px; font-weight: 700; white-space: nowrap; }
+.trip.past .trip-times { color: var(--text-muted); }
+.trip-route { font-size: 15px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.trip-meta { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.trip-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+@media (max-width: 700px) {
+  .trip { padding: 12px 14px; }
+  .trip-times { font-size: 18px; }
+  .trips-tiles { grid-template-columns: repeat(2, 1fr); gap: 10px 8px; }
+  .trips-tile-value { font-size: 19px; }
+  .trip-actions .book-btn { flex: 1; text-align: center; }
+  /* the name is a link now: clip it like the bold name before */
+  .header-home .auth-name, .header-stories .auth-name {
+    display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom;
+  }
+  .header-home .auth-name { max-width: 4em; }
+  .header-stories .auth-name { max-width: 9em; }
+}

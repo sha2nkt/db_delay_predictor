@@ -25,6 +25,7 @@ const I18N = {
     chooseHeading: "Anmelden oder registrieren",
     chooseLead: "Mit einem Konto kannst du Geschichten schreiben, kommentieren und abstimmen.",
     reportLead: "Mit einem Konto bekommst du deinen Verspätungs-Report per E-Mail.",
+    tripsLead: "Mit einem Konto merkt sich DelayBahn die Fahrten, die du dir merkst oder auf bahn.de buchst.",
     withGoogle: "Weiter mit Google",
     withApple: "Weiter mit Apple",
     withPhone: "Weiter mit Telefonnummer",
@@ -94,6 +95,7 @@ const I18N = {
     chooseHeading: "Log in or sign up",
     chooseLead: "With an account you can write stories, comment and vote.",
     reportLead: "With an account you get your delay report by email.",
+    tripsLead: "With an account DelayBahn remembers the trips you bookmark or book on bahn.de.",
     withGoogle: "Continue with Google",
     withApple: "Continue with Apple",
     withPhone: "Continue with phone",
@@ -171,7 +173,7 @@ const $ = (id) => document.getElementById(id);
 // Where a finished account goes: the stories board, or the page that sent
 // the visitor here (`next`, a path on this site only - anything else would
 // make the login page an open redirect). `reason` picks the lead line:
-// "report" is the bell on a journey card.
+// "report" is the bell on a journey card, "trips" the Meine Fahrten page.
 const params = new URLSearchParams(location.search);
 const NEXT = /^\/(?!\/)/.test(params.get("next") || "") ? params.get("next") : null;
 const REASON = params.get("reason") || "";
@@ -260,6 +262,7 @@ function applyStatic() {
     if (text != null) node.title = text;
   });
   if (REASON === "report") $("choose-lead").textContent = t("reportLead");
+  if (REASON === "trips") $("choose-lead").textContent = t("tripsLead");
   document.querySelectorAll(".lang-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.lang === lang);
   });

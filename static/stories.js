@@ -64,6 +64,7 @@ const I18N = {
     spanGroup: "Zeitraum",
     navLogin: "Anmelden",
     navLogout: "Abmelden",
+    navTrips: "Meine Fahrten",
     composeSend: "Veröffentlichen",
     sending: "Wird gesendet …",
     footerBack: "← Zur Verbindungssuche",
@@ -174,6 +175,7 @@ const I18N = {
     spanGroup: "Time span",
     navLogin: "Login",
     navLogout: "Logout",
+    navTrips: "My trips",
     composeSend: "Publish",
     sending: "Sending …",
     footerBack: "← Back to the journey search",
@@ -266,7 +268,11 @@ function toLogin() {
 function renderAuth() {
   document.getElementById("auth-login").classList.toggle("hidden", !!me);
   document.getElementById("auth-user").classList.toggle("hidden", !me);
-  document.getElementById("auth-name").textContent = me ? me.name : "";
+  const nameEl = document.getElementById("auth-name");
+  nameEl.textContent = me ? me.name : "";
+  // the name is the way to the account's booked trips
+  nameEl.href = lang === "en" ? "/en/my-trips" : "/meine-fahrten";
+  nameEl.title = I18N[lang].navTrips;
 }
 
 /* -- API: every request from a signed-in visitor carries their token, so the
